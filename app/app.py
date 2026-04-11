@@ -19,12 +19,20 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 import streamlit as st
 
+from models.activity import ProgressSnapshot, ReadingSession
 from models.book import Book
 from parser.device_detection import detect_devices
 from parser.export_parsers import get_parser_for_extension
 from parser.normalizer import normalize
-from parser.sqlite_parser import parse_sqlite
-from services.stats import compute_stats
+from parser.sqlite_parser import (
+    extract_page_turns,
+    extract_progress_snapshots,
+    extract_ratings,
+    extract_reading_sessions,
+    extract_shelves,
+    extract_word_lookups,
+    parse_sqlite,
+)
 
 # ---------------------------------------------------------------------------
 # Page config (must be first Streamlit call)
@@ -50,34 +58,80 @@ if _CSS_FILE.exists():
 # Session-state bootstrap
 # ---------------------------------------------------------------------------
 
-if "books" not in st.session_state:
-    st.session_state["books"] = []
-if "view" not in st.session_state:
-    st.session_state["view"] = "welcome"  # welcome | library | book_detail
-if "selected_book_id" not in st.session_state:
-    st.session_state["selected_book_id"] = None
+_DEFAULTS: dict = {
+    "books": [],
+    "view": "welcome",
+    "selected_book_id": None,
+    "sessions": [],
+    "snapshots": [],
+    "shelves": [],
+    "word_lookups": [],
+    "db_path": None,
+}
+for key, default in _DEFAULTS.items():
+    if key not in st.session_state:
+        st.session_state[key] = default
 
 # ---------------------------------------------------------------------------
 # Navigation helpers
 # ---------------------------------------------------------------------------
 
+_NAV_ITEMS = ["Overview", "Library", "Annotations", "Activity"]
+
+
 def _go_to(view: str, book_id: str | None = None) -> None:
     st.session_state["view"] = view
     st.session_state["selected_book_id"] = book_id
 
+
+def _load_telemetry(db_path: Path) -> None:
+    """Extract reading sessions, progress snapshots, shelves, vocabulary, and ratings from SQLite."""
+    try:
+        st.session_state["sessions"] = extract_reading_sessions(db_path)
+    except Exception:
+        st.session_state["sessions"] = []
+    try:
+        st.session_state["snapshots"] = extract_progress_snapshots(db_path)
+    except Exception:
+        st.session_state["snapshots"] = []
+    try:
+        st.session_state["shelves"] = extract_shelves(db_path)
+    except Exception:
+        st.session_state["shelves"] = []
+    try:
+        st.session_state["word_lookups"] = extract_word_lookups(db_path)
+    except Exception:
+        st.session_state["word_lookups"] = []
+    # Enrich books with ratings and page turns
+    try:
+        ratings = extract_ratings(db_path)
+        page_turns = extract_page_turns(db_path)
+        for book in st.session_state.get("books", []):
+            # Match by checking if any known ID maps to this book
+            for cid, rating in ratings.items():
+                if cid in (book.id or ""):
+                    book.rating = rating
+            for cid, turns in page_turns.items():
+                if cid in (book.id or ""):
+                    book.page_turns = turns
+    except Exception:
+        pass
+    st.session_state["db_path"] = db_path
+
 # ---------------------------------------------------------------------------
-# Sidebar — file upload & processing
+# Sidebar
 # ---------------------------------------------------------------------------
 
 with st.sidebar:
     # --- Brand ---
     st.markdown(
-        '<div style="text-align:center; padding: 0.2rem 0;">'
+        '<div style="text-align:center; padding: 0.4rem 0 0.2rem;">'
         '<span style="font-size:1.5rem; font-weight:800; letter-spacing:-0.02em;">'
-        '<span style="color:#4a9eff;">Ko</span>Notes</span></div>',
+        '<span style="color:#4a9eff;">Ko</span>Notes</span>'
+        '<div style="font-size:0.72rem; color:#666; margin-top:2px;">Reading Intelligence</div>'
+        '</div>',
         unsafe_allow_html=True,
     )
-    st.caption("Turn your Kobo highlights into structured, readable insight.")
     st.divider()
 
     # --- Auto-detect connected Kobo device ---
@@ -85,15 +139,16 @@ with st.sidebar:
     if devices:
         dev = devices[0]
         st.markdown(
-            f'<div style="padding:0.5rem 0.75rem; border-radius:8px; border:1px solid rgba(74,158,255,0.2); '
-            f'background:rgba(74,158,255,0.06); margin-bottom:0.5rem;">'
-            f'<div style="font-weight:600; font-size:0.9rem;">Kobo device detected</div>'
-            f'<div style="font-size:0.78rem; color:#888; margin-top:2px;">{dev.label}</div>'
+            f'<div style="padding:0.5rem 0.75rem; border-radius:8px; '
+            f'border:1px solid rgba(16,185,129,0.2); '
+            f'background:rgba(16,185,129,0.04); margin-bottom:0.5rem;">'
+            f'<div style="font-weight:600; font-size:0.85rem; color:#10b981;">'
+            f'Kobo Connected</div>'
+            f'<div style="font-size:0.75rem; color:#888; margin-top:2px;">{dev.label}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
 
-        # Consent gate — user must explicitly confirm before reading device data
         consent_key = "device_consent"
         if consent_key not in st.session_state:
             st.session_state[consent_key] = False
@@ -101,17 +156,16 @@ with st.sidebar:
         if not st.session_state[consent_key]:
             st.markdown(
                 '<div style="font-size:0.85rem; padding:0.3rem 0;">'
-                'Do you want to read local data from this device?</div>',
+                'Read local data from this device?</div>',
                 unsafe_allow_html=True,
             )
             c_yes, c_no = st.columns(2)
-            if c_yes.button("Yes, load data", type="primary", use_container_width=True, key="consent_yes"):
+            if c_yes.button("Yes, load data", type="primary", width="stretch", key="consent_yes"):
                 st.session_state[consent_key] = True
                 st.rerun()
-            if c_no.button("No", use_container_width=True, key="consent_no"):
+            if c_no.button("No", width="stretch", key="consent_no"):
                 st.session_state[consent_key] = False
         else:
-            # Consent given — auto-load on first detection
             if not st.session_state["books"] and "device_loaded" not in st.session_state:
                 st.session_state["device_loaded"] = True
                 try:
@@ -119,20 +173,22 @@ with st.sidebar:
                     device_books = normalize(raw, source="kobo_sqlite")
                     if device_books:
                         st.session_state["books"] = device_books
-                        _go_to("library")
+                        _load_telemetry(dev.db_path)
+                        _go_to("overview")
                         st.rerun()
                 except Exception as exc:
                     st.error(f"Error reading device: {exc}")
 
-            if st.button("Reload from device", use_container_width=True, key="load_device"):
+            if st.button("Reload from device", width="stretch", key="load_device"):
                 try:
                     raw = parse_sqlite(dev.db_path)
                     device_books = normalize(raw, source="kobo_sqlite")
                     if device_books:
                         st.session_state["books"] = device_books
+                        _load_telemetry(dev.db_path)
                         total_ann = sum(len(b.annotations) for b in device_books)
                         st.toast(f"Loaded {len(device_books)} book(s), {total_ann} annotations")
-                        _go_to("library")
+                        _go_to("overview")
                         st.rerun()
                     else:
                         st.warning("No annotations found on device.")
@@ -141,25 +197,23 @@ with st.sidebar:
         st.divider()
 
     # --- Manual upload ---
-    with st.expander("Upload files manually", expanded=not bool(devices) and not st.session_state["books"]):
+    with st.expander("Upload files", expanded=not bool(devices) and not st.session_state["books"]):
         uploaded_sqlite = st.file_uploader(
             "KoboReader.sqlite",
             type=["sqlite", "sqlite3", "db"],
-            help="Found on your Kobo device at .kobo/KoboReader.sqlite",
+            help="Found on your Kobo at .kobo/KoboReader.sqlite",
         )
-
         uploaded_exports = st.file_uploader(
             "Annotation exports",
             type=["html", "htm", "txt", "md", "markdown"],
             accept_multiple_files=True,
             help="HTML, TXT, or Markdown annotation exports.",
         )
-
         has_files = bool(uploaded_exports) or uploaded_sqlite is not None
         process_btn = st.button(
             "Load annotations",
             type="primary",
-            use_container_width=True,
+            width="stretch",
             disabled=not has_files,
         )
 
@@ -176,6 +230,7 @@ with st.sidebar:
                     raw = parse_sqlite(tmp_path)
                     books = normalize(raw, source="kobo_sqlite")
                     all_books.extend(books)
+                    _load_telemetry(tmp_path)
                 except Exception as exc:
                     errors.append(f"Error parsing KoboReader.sqlite: {exc}")
                 finally:
@@ -217,53 +272,68 @@ with st.sidebar:
             if merged:
                 total_ann = sum(len(b.annotations) for b in merged.values())
                 st.toast(f"Loaded {len(merged)} book(s), {total_ann} annotations")
-                _go_to("library")
+                _go_to("overview")
                 st.rerun()
             elif not errors:
                 st.warning("No annotations found in the uploaded file(s).")
 
-    # --- Navigation links ---
+    # --- Navigation ---
     if st.session_state["books"]:
         st.divider()
+
+        # Map current view to radio index
         current_view = st.session_state.get("view", "welcome")
+        _view_to_nav = {
+            "overview": "Overview",
+            "library": "Library",
+            "annotations": "Annotations",
+            "activity": "Activity",
+        }
+        current_nav = _view_to_nav.get(current_view, "Overview")
+        current_idx = _NAV_ITEMS.index(current_nav) if current_nav in _NAV_ITEMS else 0
 
-        # Library nav
-        lib_style = (
-            "background:rgba(74,158,255,0.12); border-left:3px solid #4a9eff; font-weight:600;"
-            if current_view == "library"
-            else "border-left:3px solid transparent;"
+        selected_nav = st.radio(
+            "Navigate",
+            _NAV_ITEMS,
+            index=current_idx,
+            label_visibility="collapsed",
+            key="nav_radio",
         )
-        if st.button("Library", use_container_width=True, key="nav_library"):
-            _go_to("library")
+
+        # Sync radio selection to view state
+        _nav_to_view = {
+            "Overview": "overview",
+            "Library": "library",
+            "Annotations": "annotations",
+            "Activity": "activity",
+        }
+        new_view = _nav_to_view.get(selected_nav, "overview")
+        if new_view != current_view and current_view != "book_detail":
+            _go_to(new_view)
             st.rerun()
 
-        # Annotations nav
-        ann_style = (
-            "background:rgba(74,158,255,0.12); border-left:3px solid #4a9eff; font-weight:600;"
-            if current_view == "annotations"
-            else "border-left:3px solid transparent;"
-        )
-        if st.button("All Annotations", use_container_width=True, key="nav_annotations"):
-            _go_to("annotations")
-            st.rerun()
-
-        # Quick stats in sidebar
+        # Quick library summary
         total_books = len(st.session_state["books"])
         total_ann = sum(len(b.annotations) for b in st.session_state["books"])
+        total_hl = sum(
+            sum(1 for a in b.annotations if a.kind == "highlight")
+            for b in st.session_state["books"]
+        )
         st.markdown(
-            f'<div style="padding:0.6rem 0; font-size:0.78rem; color:#888;">'
-            f'{total_books} book(s) · {total_ann} annotations loaded</div>',
+            f'<div style="padding:0.5rem 0; font-size:0.75rem; color:#64748b; line-height:1.6;">'
+            f'{total_books} books &middot; {total_ann} annotations &middot; {total_hl} highlights'
+            f'</div>',
             unsafe_allow_html=True,
         )
 
     st.divider()
     st.markdown(
-        '<div style="text-align:center; font-size:0.72rem; color:#666;">v0.2.0</div>',
+        '<div style="text-align:center; font-size:0.68rem; color:#475569;">v0.3.0</div>',
         unsafe_allow_html=True,
     )
 
 # ---------------------------------------------------------------------------
-# Main area — view routing
+# Main area -- view routing
 # ---------------------------------------------------------------------------
 
 books: list[Book] = st.session_state.get("books", [])
@@ -281,7 +351,6 @@ if not books or view == "welcome":
         unsafe_allow_html=True,
     )
 
-    # --- Step cards ---
     s1, s2, s3 = st.columns(3, gap="medium")
     with s1:
         st.markdown(
@@ -297,7 +366,7 @@ if not books or view == "welcome":
             '<div class="kn-step">'
             '<div class="kn-step-num">2</div>'
             '<h4>Parse</h4>'
-            '<p>Annotations are extracted from the SQLite database — '
+            '<p>Annotations are extracted from the SQLite database '
             'or upload HTML/TXT/MD exports.</p>'
             '</div>',
             unsafe_allow_html=True,
@@ -306,9 +375,9 @@ if not books or view == "welcome":
         st.markdown(
             '<div class="kn-step">'
             '<div class="kn-step-num">3</div>'
-            '<h4>Export</h4>'
-            '<p>Browse your library, search across books, and export as '
-            'Markdown, JSON, or plain text.</p>'
+            '<h4>Explore</h4>'
+            '<p>Browse your library, track reading activity, and export '
+            'as Markdown, JSON, or plain text.</p>'
             '</div>',
             unsafe_allow_html=True,
         )
@@ -330,11 +399,11 @@ if not books or view == "welcome":
     with c2:
         st.markdown("##### How it works")
         st.markdown(
-            "- **Fully local** — nothing leaves your machine\n"
-            "- **Read-only** — your Kobo data is never modified\n"
-            "- **Smart dedup** — annotations merged across sources\n"
-            "- **Chapter names** — cleaned from raw Kobo IDs\n"
-            "- **Rich metadata** — shelves, progress, publisher, ISBN"
+            "- **Fully local** -- nothing leaves your machine\n"
+            "- **Read-only** -- your Kobo data is never modified\n"
+            "- **Smart dedup** -- annotations merged across sources\n"
+            "- **Chapter names** -- cleaned from raw Kobo IDs\n"
+            "- **Rich telemetry** -- shelves, progress, sessions, activity"
         )
 
     st.markdown(
@@ -345,17 +414,28 @@ if not books or view == "welcome":
     )
 
 # ---------------------------------------------------------------------------
+# Overview dashboard
+# ---------------------------------------------------------------------------
+elif view == "overview":
+    from app.views.overview import render_overview
+
+    sessions: list[ReadingSession] = st.session_state.get("sessions", [])
+    snapshots: list[ProgressSnapshot] = st.session_state.get("snapshots", [])
+    word_lookups = st.session_state.get("word_lookups", [])
+    render_overview(books, sessions, snapshots, navigate=_go_to, word_lookups=word_lookups)
+
+# ---------------------------------------------------------------------------
 # Library view
 # ---------------------------------------------------------------------------
 elif view == "library":
-    from app.pages.library import render_library
+    from app.views.library import render_library
     render_library(books, navigate=_go_to)
 
 # ---------------------------------------------------------------------------
 # Book detail view
 # ---------------------------------------------------------------------------
 elif view == "book_detail":
-    from app.pages.book_detail import render_book_detail
+    from app.views.book_detail import render_book_detail
 
     selected_id = st.session_state.get("selected_book_id")
     selected_book = next((b for b in books if b.id == selected_id), None)
@@ -363,7 +443,7 @@ elif view == "book_detail":
         render_book_detail(selected_book, navigate=_go_to)
     else:
         st.error("Book not found.")
-        if st.button("← Back to library"):
+        if st.button("Back to library"):
             _go_to("library")
             st.rerun()
 
@@ -371,5 +451,15 @@ elif view == "book_detail":
 # All-annotations view
 # ---------------------------------------------------------------------------
 elif view == "annotations":
-    from app.pages.annotations import render_annotations
+    from app.views.annotations import render_annotations
     render_annotations(books)
+
+# ---------------------------------------------------------------------------
+# Activity / telemetry view
+# ---------------------------------------------------------------------------
+elif view == "activity":
+    from app.views.activity import render_activity
+
+    sessions_data: list[ReadingSession] = st.session_state.get("sessions", [])
+    snapshots_data: list[ProgressSnapshot] = st.session_state.get("snapshots", [])
+    render_activity(books, sessions_data, snapshots_data)

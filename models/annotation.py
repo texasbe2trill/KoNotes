@@ -12,6 +12,7 @@ class Annotation(BaseModel):
     kind: Literal["highlight", "note", "unknown"] = "unknown"
     text: str
     created_at: datetime | None = None
+    modified_at: datetime | None = None
     chapter: str | None = None
     location: str | None = None
     source: str

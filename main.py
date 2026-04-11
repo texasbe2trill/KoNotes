@@ -38,7 +38,7 @@ def _build_parser() -> argparse.ArgumentParser:
         description="KoNotes -- Turn your Kobo highlights into structured, readable insight.",
     )
     parser.add_argument(
-        "--version", action="version", version="konotes 0.2.0"
+        "--version", action="version", version="konotes 0.3.0"
     )
     sub = parser.add_subparsers(dest="command")
 
@@ -68,6 +68,12 @@ def _build_parser() -> argparse.ArgumentParser:
     p_summary = sub.add_parser("summary", help="Show library statistics from a file")
     p_summary.add_argument("file", type=Path, help="Path to annotation file or KoboReader.sqlite")
     p_summary.set_defaults(func=_cmd_summary)
+
+    # book
+    p_book = sub.add_parser("book", help="Show detail for a specific book")
+    p_book.add_argument("file", type=Path, help="Path to annotation file or KoboReader.sqlite")
+    p_book.add_argument("title", help="Book title (or partial match)")
+    p_book.set_defaults(func=_cmd_book)
 
     # detect-device
     p_detect = sub.add_parser("detect-device", help="Scan for connected Kobo devices")
@@ -176,7 +182,15 @@ def _cmd_export(args: argparse.Namespace) -> int:
 
 
 def _cmd_summary(args: argparse.Namespace) -> int:
-    from services.cli_output import console, print_banner, print_error, print_stats
+    from services.cli_output import (
+        console,
+        print_banner,
+        print_error,
+        print_recent_activity,
+        print_shelves,
+        print_stats,
+        print_top_authors,
+    )
 
     print_banner()
 
@@ -199,13 +213,56 @@ def _cmd_summary(args: argparse.Namespace) -> int:
 
     console.print()
     print_stats(stats)
+    print_top_authors(stats)
 
     if stats.books_by_highlight_count:
         console.print()
-        console.print("[bold]Most highlighted:[/bold]")
+        console.print("[bold]Most Highlighted:[/bold]")
         for title, count in stats.books_by_highlight_count[:5]:
             if count > 0:
                 console.print(f"  {title} -- {count} highlight(s)")
+
+    # Shelf summary (SQLite only)
+    if path.suffix.lower() in (".sqlite", ".sqlite3", ".db"):
+        from parser.sqlite_parser import extract_reading_sessions, extract_shelves
+
+        shelves = extract_shelves(path)
+        print_shelves(shelves)
+
+        sessions = extract_reading_sessions(path)
+        print_recent_activity(sessions)
+
+    return 0
+
+
+def _cmd_book(args: argparse.Namespace) -> int:
+    from services.cli_output import console, print_banner, print_book_detail, print_error
+
+    print_banner()
+
+    path: Path = args.file
+    if not path.exists():
+        print_error(f"File not found: {path}")
+        return 1
+
+    if not _confirm_device_access(path):
+        console.print("Aborted.")
+        return 0
+
+    books, err = _load_books(path)
+    if err:
+        print_error(err)
+        return 1
+
+    query = args.title.lower()
+    matches = [b for b in books if query in b.title.lower()]
+
+    if not matches:
+        print_error(f"No books matching '{args.title}'")
+        return 1
+
+    for book in matches:
+        print_book_detail(book)
 
     return 0
 

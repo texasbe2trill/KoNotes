@@ -1,11 +1,45 @@
-/* KoNotes custom styles — injected via st.markdown */
+/* KoNotes -- Garmin-inspired reading intelligence dashboard */
 
-/* Tighten sidebar spacing */
+/* ============================================================
+   1. FOUNDATION & LAYOUT
+   ============================================================ */
+
+/* Tighter sidebar spacing */
 [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-    gap: 0.4rem;
+    gap: 0.35rem;
 }
 
-/* Nav buttons in sidebar — look like tabs */
+/* Main content padding */
+.block-container {
+    padding-top: 1.5rem !important;
+    padding-bottom: 2rem !important;
+}
+
+/* ============================================================
+   2. SIDEBAR NAVIGATION
+   ============================================================ */
+
+/* Nav radio group — clean pill style */
+[data-testid="stSidebar"] [role="radiogroup"] {
+    gap: 0.2rem !important;
+}
+[data-testid="stSidebar"] [role="radiogroup"] label {
+    border-radius: 8px !important;
+    padding: 0.5rem 0.75rem !important;
+    transition: all 0.15s ease !important;
+    border: none !important;
+    background: transparent !important;
+}
+[data-testid="stSidebar"] [role="radiogroup"] label:hover {
+    background: rgba(74, 158, 255, 0.08) !important;
+}
+[data-testid="stSidebar"] [role="radiogroup"] label[data-checked="true"],
+[data-testid="stSidebar"] [role="radiogroup"] label[data-baseweb="radio"][aria-checked="true"] {
+    background: rgba(74, 158, 255, 0.12) !important;
+    border-left: 3px solid #4a9eff !important;
+}
+
+/* Nav buttons in sidebar — clean style */
 [data-testid="stSidebar"] button[kind="secondary"] {
     border: none;
     background: transparent;
@@ -16,48 +50,108 @@
     transition: background 0.15s;
 }
 [data-testid="stSidebar"] button[kind="secondary"]:hover {
-    background: rgba(74, 158, 255, 0.12);
+    background: rgba(74, 158, 255, 0.08);
 }
 
-/* Active nav button highlight — applied via st.markdown per-page */
-.nav-active button[kind="secondary"] {
-    background: rgba(74, 158, 255, 0.15) !important;
-    border-left: 3px solid #4a9eff !important;
-    font-weight: 600 !important;
-}
+/* ============================================================
+   3. METRIC CARDS
+   ============================================================ */
 
-/* Metric cards */
 [data-testid="stMetric"] {
-    background: rgba(74, 158, 255, 0.06);
-    border: 1px solid rgba(74, 158, 255, 0.12);
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
+    background: rgba(74, 158, 255, 0.04);
+    border: 1px solid rgba(74, 158, 255, 0.10);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+[data-testid="stMetric"]:hover {
+    border-color: rgba(74, 158, 255, 0.25);
+    box-shadow: 0 2px 8px rgba(74, 158, 255, 0.06);
 }
 [data-testid="stMetric"] [data-testid="stMetricValue"] {
-    font-size: 1.8rem;
+    font-size: 1.7rem;
     font-weight: 700;
     color: #4a9eff;
 }
 [data-testid="stMetric"] [data-testid="stMetricLabel"] {
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    opacity: 0.7;
+    letter-spacing: 0.05em;
+    opacity: 0.65;
+    font-weight: 500;
 }
 
-/* Book card hover */
-div[data-testid="stVerticalBlock"] > div[data-testid="element-container"] > div > div[data-testid="stVerticalBlock"] {
-    transition: border-color 0.15s;
+/* ============================================================
+   4. STAT CARDS (custom HTML panels)
+   ============================================================ */
+
+.kn-stat-card {
+    background: rgba(74, 158, 255, 0.04);
+    border: 1px solid rgba(74, 158, 255, 0.10);
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    text-align: center;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.kn-stat-card:hover {
+    border-color: rgba(74, 158, 255, 0.25);
+    box-shadow: 0 2px 8px rgba(74, 158, 255, 0.06);
+}
+.kn-stat-value {
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: #4a9eff;
+    line-height: 1.2;
+}
+.kn-stat-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #888;
+    margin-top: 0.2rem;
+}
+.kn-stat-sub {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 0.15rem;
 }
 
-/* Annotation blockquote styling */
-blockquote {
-    border-left: 3px solid #4a9eff !important;
-    padding-left: 1rem !important;
-    font-style: italic;
+/* Accent variants */
+.kn-stat-card.accent-green .kn-stat-value { color: #10b981; }
+.kn-stat-card.accent-green { border-color: rgba(16, 185, 129, 0.15); background: rgba(16, 185, 129, 0.04); }
+.kn-stat-card.accent-amber .kn-stat-value { color: #f59e0b; }
+.kn-stat-card.accent-amber { border-color: rgba(245, 158, 11, 0.15); background: rgba(245, 158, 11, 0.04); }
+.kn-stat-card.accent-purple .kn-stat-value { color: #8b5cf6; }
+.kn-stat-card.accent-purple { border-color: rgba(139, 92, 246, 0.15); background: rgba(139, 92, 246, 0.04); }
+.kn-stat-card.accent-rose .kn-stat-value { color: #f43f5e; }
+.kn-stat-card.accent-rose { border-color: rgba(244, 63, 94, 0.15); background: rgba(244, 63, 94, 0.04); }
+
+/* ============================================================
+   5. SECTION PANELS
+   ============================================================ */
+
+.kn-panel {
+    border: 1px solid rgba(150, 150, 150, 0.12);
+    border-radius: 12px;
+    padding: 1.25rem 1.3rem;
+    margin-bottom: 1rem;
+    background: rgba(255, 255, 255, 0.01);
+}
+.kn-panel-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #888;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(150, 150, 150, 0.10);
 }
 
-/* Badge pills */
+/* ============================================================
+   6. BADGE PILLS
+   ============================================================ */
+
 .kn-badge {
     display: inline-block;
     padding: 0.15rem 0.55rem;
@@ -67,7 +161,7 @@ blockquote {
     letter-spacing: 0.02em;
 }
 .kn-badge-highlight {
-    background: rgba(255, 193, 7, 0.15);
+    background: rgba(245, 158, 11, 0.15);
     color: #b8860b;
 }
 .kn-badge-note {
@@ -78,21 +172,138 @@ blockquote {
     background: rgba(150, 150, 150, 0.15);
     color: #999;
 }
+.kn-badge-shelf {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    background: rgba(74, 158, 255, 0.08);
+    color: #4a9eff;
+    font-size: 0.78rem;
+    margin: 0.15rem 0.1rem;
+    font-weight: 500;
+}
+.kn-badge-progress {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin: 0.15rem 0.1rem;
+}
+.kn-badge-progress.done { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.kn-badge-progress.reading { background: rgba(74, 158, 255, 0.12); color: #4a9eff; }
+.kn-badge-progress.unstarted { background: rgba(150, 150, 150, 0.12); color: #999; }
 
-/* Download buttons — compact */
+/* ============================================================
+   7. BOOK CARDS
+   ============================================================ */
+
+.kn-book-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid rgba(150, 150, 150, 0.08);
+}
+.kn-book-row:last-child { border-bottom: none; }
+.kn-book-title {
+    font-weight: 600;
+    font-size: 0.92rem;
+}
+.kn-book-author {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+/* Progress bar inline */
+.kn-progress-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(150, 150, 150, 0.12);
+    overflow: hidden;
+    flex: 1;
+}
+.kn-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #4a9eff, #38bdf8);
+    transition: width 0.3s ease;
+}
+.kn-progress-fill.complete {
+    background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+/* ============================================================
+   8. LIST ITEMS (ranked lists, sessions)
+   ============================================================ */
+
+.kn-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid rgba(150, 150, 150, 0.06);
+    font-size: 0.88rem;
+}
+.kn-list-item:last-child { border-bottom: none; }
+.kn-list-rank {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(74, 158, 255, 0.1);
+    color: #4a9eff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.6rem;
+    flex-shrink: 0;
+}
+.kn-list-value {
+    color: #888;
+    font-size: 0.8rem;
+    font-weight: 500;
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+}
+
+/* ============================================================
+   9. ANNOTATION BLOCKQUOTES
+   ============================================================ */
+
+blockquote {
+    border-left: 3px solid #4a9eff !important;
+    padding-left: 1rem !important;
+    font-style: italic;
+    margin: 0.3rem 0 !important;
+}
+
+/* ============================================================
+   10. CHAPTER HEADINGS
+   ============================================================ */
+
+.kn-chapter {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #4a9eff;
+    padding: 0.6rem 0 0.2rem 0;
+    border-bottom: 1px solid rgba(74, 158, 255, 0.12);
+    margin-bottom: 0.5rem;
+}
+
+/* ============================================================
+   11. DOWNLOAD BUTTONS
+   ============================================================ */
+
 button[data-testid="stDownloadButton"] {
     font-size: 0.82rem !important;
 }
 
-/* Footer */
-.kn-footer {
-    text-align: center;
-    color: #999;
-    font-size: 0.82rem;
-    padding: 1.5rem 0 0.5rem 0;
-}
+/* ============================================================
+   12. WELCOME / HERO
+   ============================================================ */
 
-/* Welcome hero */
 .kn-hero {
     text-align: center;
     padding: 2.5rem 0 1rem 0;
@@ -113,7 +324,6 @@ button[data-testid="stDownloadButton"] {
     margin-top: 0;
 }
 
-/* Step cards on welcome page */
 .kn-step {
     padding: 1.2rem;
     border-radius: 10px;
@@ -144,12 +354,51 @@ button[data-testid="stDownloadButton"] {
     color: #888;
 }
 
-/* Chapter heading in book detail */
-.kn-chapter {
-    font-size: 1rem;
+/* ============================================================
+   13. FOOTER
+   ============================================================ */
+
+.kn-footer {
+    text-align: center;
+    color: #777;
+    font-size: 0.78rem;
+    padding: 2rem 0 0.5rem 0;
+    letter-spacing: 0.01em;
+}
+
+/* ============================================================
+   14. SECTION HEADER
+   ============================================================ */
+
+.kn-section-header {
+    font-size: 0.78rem;
     font-weight: 600;
-    color: #4a9eff;
-    padding: 0.6rem 0 0.2rem 0;
-    border-bottom: 1px solid rgba(74, 158, 255, 0.15);
-    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #888;
+    margin: 1.25rem 0 0.5rem 0;
+}
+
+/* ============================================================
+   15. INSIGHT CALLOUT
+   ============================================================ */
+
+.kn-insight {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    background: rgba(139, 92, 246, 0.04);
+    border: 1px solid rgba(139, 92, 246, 0.12);
+    font-size: 0.85rem;
+    color: #a78bfa;
+    margin: 0.75rem 0;
+}
+.kn-insight-label {
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
 }

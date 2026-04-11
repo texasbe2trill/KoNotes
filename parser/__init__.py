@@ -8,7 +8,12 @@ from parser.export_parsers import (
     get_parser_for_extension,
 )
 from parser.normalizer import normalize
-from parser.sqlite_parser import parse_sqlite
+from parser.sqlite_parser import (
+    extract_progress_snapshots,
+    extract_reading_sessions,
+    extract_shelves,
+    parse_sqlite,
+)
 
 __all__ = [
     "BaseParser",
@@ -16,6 +21,9 @@ __all__ = [
     "MarkdownExportParser",
     "TXTExportParser",
     "detect_devices",
+    "extract_progress_snapshots",
+    "extract_reading_sessions",
+    "extract_shelves",
     "get_parser_for_extension",
     "normalize",
     "normalize_chapter",

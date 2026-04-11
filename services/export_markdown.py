@@ -11,9 +11,25 @@ def export_book_markdown(book: Book) -> str:
     lines: list[str] = []
 
     lines.append(f"# {book.title}")
+    if book.subtitle:
+        lines.append(f"*{book.subtitle}*")
     if book.author:
         lines.append(f"**Author:** {book.author}")
+    if book.series:
+        lines.append(f"**Series:** {book.series}")
     lines.append(f"**Source:** {book.source}")
+    if book.publisher:
+        lines.append(f"**Publisher:** {book.publisher}")
+    if book.isbn:
+        lines.append(f"**ISBN:** {book.isbn}")
+    if book.language:
+        lines.append(f"**Language:** {book.language}")
+    if book.shelves:
+        lines.append(f"**Shelves:** {', '.join(book.shelves)}")
+    if book.read_percent is not None:
+        lines.append(f"**Progress:** {book.read_percent:.0f}%")
+    if book.date_last_read:
+        lines.append(f"**Last Read:** {book.date_last_read.strftime('%Y-%m-%d')}")
     lines.append(f"**Exported:** {datetime.now().strftime('%Y-%m-%d')}")
     lines.append("")
     lines.append("---")

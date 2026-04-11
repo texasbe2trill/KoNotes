@@ -85,3 +85,17 @@ class TestCLIDetectDevice:
     def test_detect_device_runs(self):
         result = main(["detect-device"])
         assert result == 0
+
+
+class TestCLIBook:
+    def test_book_found(self):
+        result = main(["book", str(FIXTURES / "sample_export.html"), "Dune"])
+        assert result == 0
+
+    def test_book_not_found(self):
+        result = main(["book", str(FIXTURES / "sample_export.html"), "Nonexistent"])
+        assert result == 1
+
+    def test_book_partial_match(self):
+        result = main(["book", str(FIXTURES / "sample_export.html"), "dun"])
+        assert result == 0

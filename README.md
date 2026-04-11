@@ -7,8 +7,8 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Streamlit](https://img.shields.io/badge/built%20with-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Phase: 1.5](https://img.shields.io/badge/phase-1.5-blue.svg)]()
-[![Tests](https://img.shields.io/badge/tests-92%20passed-brightgreen.svg)]()
+[![Phase: 2](https://img.shields.io/badge/phase-2-blue.svg)]()
+[![Tests](https://img.shields.io/badge/tests-135%20passed-brightgreen.svg)]()
 
 [Getting Started](#getting-started) · [Features](#features) · [CLI](#cli-usage) · [Supported Formats](#supported-inputs) · [Roadmap](#roadmap) · [Contributing](#contributing)
 
@@ -28,7 +28,7 @@ Your reading insights are trapped in formats that weren't designed to be reused.
 
 ## The Solution
 
-KoNotes parses every Kobo annotation format, normalises the data into clean structures, and gives you a local-first UI to browse, search, filter, and export your reading highlights.
+KoNotes parses every Kobo annotation format, extracts reading telemetry from KoboReader.sqlite, normalises everything into clean structures, and gives you a local-first dashboard to browse, search, filter, and export your reading data.
 
 No cloud. No account. No tracking. Just your reading data, made useful.
 
@@ -38,14 +38,18 @@ No cloud. No account. No tracking. Just your reading data, made useful.
 
 - **Automatic device detection** -- plug in your Kobo via USB and KoNotes finds and parses it automatically
 - **KoboReader.sqlite parsing** -- the primary data source: annotations, shelves, reading progress, publisher, ISBN, and language
+- **Reading session detection** -- clusters Bookmark timestamps into reading sessions with duration and progress tracking
+- **Progress snapshots** -- extracts historical reading progress from the database
+- **Overview dashboard** -- library-wide metrics, top authors, shelves, recent activity, and annotation trends at a glance
+- **Activity view** -- reading sessions, progress distribution, annotation timeline, and per-book progress snapshots
+- **Library dashboard** -- all your books at a glance with annotation counts, reading progress, shelf info, and author/status filters
+- **Book detail view** -- per-book annotations with chapter grouping, filtering, search, pagination, series/subtitle display, and shelf badges
 - **Multi-format fallback** -- also parses HTML, TXT, and Markdown annotation exports
 - **Smart normalisation** -- deduplicates across sources, groups by book, classifies by type
 - **Chapter normalisation** -- cleans Kobo chapter IDs (e.g. `au Author s Note` becomes `Author's Note`)
-- **Library dashboard** -- all your books at a glance with annotation counts, reading progress, and shelf info
-- **Book detail view** -- per-book annotations with chapter grouping, filtering, search, and pagination
 - **Cross-book search** -- find any annotation across your entire library
-- **Multi-format export** -- Markdown, JSON, and plain-text export per book
-- **Rich CLI** -- subcommands for parsing, exporting, summarising, and device detection with coloured output
+- **Multi-format export** -- Markdown, JSON, and plain-text export per book, with telemetry and exporter metadata in JSON
+- **Rich CLI** -- subcommands for parsing, exporting, summarising, book lookup, and device detection with coloured output
 - **Fully local** -- nothing leaves your machine. No cloud. No account. No tracking.
 
 ---
@@ -114,8 +118,11 @@ konotes export /Volumes/KOBOeReader/.kobo/KoboReader.sqlite -f json -o ./output
 konotes parse path/to/export.html
 konotes export path/to/export.html -f text -o ./output
 
-# Show library statistics
+# Show library statistics (includes shelves, sessions, top authors for SQLite)
 konotes summary /Volumes/KOBOeReader/.kobo/KoboReader.sqlite
+
+# Look up a specific book by title (partial match supported)
+konotes book /Volumes/KOBOeReader/.kobo/KoboReader.sqlite "Dune"
 ```
 
 Example output:
@@ -151,10 +158,10 @@ pytest tests/ -v
 ```
 
 ```
-92 passed
+135 passed
 ```
 
-Tests cover all three export parsers, the normalisation pipeline, model validation, chapter normalisation, export formats (JSON, TXT, Markdown), device detection, CLI subcommands, schema helpers, and end-to-end fixture parsing.
+Tests cover all three export parsers, the normalisation pipeline, model validation, chapter normalisation, export formats (JSON, TXT, Markdown), device detection, CLI subcommands, schema helpers, SQLite telemetry extraction (sessions, snapshots, shelves), library statistics computation, and end-to-end fixture parsing.
 
 ---
 
@@ -167,13 +174,17 @@ KoNotes/
 │   ├── assets/
 │   │   ├── logo.svg            # Brand logo
 │   │   └── styles.css          # Custom CSS
-│   └── pages/
-│       ├── library.py          # Library dashboard with stats + insights
+│   └── views/
+│       ├── overview.py         # Overview dashboard (metrics, authors, shelves, activity)
+│       ├── activity.py         # Activity view (sessions, progress, timeline)
+│       ├── library.py          # Library dashboard with stats, filters, and insights
 │       ├── book_detail.py      # Per-book detail with multi-format export
 │       └── annotations.py      # Cross-book annotation search
 ├── models/
 │   ├── annotation.py           # Annotation Pydantic model
 │   ├── book.py                 # Book Pydantic model (extended metadata)
+│   ├── activity.py             # ReadingSession + ProgressSnapshot models
+│   ├── shelf.py                # Shelf model
 │   └── device.py               # KoboDevice model
 ├── parser/
 │   ├── base.py                 # Abstract parser interface
@@ -183,9 +194,10 @@ KoNotes/
 │   ├── chapter_normalize.py    # xhtml path -> human-readable chapter names
 │   └── device_detection.py     # Scan for connected Kobo devices
 ├── services/
-│   ├── stats.py                # Library statistics
+│   ├── stats.py                # Library statistics (15+ metrics)
+│   ├── library_summary.py      # Aggregated library summary builder
 │   ├── export_markdown.py      # Per-book Markdown export
-│   ├── export_json.py          # Per-book JSON export
+│   ├── export_json.py          # Per-book JSON export (with telemetry + exporter blocks)
 │   ├── export_text.py          # Per-book plain-text export
 │   └── cli_output.py           # Rich terminal formatting
 ├── utils/
@@ -199,7 +211,9 @@ KoNotes/
 │   ├── test_exports.py         # JSON/TXT/Markdown export tests
 │   ├── test_device_detection.py # Device detection tests
 │   ├── test_schema.py          # Schema helper tests
-│   └── test_cli.py             # CLI subcommand tests
+│   ├── test_cli.py             # CLI subcommand tests
+│   ├── test_sqlite_parser.py   # SQLite telemetry extraction tests
+│   └── test_stats.py           # Library statistics tests
 ├── main.py                     # CLI entry point (argparse)
 ├── requirements.txt            # Runtime + dev dependencies
 └── pyproject.toml              # Project metadata & build config
@@ -246,11 +260,23 @@ KoNotes is built in phases. Phase 1.5 is complete. Future phases introduce enric
 - [x] Expanded test suite (92 tests)
 - [x] Updated footer: "Made with love for the Kobo community"
 
-### Phase 2 -- Enrichment
-- [ ] Automatic chapter grouping and timeline view
-- [ ] Manual tagging for annotations
-- [ ] Reading session detection from SQLite timestamps
-- [ ] Batch export (all books at once)
+### Phase 2 -- Reading Intelligence Dashboard
+- [x] Reading session detection from SQLite Bookmark timestamps
+- [x] Progress snapshot extraction from the database
+- [x] New domain models: ReadingSession, ProgressSnapshot, Shelf
+- [x] Extended Book model (series, content_type, is_archived, is_favorited, date_added)
+- [x] Extended Annotation model (modified_at)
+- [x] Library statistics layer (15+ metrics: top authors, shelf counts, annotation types, progress distribution, reading activity by day)
+- [x] Overview dashboard (metrics, recently read, most highlighted, top authors, shelves, annotation activity chart, sessions)
+- [x] Activity view (sessions, progress distribution, annotation timeline, progress snapshots)
+- [x] Enhanced library view (author and status filters, series display)
+- [x] Enhanced book detail view (subtitle, series, shelf badges, ISBN, last read date)
+- [x] CLI book lookup subcommand with partial title matching
+- [x] Richer CLI summary (top authors, shelves, recent sessions for SQLite)
+- [x] JSON export with telemetry and exporter metadata blocks
+- [x] Enhanced Markdown and plain-text exports with series, shelves, progress, last read
+- [x] Expanded test suite (135 tests)
+- [x] Clearly separated extracted facts from inferred metrics
 
 ### Phase 3 -- AI/ML Features
 - [ ] **Theme detection** — cluster highlights by semantic topic using embeddings

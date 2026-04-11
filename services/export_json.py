@@ -19,6 +19,8 @@ def export_book_json(book: Book) -> str:
     data = {
         "title": book.title,
         "author": book.author,
+        "subtitle": book.subtitle,
+        "series": book.series,
         "source": book.source,
         "exported_at": datetime.now().isoformat(),
         "annotations": [
@@ -28,6 +30,7 @@ def export_book_json(book: Book) -> str:
                 "chapter": ann.chapter,
                 "location": ann.location,
                 "created_at": ann.created_at.isoformat() if ann.created_at else None,
+                "modified_at": ann.modified_at.isoformat() if ann.modified_at else None,
             }
             for ann in sorted_anns
         ],
@@ -36,7 +39,22 @@ def export_book_json(book: Book) -> str:
             "isbn": book.isbn,
             "language": book.language,
             "read_percent": book.read_percent,
+            "read_status": book.read_status,
+            "date_last_read": book.date_last_read.isoformat() if book.date_last_read else None,
             "shelves": book.shelves,
+            "is_archived": book.is_archived,
+            "is_favorited": book.is_favorited,
+        },
+        "telemetry": {
+            "total_highlights": sum(1 for a in book.annotations if a.kind == "highlight"),
+            "total_notes": sum(1 for a in book.annotations if a.kind == "note"),
+            "total_annotations": len(book.annotations),
+            "chapters": sorted({a.chapter for a in book.annotations if a.chapter}),
+        },
+        "exporter": {
+            "tool": "KoNotes",
+            "version": "0.3.0",
+            "url": "https://github.com/texasbe2trill/KoNotes",
         },
         "footer": _FOOTER,
     }

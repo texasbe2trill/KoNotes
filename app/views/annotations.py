@@ -1,4 +1,4 @@
-"""All-annotations view — cross-book search, filter, and paginated list."""
+"""All-annotations view -- cross-book search, filter, and paginated list."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,8 +12,6 @@ _PAGE_SIZE = 25
 
 
 def render_annotations(books: list[Book]) -> None:
-    st.markdown("## All Annotations")
-
     # Flatten and sort by timestamp
     _sentinel = datetime(1970, 1, 1)
     all_annotations: list[tuple[Annotation, str]] = sorted(
@@ -21,16 +19,24 @@ def render_annotations(books: list[Book]) -> None:
         key=lambda pair: pair[0].created_at or _sentinel,
     )
 
+    total_hl = sum(1 for a, _ in all_annotations if a.kind == "highlight")
+    total_notes = sum(1 for a, _ in all_annotations if a.kind == "note")
+
+    st.markdown("## Annotations")
+    st.caption(
+        f"{len(all_annotations)} total  /  {total_hl} highlights  /  {total_notes} notes"
+    )
+
     if not all_annotations:
         st.info("No annotations loaded yet.")
         return
 
-    # --- Filters ---
+    # ── Filters ──────────────────────────────────────────────────
     fc1, fc2, fc3 = st.columns([3, 1, 1])
     with fc1:
         query = st.text_input(
-            "Search annotation text",
-            placeholder="Search...",
+            "Search",
+            placeholder="Search annotation text...",
             key="ann_search",
             label_visibility="collapsed",
         )
@@ -51,10 +57,12 @@ def render_annotations(books: list[Book]) -> None:
         )
 
     filtered = _apply_filters(all_annotations, query, kind_filter, book_filter)
-    st.caption(f"{len(filtered)} of {len(all_annotations)} annotation(s)")
-    st.divider()
 
-    # --- Pagination ---
+    if query.strip() or kind_filter != "All" or book_filter != "All books":
+        st.caption(f"Showing {len(filtered)} of {len(all_annotations)} annotation(s)")
+    st.markdown("")
+
+    # ── Pagination ───────────────────────────────────────────────
     page_key = "ann_page"
     if page_key not in st.session_state:
         st.session_state[page_key] = 0
@@ -63,22 +71,21 @@ def render_annotations(books: list[Book]) -> None:
     page = min(st.session_state[page_key], total_pages - 1)
     page_items = filtered[page * _PAGE_SIZE : (page + 1) * _PAGE_SIZE]
 
-    # --- Render ---
+    # ── Annotation cards ─────────────────────────────────────────
     for ann, book_title in page_items:
         with st.container(border=True):
-            # Badge + book + chapter line
             badge_class = {
                 "highlight": "kn-badge-highlight",
                 "note": "kn-badge-note",
             }.get(ann.kind, "kn-badge-other")
-            badge_label = {"highlight": "Highlight", "note": "Note"}.get(ann.kind, "Annotation")
+            badge_label = {"highlight": "Highlight", "note": "Note"}.get(
+                ann.kind, "Annotation"
+            )
 
             meta_html = f'<span class="kn-badge {badge_class}">{badge_label}</span>'
-            meta_html += f' <strong>{book_title}</strong>'
+            meta_html += f" <strong>{book_title}</strong>"
             if ann.chapter:
-                meta_html += f' <span style="color:#888;">· {ann.chapter}</span>'
-            if ann.location:
-                meta_html += f' <span style="color:#888;">· {ann.location}</span>'
+                meta_html += f' <span style="color:#888;">{ann.chapter}</span>'
             st.markdown(meta_html, unsafe_allow_html=True)
 
             if ann.kind == "highlight":
@@ -89,22 +96,22 @@ def render_annotations(books: list[Book]) -> None:
             if ann.created_at:
                 st.caption(ann.created_at.strftime("%b %d, %Y"))
 
-    # --- Pagination controls ---
+    # ── Pagination controls ──────────────────────────────────────
     if total_pages > 1:
         st.markdown("")
         p1, p2, p3 = st.columns([1, 2, 1])
         with p1:
-            if st.button("← Previous", disabled=page == 0, key="ann_prev"):
+            if st.button("Previous", disabled=page == 0, key="ann_prev"):
                 st.session_state[page_key] = page - 1
                 st.rerun()
         with p2:
             st.markdown(
                 f'<div style="text-align:center; padding-top:0.4rem; font-size:0.85rem; color:#888;">'
-                f'Page {page + 1} of {total_pages}</div>',
+                f"Page {page + 1} of {total_pages}</div>",
                 unsafe_allow_html=True,
             )
         with p3:
-            if st.button("Next →", disabled=page >= total_pages - 1, key="ann_next"):
+            if st.button("Next", disabled=page >= total_pages - 1, key="ann_next"):
                 st.session_state[page_key] = page + 1
                 st.rerun()
 
@@ -114,9 +121,10 @@ def render_annotations(books: list[Book]) -> None:
     )
 
 
-# ---------------------------------------------------------------------------
+# ═════════════════════════════════════════════════════════════════
 # Helpers
-# ---------------------------------------------------------------------------
+# ═════════════════════════════════════════════════════════════════
+
 
 def _apply_filters(
     items: list[tuple[Annotation, str]],

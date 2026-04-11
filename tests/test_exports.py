@@ -64,6 +64,18 @@ class TestExportJSON:
         assert data["meta"]["isbn"] == "978-0-123456-78-9"
         assert data["meta"]["shelves"] == ["favorites"]
 
+    def test_telemetry_block(self):
+        data = json.loads(export_book_json(_make_book()))
+        assert "telemetry" in data
+        assert data["telemetry"]["total_highlights"] == 1
+        assert data["telemetry"]["total_notes"] == 1
+
+    def test_exporter_block(self):
+        data = json.loads(export_book_json(_make_book()))
+        assert "exporter" in data
+        assert data["exporter"]["tool"] == "KoNotes"
+        assert data["exporter"]["version"] == "0.3.0"
+
 
 class TestExportText:
     def test_contains_title(self):

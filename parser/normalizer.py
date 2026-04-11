@@ -47,6 +47,18 @@ def normalize(raw_annotations: list[dict[str, Any]], source: str) -> list[Book]:
                 publisher=raw.get("publisher") or None,
                 isbn=raw.get("isbn") or None,
                 language=raw.get("language") or None,
+                series=raw.get("series") or None,
+                subtitle=raw.get("subtitle") or None,
+                content_type=raw.get("content_type") or None,
+                is_archived=bool(raw.get("is_archived")),
+                is_favorited=bool(raw.get("is_favorited")),
+                date_added=_parse_datetime(raw.get("date_added")),
+                time_spent_reading=_safe_int(raw.get("time_spent_reading")),
+                times_started_reading=_safe_int(raw.get("times_started_reading")),
+                last_time_started=_parse_datetime(raw.get("last_time_started")),
+                last_time_finished=_parse_datetime(raw.get("last_time_finished")),
+                page_count=_safe_int(raw.get("page_count")),
+                word_count=_safe_int(raw.get("word_count")),
             )
         else:
             # Enrich existing book with metadata from later rows
@@ -65,6 +77,10 @@ def normalize(raw_annotations: list[dict[str, Any]], source: str) -> list[Book]:
                 book.isbn = raw["isbn"]
             if book.language is None and raw.get("language"):
                 book.language = raw["language"]
+            if book.series is None and raw.get("series"):
+                book.series = raw["series"]
+            if book.subtitle is None and raw.get("subtitle"):
+                book.subtitle = raw["subtitle"]
 
         annotation = _build_annotation(raw, book_id, source)
         books[book_id].annotations.append(annotation)
@@ -85,6 +101,7 @@ def _build_annotation(raw: dict[str, Any], book_id: str, source: str) -> Annotat
     text = (raw.get("text") or "").strip()
     kind = _coerce_kind(raw.get("kind"))
     created_at = _parse_datetime(raw.get("created_at"))
+    modified_at = _parse_datetime(raw.get("modified_at"))
     ann_id = _make_annotation_id(book_id, text)
 
     return Annotation(
@@ -93,6 +110,7 @@ def _build_annotation(raw: dict[str, Any], book_id: str, source: str) -> Annotat
         kind=kind,
         text=text,
         created_at=created_at,
+        modified_at=modified_at,
         chapter=normalize_chapter(raw.get("chapter")),
         location=raw.get("location") or None,
         source=source,
@@ -146,3 +164,13 @@ def _safe_str(value: Any) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def _safe_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    try:
+        v = int(value)
+        return v if v > 0 else None
+    except (TypeError, ValueError):
+        return None

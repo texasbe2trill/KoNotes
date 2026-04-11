@@ -1,0 +1,475 @@
+"""Overview dashboard -- library-wide reading intelligence at a glance."""
+from __future__ import annotations
+
+from collections import Counter
+from datetime import datetime, timedelta
+from typing import Callable
+
+import plotly.graph_objects as go
+import streamlit as st
+
+from app.charts import (
+    AMBER,
+    AMBER_GRADIENT,
+    BLUE,
+    BLUE_GRADIENT,
+    BLUE_LIGHT,
+    CYAN,
+    GREEN,
+    GREEN_GRADIENT,
+    GRAY,
+    PALETTE,
+    PURPLE,
+    PURPLE_GRADIENT,
+    ROSE,
+    figure,
+    styled_axis,
+)
+from models.activity import ProgressSnapshot, ReadingSession
+from models.book import Book
+from models.vocabulary import WordLookup
+from services.stats import LibraryStats, compute_stats
+
+
+def render_overview(
+    books: list[Book],
+    sessions: list[ReadingSession],
+    snapshots: list[ProgressSnapshot],
+    navigate: Callable[..., None],
+    word_lookups: list[WordLookup] | None = None,
+) -> None:
+    stats = compute_stats(books)
+    word_lookups = word_lookups or []
+
+    # ── Page header ──────────────────────────────────────────────
+    st.markdown("## Overview")
+    st.caption(f"{stats.total_books} books  /  {stats.total_annotations} annotations  /  {stats.total_highlights} highlights  /  {stats.total_notes} notes")
+
+    # ── Hero stat cards ──────────────────────────────────────────
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    c1.metric("Books", stats.total_books)
+    c2.metric("Highlights", stats.total_highlights)
+    c3.metric("Notes", stats.total_notes)
+    c4.metric("Reading Time", _format_reading_time(stats.total_reading_time_sec))
+    c5.metric("Words Looked Up", len(word_lookups))
+    c6.metric("Avg HL / Book", stats.avg_highlights_per_book)
+
+    # ── Insight callout ──────────────────────────────────────────
+    _render_insight(stats, books, sessions)
+
+    st.markdown("")
+
+    # ── Two-column chart row ─────────────────────────────────────
+    col_left, col_right = st.columns(2, gap="large")
+
+    with col_left:
+        _render_annotation_trend(stats)
+
+    with col_right:
+        _render_annotation_type_split(stats)
+
+    # ── Two-column data row ──────────────────────────────────────
+    col_a, col_b = st.columns(2, gap="large")
+
+    with col_a:
+        _render_top_highlighted(stats, navigate)
+
+    with col_b:
+        _render_top_authors(stats)
+
+    # ── Reading progress + shelves row ───────────────────────────
+    col_c, col_d = st.columns(2, gap="large")
+
+    with col_c:
+        _render_progress_overview(stats)
+
+    with col_d:
+        _render_reading_time_chart(stats)
+
+    # ── Vocabulary + shelves row ─────────────────────────────────
+    col_e, col_f = st.columns(2, gap="large")
+
+    with col_e:
+        _render_vocabulary(word_lookups, books)
+
+    with col_f:
+        _render_shelves_and_recent(stats, books)
+
+    # ── Footer ───────────────────────────────────────────────────
+    st.markdown(
+        '<div class="kn-footer">Made with love for the Kobo community.</div>',
+        unsafe_allow_html=True,
+    )
+
+
+# ═════════════════════════════════════════════════════════════════
+# Component renderers
+# ═════════════════════════════════════════════════════════════════
+
+
+def _render_insight(
+    stats: LibraryStats, books: list[Book], sessions: list[ReadingSession]
+) -> None:
+    """Generate a plain-language reading insight."""
+    parts: list[str] = []
+
+    if stats.top_authors:
+        top_author, top_count = stats.top_authors[0]
+        parts.append(
+            f"Your most-read author is <strong>{top_author}</strong> ({top_count} book{'s' if top_count != 1 else ''})."
+        )
+
+    if stats.books_by_highlight_count:
+        top_title, top_hl = stats.books_by_highlight_count[0]
+        if top_hl > 0:
+            parts.append(f"<strong>{top_title}</strong> is your most highlighted book with {top_hl} highlights.")
+
+    # Reading streak
+    if stats.reading_activity_by_day:
+        streak = _compute_streak(stats.reading_activity_by_day)
+        if streak >= 3:
+            parts.append(f"Your longest annotation streak is <strong>{streak} consecutive days</strong>.")
+
+    if parts:
+        st.markdown(
+            '<div class="kn-insight">'
+            '<span class="kn-insight-label">Insight</span> '
+            + " ".join(parts)
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+
+
+def _compute_streak(activity_by_day: list[tuple[str, int]]) -> int:
+    """Compute the longest streak of consecutive days with annotations."""
+    dates = sorted({d for d, _ in activity_by_day})
+    if not dates:
+        return 0
+    best = 1
+    current = 1
+    for i in range(1, len(dates)):
+        prev = datetime.strptime(dates[i - 1], "%Y-%m-%d").date()
+        curr = datetime.strptime(dates[i], "%Y-%m-%d").date()
+        if (curr - prev).days == 1:
+            current += 1
+            best = max(best, current)
+        else:
+            current = 1
+    return best
+
+
+def _render_annotation_trend(stats: LibraryStats) -> None:
+    """Area chart: annotation volume over time (weekly buckets)."""
+    st.markdown('<div class="kn-section-header">Annotation Activity</div>', unsafe_allow_html=True)
+
+    if not stats.reading_activity_by_day or len(stats.reading_activity_by_day) < 2:
+        st.caption("Not enough annotation data to show a trend.")
+        return
+
+    # Aggregate to weekly buckets for a cleaner look
+    from collections import defaultdict
+
+    weekly: dict[str, int] = defaultdict(int)
+    for day_str, count in stats.reading_activity_by_day:
+        dt = datetime.strptime(day_str, "%Y-%m-%d")
+        week_start = dt - timedelta(days=dt.weekday())
+        weekly[week_start.strftime("%Y-%m-%d")] += count
+
+    weeks = sorted(weekly.keys())
+    counts = [weekly[w] for w in weeks]
+    labels = [datetime.strptime(w, "%Y-%m-%d").strftime("%b %d") for w in weeks]
+
+    fig = figure(
+        data=[
+            go.Scatter(
+                x=labels,
+                y=counts,
+                mode="lines",
+                fill="tozeroy",
+                line=dict(color=BLUE, width=2.5, shape="spline"),
+                fillcolor="rgba(59,130,246,0.1)",
+                hovertemplate="%{x}<br>%{y} annotations<extra></extra>",
+            )
+        ],
+        height=260,
+        xaxis=styled_axis(show_grid=False, tickangle=-45),
+        yaxis=styled_axis(title="Annotations"),
+    )
+    st.plotly_chart(fig, config={"displayModeBar": False}, theme=None)
+
+
+def _render_annotation_type_split(stats: LibraryStats) -> None:
+    """Donut chart: highlights vs notes vs other."""
+    st.markdown('<div class="kn-section-header">Annotation Breakdown</div>', unsafe_allow_html=True)
+
+    type_counts = stats.annotation_type_counts
+    if not type_counts or sum(type_counts.values()) == 0:
+        st.caption("No annotation type data.")
+        return
+
+    labels = []
+    values = []
+    colors = []
+    _color_map = {"highlight": AMBER, "note": BLUE, "unknown": GRAY}
+    _label_map = {"highlight": "Highlights", "note": "Notes", "unknown": "Other"}
+    for kind in ["highlight", "note", "unknown"]:
+        if type_counts.get(kind, 0) > 0:
+            labels.append(_label_map.get(kind, kind.title()))
+            values.append(type_counts[kind])
+            colors.append(_color_map.get(kind, GRAY))
+
+    fig = figure(
+        data=[
+            go.Pie(
+                labels=labels,
+                values=values,
+                hole=0.55,
+                marker=dict(colors=colors, line=dict(color="#0f172a", width=2)),
+                textinfo="label+percent",
+                textfont=dict(size=12, color="#e2e8f0"),
+                hovertemplate="%{label}: %{value}<extra></extra>",
+            )
+        ],
+        height=260,
+    )
+    fig.update_layout(showlegend=False)
+    st.plotly_chart(fig, config={"displayModeBar": False}, theme=None)
+
+
+def _render_top_highlighted(stats: LibraryStats, navigate: Callable) -> None:
+    """Horizontal bar chart: most highlighted books."""
+    st.markdown('<div class="kn-section-header">Most Highlighted Books</div>', unsafe_allow_html=True)
+
+    top = [(t, c) for t, c in stats.books_by_highlight_count[:8] if c > 0]
+    if not top:
+        st.caption("No highlights yet.")
+        return
+
+    titles = [t[:30] + "..." if len(t) > 30 else t for t, _ in top]
+    counts = [c for _, c in top]
+
+    # Reverse for horizontal bar (top item at top)
+    titles.reverse()
+    counts.reverse()
+
+    fig = figure(
+        data=[
+            go.Bar(
+                x=counts,
+                y=titles,
+                orientation="h",
+                marker=dict(
+                    color=counts,
+                    colorscale=BLUE_GRADIENT,
+                    line=dict(width=0),
+                    cornerradius=4,
+                ),
+                hovertemplate="%{y}<br>%{x} highlights<extra></extra>",
+            )
+        ],
+        height=260,
+        xaxis=styled_axis(title="Highlights"),
+        yaxis=styled_axis(show_grid=False),
+        margin=dict(l=0, r=10, t=10, b=30),
+    )
+    st.plotly_chart(fig, config={"displayModeBar": False}, theme=None)
+
+
+def _render_top_authors(stats: LibraryStats) -> None:
+    """Ranked list of top authors."""
+    st.markdown('<div class="kn-section-header">Top Authors</div>', unsafe_allow_html=True)
+
+    if not stats.top_authors:
+        st.caption("No author data available.")
+        return
+
+    items_html = ""
+    for i, (author, count) in enumerate(stats.top_authors[:8], 1):
+        items_html += (
+            f'<div class="kn-list-item">'
+            f'<div><span class="kn-list-rank">{i}</span>{author}</div>'
+            f'<span class="kn-list-value">{count} book{"s" if count != 1 else ""}</span>'
+            f'</div>'
+        )
+
+    st.markdown(items_html, unsafe_allow_html=True)
+
+
+def _render_progress_overview(stats: LibraryStats) -> None:
+    """Donut chart: reading progress distribution."""
+    st.markdown('<div class="kn-section-header">Reading Progress</div>', unsafe_allow_html=True)
+
+    dist = {k: v for k, v in stats.progress_distribution.items() if v > 0}
+    if not dist:
+        st.caption("No reading progress data available.")
+        return
+
+    labels = list(dist.keys())
+    values = list(dist.values())
+
+    _prog_colors = {
+        "0%": "#475569",
+        "1-25%": ROSE,
+        "26-50%": AMBER,
+        "51-75%": PURPLE,
+        "76-99%": BLUE,
+        "100%": GREEN,
+    }
+    colors = [_prog_colors.get(l, GRAY) for l in labels]
+
+    fig = figure(
+        data=[
+            go.Pie(
+                labels=labels,
+                values=values,
+                hole=0.55,
+                marker=dict(colors=colors, line=dict(color="#0f172a", width=2)),
+                textinfo="label+value",
+                textfont=dict(size=11, color="#e2e8f0"),
+                hovertemplate="%{label}: %{value} books<extra></extra>",
+                sort=False,
+            )
+        ],
+        height=260,
+    )
+    fig.update_layout(showlegend=False)
+    st.plotly_chart(fig, config={"displayModeBar": False}, theme=None)
+
+
+def _render_shelves_and_recent(stats: LibraryStats, books: list[Book]) -> None:
+    """Shelves badges + recently read list."""
+    # Shelves
+    if stats.shelf_counts:
+        st.markdown('<div class="kn-section-header">Shelves</div>', unsafe_allow_html=True)
+        shelf_html = " ".join(
+            f'<span class="kn-badge-shelf">{name} ({count})</span>'
+            for name, count in stats.shelf_counts
+        )
+        st.markdown(shelf_html, unsafe_allow_html=True)
+        st.markdown("")
+
+    # Recently read
+    st.markdown('<div class="kn-section-header">Recently Read</div>', unsafe_allow_html=True)
+    recently_read = sorted(
+        [b for b in books if b.date_last_read is not None],
+        key=lambda b: b.date_last_read or datetime.min,
+        reverse=True,
+    )[:6]
+
+    if recently_read:
+        items_html = ""
+        for b in recently_read:
+            assert b.date_last_read is not None
+            date_str = b.date_last_read.strftime("%b %d, %Y")
+            items_html += (
+                f'<div class="kn-list-item">'
+                f'<div style="font-weight:500;">{b.title}</div>'
+                f'<span class="kn-list-value">{date_str}</span>'
+                f'</div>'
+            )
+        st.markdown(items_html, unsafe_allow_html=True)
+    else:
+        st.caption("No reading dates available.")
+
+
+def _format_reading_time(seconds: int) -> str:
+    """Format seconds into a human-readable reading time."""
+    if seconds <= 0:
+        return "0m"
+    minutes = seconds / 60
+    if minutes < 60:
+        return f"{minutes:.0f}m"
+    hours = minutes / 60
+    if hours < 24:
+        return f"{hours:.1f}h"
+    days = hours / 24
+    return f"{days:.1f}d"
+
+
+def _render_reading_time_chart(stats: LibraryStats) -> None:
+    """Horizontal bar chart: reading time per book (top 8)."""
+    st.markdown(
+        '<div class="kn-section-header">Time Spent Reading</div>',
+        unsafe_allow_html=True,
+    )
+
+    top = [(t, s) for t, s in stats.books_by_reading_time[:8] if s > 0]
+    if not top:
+        st.caption("No reading time data available.")
+        return
+
+    titles = [t[:30] + "..." if len(t) > 30 else t for t, _ in top]
+    hours = [s / 3600 for _, s in top]
+
+    titles.reverse()
+    hours.reverse()
+
+    fig = figure(
+        data=[
+            go.Bar(
+                x=hours,
+                y=titles,
+                orientation="h",
+                marker=dict(
+                    color=hours,
+                    colorscale=GREEN_GRADIENT,
+                    line=dict(width=0),
+                    cornerradius=4,
+                ),
+                hovertemplate="%{y}<br>%{x:.1f} hours<extra></extra>",
+            )
+        ],
+        height=260,
+        xaxis=styled_axis(title="Hours"),
+        yaxis=styled_axis(show_grid=False),
+        margin=dict(l=0, r=10, t=10, b=30),
+    )
+    st.plotly_chart(fig, config={"displayModeBar": False}, theme=None)
+
+
+def _render_vocabulary(
+    word_lookups: list[WordLookup], books: list[Book]
+) -> None:
+    """Show vocabulary / dictionary lookups."""
+    st.markdown(
+        '<div class="kn-section-header">Vocabulary Lookups</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not word_lookups:
+        st.caption("No dictionary lookups recorded.")
+        return
+
+    # Group by book
+    book_word_counts: Counter[str] = Counter()
+    for wl in word_lookups:
+        title = wl.book_title or wl.book_id[:20]
+        book_word_counts[title] += 1
+
+    items_html = ""
+    for i, (title, count) in enumerate(book_word_counts.most_common(6), 1):
+        short_title = title[:35] + "..." if len(title) > 35 else title
+        items_html += (
+            f'<div class="kn-list-item">'
+            f'<div><span class="kn-list-rank">{i}</span>{short_title}</div>'
+            f'<span class="kn-list-value">{count} word{"s" if count != 1 else ""}</span>'
+            f'</div>'
+        )
+
+    st.markdown(items_html, unsafe_allow_html=True)
+
+    # Show recent words
+    recent = sorted(
+        [w for w in word_lookups if w.looked_up_at],
+        key=lambda w: w.looked_up_at or datetime.min,
+        reverse=True,
+    )[:8]
+    if recent:
+        word_tags = " ".join(
+            f'<span class="kn-badge-shelf">{w.word}</span>' for w in recent
+        )
+        st.markdown(
+            f'<div style="margin-top:0.5rem; font-size:0.75rem; color:#64748b;">Recent:</div>'
+            f'{word_tags}',
+            unsafe_allow_html=True,
+        )
