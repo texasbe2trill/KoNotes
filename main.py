@@ -109,6 +109,10 @@ def _cmd_parse(args: argparse.Namespace) -> int:
         print_error(f"File not found: {path}")
         return 1
 
+    if not _confirm_device_access(path):
+        console.print("Aborted.")
+        return 0
+
     books, err = _load_books(path)
     if err:
         print_error(err)
@@ -126,7 +130,7 @@ def _cmd_parse(args: argparse.Namespace) -> int:
 
 
 def _cmd_export(args: argparse.Namespace) -> int:
-    from services.cli_output import print_banner, print_error, print_success
+    from services.cli_output import console, print_banner, print_error, print_success
 
     print_banner()
 
@@ -134,6 +138,10 @@ def _cmd_export(args: argparse.Namespace) -> int:
     if not path.exists():
         print_error(f"File not found: {path}")
         return 1
+
+    if not _confirm_device_access(path):
+        console.print("Aborted.")
+        return 0
 
     books, err = _load_books(path)
     if err:
@@ -177,6 +185,10 @@ def _cmd_summary(args: argparse.Namespace) -> int:
         print_error(f"File not found: {path}")
         return 1
 
+    if not _confirm_device_access(path):
+        console.print("Aborted.")
+        return 0
+
     books, err = _load_books(path)
     if err:
         print_error(err)
@@ -217,6 +229,21 @@ def _cmd_detect_device(args: argparse.Namespace) -> int:
         console.print()
 
     return 0
+
+
+def _confirm_device_access(path: Path) -> bool:
+    """Prompt the user for confirmation before reading data from a Kobo device."""
+    # Only prompt for paths that look like a mounted Kobo device
+    path_str = str(path.resolve())
+    if "/Volumes/" not in path_str and "/media/" not in path_str and "/mnt/" not in path_str:
+        return True
+
+    from services.cli_output import console
+    console.print()
+    console.print("[bold]A Kobo device was detected.[/bold]")
+    console.print(f"  Path: {path}")
+    answer = console.input("\nDo you want to read local data from this device? (y/n) ")
+    return answer.strip().lower() in ("y", "yes")
 
 
 if __name__ == "__main__":

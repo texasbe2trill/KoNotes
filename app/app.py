@@ -87,39 +87,57 @@ with st.sidebar:
         st.markdown(
             f'<div style="padding:0.5rem 0.75rem; border-radius:8px; border:1px solid rgba(74,158,255,0.2); '
             f'background:rgba(74,158,255,0.06); margin-bottom:0.5rem;">'
-            f'<div style="font-weight:600; font-size:0.9rem;">Device connected</div>'
+            f'<div style="font-weight:600; font-size:0.9rem;">Kobo device detected</div>'
             f'<div style="font-size:0.78rem; color:#888; margin-top:2px;">{dev.label}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
 
-        # Auto-load on first detection (no button click needed)
-        if not st.session_state["books"] and "device_loaded" not in st.session_state:
-            st.session_state["device_loaded"] = True
-            try:
-                raw = parse_sqlite(dev.db_path)
-                device_books = normalize(raw, source="kobo_sqlite")
-                if device_books:
-                    st.session_state["books"] = device_books
-                    _go_to("library")
-                    st.rerun()
-            except Exception as exc:
-                st.error(f"Error reading device: {exc}")
+        # Consent gate — user must explicitly confirm before reading device data
+        consent_key = "device_consent"
+        if consent_key not in st.session_state:
+            st.session_state[consent_key] = False
 
-        if st.button("Reload from device", use_container_width=True, key="load_device"):
-            try:
-                raw = parse_sqlite(dev.db_path)
-                device_books = normalize(raw, source="kobo_sqlite")
-                if device_books:
-                    st.session_state["books"] = device_books
-                    total_ann = sum(len(b.annotations) for b in device_books)
-                    st.toast(f"Loaded {len(device_books)} book(s), {total_ann} annotations")
-                    _go_to("library")
-                    st.rerun()
-                else:
-                    st.warning("No annotations found on device.")
-            except Exception as exc:
-                st.error(f"Error reading device: {exc}")
+        if not st.session_state[consent_key]:
+            st.markdown(
+                '<div style="font-size:0.85rem; padding:0.3rem 0;">'
+                'Do you want to read local data from this device?</div>',
+                unsafe_allow_html=True,
+            )
+            c_yes, c_no = st.columns(2)
+            if c_yes.button("Yes, load data", type="primary", use_container_width=True, key="consent_yes"):
+                st.session_state[consent_key] = True
+                st.rerun()
+            if c_no.button("No", use_container_width=True, key="consent_no"):
+                st.session_state[consent_key] = False
+        else:
+            # Consent given — auto-load on first detection
+            if not st.session_state["books"] and "device_loaded" not in st.session_state:
+                st.session_state["device_loaded"] = True
+                try:
+                    raw = parse_sqlite(dev.db_path)
+                    device_books = normalize(raw, source="kobo_sqlite")
+                    if device_books:
+                        st.session_state["books"] = device_books
+                        _go_to("library")
+                        st.rerun()
+                except Exception as exc:
+                    st.error(f"Error reading device: {exc}")
+
+            if st.button("Reload from device", use_container_width=True, key="load_device"):
+                try:
+                    raw = parse_sqlite(dev.db_path)
+                    device_books = normalize(raw, source="kobo_sqlite")
+                    if device_books:
+                        st.session_state["books"] = device_books
+                        total_ann = sum(len(b.annotations) for b in device_books)
+                        st.toast(f"Loaded {len(device_books)} book(s), {total_ann} annotations")
+                        _go_to("library")
+                        st.rerun()
+                    else:
+                        st.warning("No annotations found on device.")
+                except Exception as exc:
+                    st.error(f"Error reading device: {exc}")
         st.divider()
 
     # --- Manual upload ---

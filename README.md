@@ -296,9 +296,17 @@ pytest tests/ -v  # make sure everything passes
 
 ---
 
-## Privacy
+## Privacy & Data Usage
 
-KoNotes is fully local. Your annotation data is never uploaded, transmitted, or stored outside your machine. The SQLite database is opened in read-only mode -- KoNotes cannot modify your Kobo device data.
+KoNotes is a local-first tool.
+
+- All data is processed locally on your machine
+- KoNotes does not access Kobo servers or accounts
+- KoNotes only reads files explicitly provided by the user
+- KoboReader.sqlite is accessed in read-only mode
+- KoNotes prompts for user confirmation before reading device data
+
+Users are responsible for complying with applicable terms of service.
 
 ---
 
