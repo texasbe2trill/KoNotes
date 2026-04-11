@@ -10,7 +10,7 @@ from services.stats import compute_stats
 
 
 def render_library(books: list[Book], navigate: Callable[..., None]) -> None:
-    st.markdown("## 📚 Library")
+    st.markdown("## Library")
 
     stats = compute_stats(books)
 
@@ -21,13 +21,63 @@ def render_library(books: list[Book], navigate: Callable[..., None]) -> None:
     c3.metric("Highlights", stats.total_highlights)
     c4.metric("Notes", stats.total_notes)
 
+    # --- Reading insights (inline, not buried in expander) ---
+    in_progress = [b for b in books if b.read_percent is not None and b.read_percent < 100]
+    recently_read = sorted(
+        [b for b in books if b.date_last_read is not None],
+        key=lambda b: b.date_last_read,
+        reverse=True,
+    )[:5]
+    all_shelves = sorted({s for b in books for s in b.shelves})
+
+    if in_progress or recently_read or all_shelves:
+        st.markdown("")
+        tabs = []
+        tab_labels = []
+        if recently_read:
+            tab_labels.append("Recently Read")
+        if in_progress:
+            tab_labels.append("In Progress")
+        if all_shelves:
+            tab_labels.append("Shelves")
+
+        if tab_labels:
+            tab_objects = st.tabs(tab_labels)
+            idx = 0
+            if recently_read:
+                with tab_objects[idx]:
+                    for b in recently_read:
+                        col_t, col_d = st.columns([4, 1])
+                        col_t.markdown(f"**{b.title}**" + (f" — {b.author}" if b.author else ""))
+                        col_d.caption(b.date_last_read.strftime("%b %d, %Y"))
+                idx += 1
+            if in_progress:
+                with tab_objects[idx]:
+                    for b in in_progress:
+                        pct = b.read_percent or 0
+                        col_t, col_p = st.columns([3, 2])
+                        col_t.markdown(f"**{b.title}**")
+                        col_p.progress(pct / 100, text=f"{pct:.0f}%")
+                idx += 1
+            if all_shelves:
+                with tab_objects[idx]:
+                    # Show shelves as pills
+                    shelf_html = " ".join(
+                        f'<span style="display:inline-block; padding:0.2rem 0.6rem; '
+                        f'border-radius:12px; background:rgba(74,158,255,0.1); '
+                        f'color:#4a9eff; font-size:0.82rem; margin:0.15rem 0.1rem;">{s}</span>'
+                        for s in all_shelves
+                    )
+                    st.markdown(shelf_html, unsafe_allow_html=True)
+
     st.divider()
 
     # --- Search / filter ---
     query = st.text_input(
         "Search by title or author",
-        placeholder="e.g. Dune, Frank Herbert",
+        placeholder="e.g. Nexus, Harari",
         key="lib_search",
+        label_visibility="collapsed",
     )
     filtered = _filter_books(books, query)
 
@@ -35,7 +85,8 @@ def render_library(books: list[Book], navigate: Callable[..., None]) -> None:
         st.info("No books match your search.")
         return
 
-    st.caption(f"Showing {len(filtered)} of {len(books)} book(s)")
+    if query.strip():
+        st.caption(f"Showing {len(filtered)} of {len(books)} book(s)")
     st.markdown("")
 
     # --- Book cards ---
@@ -47,33 +98,38 @@ def render_library(books: list[Book], navigate: Callable[..., None]) -> None:
         with st.container(border=True):
             top_left, top_right = st.columns([5, 1])
             with top_left:
-                st.markdown(f"#### {book.title}")
-                subtitle_parts: list[str] = []
+                st.markdown(f"**{book.title}**")
+                meta_parts: list[str] = []
                 if book.author:
-                    subtitle_parts.append(book.author)
-                subtitle_parts.append(f"Source: {book.source}")
-                st.caption(" · ".join(subtitle_parts))
+                    meta_parts.append(book.author)
+                if book.read_percent is not None:
+                    meta_parts.append(f"{book.read_percent:.0f}% read")
+                if book.shelves:
+                    meta_parts.append(", ".join(book.shelves))
+                if meta_parts:
+                    st.caption(" · ".join(meta_parts))
             with top_right:
-                if st.button("Open →", key=f"open_{book.id}", use_container_width=True):
+                if st.button("Open", key=f"open_{book.id}", use_container_width=True):
                     navigate("book_detail", book.id)
                     st.rerun()
 
-            tag_cols = st.columns(4)
-            tag_cols[0].markdown(f"**{total}** annotations")
-            tag_cols[1].markdown(f"🟡 {h_count} highlights")
-            tag_cols[2].markdown(f"🔵 {n_count} notes")
+            # Annotation summary as badge-style HTML
+            badge_html = (
+                f'<span class="kn-badge kn-badge-highlight">{h_count} highlights</span> '
+                f'<span class="kn-badge kn-badge-note">{n_count} notes</span>'
+            )
             if total > 0:
-                tag_cols[3].progress(h_count / total, text=f"{h_count / total:.0%} highlighted")
-            else:
-                tag_cols[3].markdown("—")
+                badge_html += (
+                    f' <span style="font-size:0.78rem; color:#888; margin-left:0.5rem;">'
+                    f'{total} total</span>'
+                )
+            st.markdown(badge_html, unsafe_allow_html=True)
 
-    # --- Most highlighted ---
-    if len(books) > 1:
-        st.divider()
-        st.markdown("### Most highlighted books")
-        for title, count in stats.books_by_highlight_count[:5]:
-            if count > 0:
-                st.markdown(f"- **{title}** — {count} highlight(s)")
+    # --- Footer ---
+    st.markdown(
+        '<div class="kn-footer">Made with love for the Kobo community.</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def _filter_books(books: list[Book], query: str) -> list[Book]:

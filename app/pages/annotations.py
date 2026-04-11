@@ -1,6 +1,8 @@
 """All-annotations view — cross-book search, filter, and paginated list."""
 from __future__ import annotations
 
+from datetime import datetime
+
 import streamlit as st
 
 from models.annotation import Annotation
@@ -10,11 +12,14 @@ _PAGE_SIZE = 25
 
 
 def render_annotations(books: list[Book]) -> None:
-    st.markdown("## 🔍 All Annotations")
+    st.markdown("## All Annotations")
 
-    all_annotations: list[tuple[Annotation, str]] = [
-        (ann, book.title) for book in books for ann in book.annotations
-    ]
+    # Flatten and sort by timestamp
+    _sentinel = datetime(1970, 1, 1)
+    all_annotations: list[tuple[Annotation, str]] = sorted(
+        [(ann, book.title) for book in books for ann in book.annotations],
+        key=lambda pair: pair[0].created_at or _sentinel,
+    )
 
     if not all_annotations:
         st.info("No annotations loaded yet.")
@@ -25,14 +30,16 @@ def render_annotations(books: list[Book]) -> None:
     with fc1:
         query = st.text_input(
             "Search annotation text",
-            placeholder="Search…",
+            placeholder="Search...",
             key="ann_search",
+            label_visibility="collapsed",
         )
     with fc2:
         kind_filter = st.selectbox(
             "Type",
-            options=["All", "Highlights", "Notes", "Other"],
+            options=["All", "Highlights", "Notes"],
             key="ann_kind",
+            label_visibility="collapsed",
         )
     with fc3:
         book_titles = sorted({b.title for b in books})
@@ -40,10 +47,11 @@ def render_annotations(books: list[Book]) -> None:
             "Book",
             options=["All books"] + book_titles,
             key="ann_book",
+            label_visibility="collapsed",
         )
 
     filtered = _apply_filters(all_annotations, query, kind_filter, book_filter)
-    st.caption(f"Showing {len(filtered)} of {len(all_annotations)} annotation(s)")
+    st.caption(f"{len(filtered)} of {len(all_annotations)} annotation(s)")
     st.divider()
 
     # --- Pagination ---
@@ -58,13 +66,20 @@ def render_annotations(books: list[Book]) -> None:
     # --- Render ---
     for ann, book_title in page_items:
         with st.container(border=True):
-            badge = _kind_badge(ann.kind)
-            meta = f"{badge} · **{book_title}**"
+            # Badge + book + chapter line
+            badge_class = {
+                "highlight": "kn-badge-highlight",
+                "note": "kn-badge-note",
+            }.get(ann.kind, "kn-badge-other")
+            badge_label = {"highlight": "Highlight", "note": "Note"}.get(ann.kind, "Annotation")
+
+            meta_html = f'<span class="kn-badge {badge_class}">{badge_label}</span>'
+            meta_html += f' <strong>{book_title}</strong>'
             if ann.chapter:
-                meta += f" · *{ann.chapter}*"
+                meta_html += f' <span style="color:#888;">· {ann.chapter}</span>'
             if ann.location:
-                meta += f" · 📍 {ann.location}"
-            st.markdown(meta)
+                meta_html += f' <span style="color:#888;">· {ann.location}</span>'
+            st.markdown(meta_html, unsafe_allow_html=True)
 
             if ann.kind == "highlight":
                 st.markdown(f"> {ann.text}")
@@ -72,7 +87,7 @@ def render_annotations(books: list[Book]) -> None:
                 st.markdown(ann.text)
 
             if ann.created_at:
-                st.caption(ann.created_at.strftime("%Y-%m-%d"))
+                st.caption(ann.created_at.strftime("%b %d, %Y"))
 
     # --- Pagination controls ---
     if total_pages > 1:
@@ -84,14 +99,19 @@ def render_annotations(books: list[Book]) -> None:
                 st.rerun()
         with p2:
             st.markdown(
-                f"<div style='text-align:center; padding-top:0.4rem;'>"
-                f"Page {page + 1} of {total_pages}</div>",
+                f'<div style="text-align:center; padding-top:0.4rem; font-size:0.85rem; color:#888;">'
+                f'Page {page + 1} of {total_pages}</div>',
                 unsafe_allow_html=True,
             )
         with p3:
             if st.button("Next →", disabled=page >= total_pages - 1, key="ann_next"):
                 st.session_state[page_key] = page + 1
                 st.rerun()
+
+    st.markdown(
+        '<div class="kn-footer">Made with love for the Kobo community.</div>',
+        unsafe_allow_html=True,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -111,13 +131,7 @@ def _apply_filters(
         result = [(a, t) for a, t in result if a.kind == "highlight"]
     elif kind_filter == "Notes":
         result = [(a, t) for a, t in result if a.kind == "note"]
-    elif kind_filter == "Other":
-        result = [(a, t) for a, t in result if a.kind == "unknown"]
     if query.strip():
         q = query.lower()
         result = [(a, t) for a, t in result if q in a.text.lower()]
     return result
-
-
-def _kind_badge(kind: str) -> str:
-    return {"highlight": "🟡 Highlight", "note": "🔵 Note"}.get(kind, "⚪ Annotation")

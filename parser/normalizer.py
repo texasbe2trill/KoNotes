@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 from models.annotation import Annotation
 from models.book import Book
+from parser.chapter_normalize import normalize_chapter
 from utils.text import slugify
 
 
@@ -39,7 +40,31 @@ def normalize(raw_annotations: list[dict[str, Any]], source: str) -> list[Book]:
                 author=author,
                 source=source,
                 annotations=[],
+                shelves=raw.get("shelves") or [],
+                read_status=_safe_str(raw.get("read_status")),
+                read_percent=_safe_float(raw.get("read_percent")),
+                date_last_read=_parse_datetime(raw.get("date_last_read")),
+                publisher=raw.get("publisher") or None,
+                isbn=raw.get("isbn") or None,
+                language=raw.get("language") or None,
             )
+        else:
+            # Enrich existing book with metadata from later rows
+            book = books[book_id]
+            if not book.shelves and raw.get("shelves"):
+                book.shelves = raw["shelves"]
+            if book.read_percent is None and raw.get("read_percent") is not None:
+                book.read_percent = _safe_float(raw["read_percent"])
+            if book.read_status is None and raw.get("read_status"):
+                book.read_status = _safe_str(raw["read_status"])
+            if book.date_last_read is None and raw.get("date_last_read"):
+                book.date_last_read = _parse_datetime(raw["date_last_read"])
+            if book.publisher is None and raw.get("publisher"):
+                book.publisher = raw["publisher"]
+            if book.isbn is None and raw.get("isbn"):
+                book.isbn = raw["isbn"]
+            if book.language is None and raw.get("language"):
+                book.language = raw["language"]
 
         annotation = _build_annotation(raw, book_id, source)
         books[book_id].annotations.append(annotation)
@@ -68,7 +93,7 @@ def _build_annotation(raw: dict[str, Any], book_id: str, source: str) -> Annotat
         kind=kind,
         text=text,
         created_at=created_at,
-        chapter=raw.get("chapter") or None,
+        chapter=normalize_chapter(raw.get("chapter")),
         location=raw.get("location") or None,
         source=source,
     )
@@ -106,3 +131,18 @@ def _parse_datetime(value: Any) -> datetime | None:
 def _make_annotation_id(book_id: str, text: str) -> str:
     key = f"{book_id}|{text[:100]}"
     return hashlib.sha1(key.encode()).hexdigest()[:16]
+
+
+def _safe_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _safe_str(value: Any) -> str | None:
+    if value is None:
+        return None
+    return str(value)

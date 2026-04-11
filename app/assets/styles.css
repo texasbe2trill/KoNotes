@@ -1,0 +1,155 @@
+/* KoNotes custom styles — injected via st.markdown */
+
+/* Tighten sidebar spacing */
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+    gap: 0.4rem;
+}
+
+/* Nav buttons in sidebar — look like tabs */
+[data-testid="stSidebar"] button[kind="secondary"] {
+    border: none;
+    background: transparent;
+    text-align: left;
+    font-weight: 500;
+    padding: 0.45rem 0.75rem;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+[data-testid="stSidebar"] button[kind="secondary"]:hover {
+    background: rgba(74, 158, 255, 0.12);
+}
+
+/* Active nav button highlight — applied via st.markdown per-page */
+.nav-active button[kind="secondary"] {
+    background: rgba(74, 158, 255, 0.15) !important;
+    border-left: 3px solid #4a9eff !important;
+    font-weight: 600 !important;
+}
+
+/* Metric cards */
+[data-testid="stMetric"] {
+    background: rgba(74, 158, 255, 0.06);
+    border: 1px solid rgba(74, 158, 255, 0.12);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+}
+[data-testid="stMetric"] [data-testid="stMetricValue"] {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #4a9eff;
+}
+[data-testid="stMetric"] [data-testid="stMetricLabel"] {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+}
+
+/* Book card hover */
+div[data-testid="stVerticalBlock"] > div[data-testid="element-container"] > div > div[data-testid="stVerticalBlock"] {
+    transition: border-color 0.15s;
+}
+
+/* Annotation blockquote styling */
+blockquote {
+    border-left: 3px solid #4a9eff !important;
+    padding-left: 1rem !important;
+    font-style: italic;
+}
+
+/* Badge pills */
+.kn-badge {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+.kn-badge-highlight {
+    background: rgba(255, 193, 7, 0.15);
+    color: #b8860b;
+}
+.kn-badge-note {
+    background: rgba(74, 158, 255, 0.15);
+    color: #4a9eff;
+}
+.kn-badge-other {
+    background: rgba(150, 150, 150, 0.15);
+    color: #999;
+}
+
+/* Download buttons — compact */
+button[data-testid="stDownloadButton"] {
+    font-size: 0.82rem !important;
+}
+
+/* Footer */
+.kn-footer {
+    text-align: center;
+    color: #999;
+    font-size: 0.82rem;
+    padding: 1.5rem 0 0.5rem 0;
+}
+
+/* Welcome hero */
+.kn-hero {
+    text-align: center;
+    padding: 2.5rem 0 1rem 0;
+}
+.kn-hero h1 {
+    font-size: 2.8rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.3rem;
+    background: linear-gradient(135deg, #4a9eff, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.kn-hero p {
+    font-size: 1.15rem;
+    color: #888;
+    margin-top: 0;
+}
+
+/* Step cards on welcome page */
+.kn-step {
+    padding: 1.2rem;
+    border-radius: 10px;
+    border: 1px solid rgba(74, 158, 255, 0.12);
+    background: rgba(74, 158, 255, 0.03);
+    height: 100%;
+}
+.kn-step-num {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    border-radius: 50%;
+    background: #4a9eff;
+    color: #fff;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+}
+.kn-step h4 {
+    margin: 0.3rem 0 0.25rem 0;
+    font-size: 0.95rem;
+}
+.kn-step p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #888;
+}
+
+/* Chapter heading in book detail */
+.kn-chapter {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #4a9eff;
+    padding: 0.6rem 0 0.2rem 0;
+    border-bottom: 1px solid rgba(74, 158, 255, 0.15);
+    margin-bottom: 0.5rem;
+}
