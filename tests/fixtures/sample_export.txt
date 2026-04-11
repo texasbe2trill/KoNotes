@@ -1,0 +1,16 @@
+The Pragmatic Programmer
+Andrew Hunt and David Thomas
+
+--------------------
+Highlight | Chapter 1 - A Pragmatic Philosophy | Location 54
+Care About Your Craft. Why spend your life developing software unless you care about doing it well?
+--------------------
+Highlight | Chapter 1 - A Pragmatic Philosophy | Location 78
+Think! About Your Work. Turn off the autopilot and take control.
+--------------------
+Note | Chapter 2 - A Pragmatic Approach | Location 134
+This section on stone soup is a great metaphor for getting things started.
+--------------------
+Highlight | Chapter 3 - The Basic Tools | Location 301
+Always use version control, even for things you don't think need it.
+--------------------
