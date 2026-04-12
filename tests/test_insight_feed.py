@@ -521,7 +521,7 @@ class TestInsightExport:
         assert "- Books: 5" in md
         assert "**Recommendation:** Keep reading." in md
         assert "Book A, Book B" in md
-        assert "Made with care for the Kobo community." in md
+        assert "Made with love for the Kobo community." in md
         assert "## Vocabulary Activity" in md
 
     def test_export_text(self):
@@ -533,7 +533,7 @@ class TestInsightExport:
         assert "Evidence:" in txt
         assert "- Books: 5" in txt
         assert "Action: Keep reading." in txt
-        assert "Made with care for the Kobo community." in txt
+        assert "Made with love for the Kobo community." in txt
 
     def test_export_single_card(self):
         from services.insight_export import export_single_card_markdown
@@ -548,4 +548,14 @@ class TestInsightExport:
         from services.insight_export import export_insights_markdown
         md = export_insights_markdown([])
         assert "KoNotes Reading Intelligence" in md
-        assert "Made with care" in md
+        assert "Made with love" in md
+
+    def test_export_markdown_has_github_link(self):
+        from services.insight_export import export_insights_markdown
+        md = export_insights_markdown(self._sample_cards())
+        assert "https://github.com/texasbe2trill/KoNotes" in md
+
+    def test_export_text_has_github_link(self):
+        from services.insight_export import export_insights_text
+        txt = export_insights_text(self._sample_cards())
+        assert "https://github.com/texasbe2trill/KoNotes" in txt

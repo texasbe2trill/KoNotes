@@ -813,7 +813,7 @@ def _render_similarity_search(books: list[Book]) -> None:
         placeholder="Paste a highlight or type an idea...",
         key="sim_search_query",
     )
-    if query and st.button("Find similar highlights", key="sim_search_btn", use_container_width=True):
+    if query and st.button("Find similar highlights", key="sim_search_btn", width="stretch"):
         provider_inst = _get_provider()
         if provider_inst is None:
             return
@@ -988,18 +988,18 @@ def render_insights(books: list[Book]) -> None:
                 run_all = st.button(
                     "Run Full Analysis",
                     type="primary",
-                    use_container_width=True,
+                    width="stretch",
                     key="ai_run_all",
                 )
             with col_t:
-                run_themes = st.button("Themes", use_container_width=True, key="ai_run_themes")
+                run_themes = st.button("Themes", width="stretch", key="ai_run_themes")
             with col_c:
                 run_cluster = st.button(
-                    "Connections", use_container_width=True, key="ai_run_clusters",
+                    "Connections", width="stretch", key="ai_run_clusters",
                 )
             with col_s:
                 run_summary = st.button(
-                    "Summaries", use_container_width=True, key="ai_run_summaries",
+                    "Summaries", width="stretch", key="ai_run_summaries",
                 )
 
             # -- Execute analyses --

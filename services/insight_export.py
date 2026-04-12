@@ -54,7 +54,7 @@ def export_insights_markdown(
             lines.append("---")
             lines.append("")
 
-    lines.append("*Made with care for the Kobo community.*")
+    lines.append("*Made with love for the Kobo community. [KoNotes](https://github.com/texasbe2trill/KoNotes)*")
     return "\n".join(lines)
 
 
@@ -87,7 +87,7 @@ def export_insights_text(
             lines.append(f"    Action: {card.recommendation}")
         lines.append("")
 
-    lines.append("Made with care for the Kobo community.")
+    lines.append("Made with love for the Kobo community. https://github.com/texasbe2trill/KoNotes")
     return "\n".join(lines)
 
 

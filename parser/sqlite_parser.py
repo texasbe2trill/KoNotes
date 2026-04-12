@@ -754,12 +754,27 @@ def _format_progress(progress: float | None) -> str | None:
 
 
 def _parse_ts(value: Any) -> datetime | None:
-    """Parse a Kobo timestamp string into a datetime."""
+    """Parse a Kobo timestamp string or numeric epoch into a datetime."""
     if value is None:
         return None
     if isinstance(value, datetime):
         return value
+    # Handle numeric timestamps (Unix epoch seconds)
+    if isinstance(value, (int, float)):
+        try:
+            if value > 0:
+                return datetime.fromtimestamp(value)
+        except (OSError, OverflowError, ValueError):
+            pass
+        return None
     if isinstance(value, str):
+        # Try numeric string (Unix epoch)
+        stripped = value.strip()
+        if stripped.replace(".", "", 1).isdigit():
+            try:
+                return datetime.fromtimestamp(float(stripped))
+            except (OSError, OverflowError, ValueError):
+                pass
         for fmt in (
             "%Y-%m-%dT%H:%M:%S.%f",
             "%Y-%m-%dT%H:%M:%S",

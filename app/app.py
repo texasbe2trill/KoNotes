@@ -8,7 +8,38 @@ import os
 import sqlite3
 import sys
 import tempfile
+import types
 from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Prevent Streamlit's file watcher from triggering torchvision-dependent
+# lazy imports inside the ``transformers`` library (e.g. zoedepth).
+# KoNotes only uses text models and never needs torchvision.
+# We monkey-patch Streamlit's module path extraction to skip transformers
+# submodules, which avoids triggering their lazy __getattr__ imports.
+# ---------------------------------------------------------------------------
+import importlib as _il
+
+def _patch_streamlit_watcher() -> None:
+    """Patch Streamlit's local_sources_watcher to skip transformers submodules."""
+    try:
+        from streamlit.watcher import local_sources_watcher as _lsw
+    except ImportError:
+        return
+
+    _orig_get_module_paths = getattr(_lsw, "get_module_paths", None)
+    if _orig_get_module_paths is None:
+        return
+
+    def _safe_get_module_paths(module: types.ModuleType) -> set[str]:
+        name = getattr(module, "__name__", "") or ""
+        if name.startswith("transformers.models.") or name.startswith("torchvision"):
+            return set()
+        return _orig_get_module_paths(module)
+
+    _lsw.get_module_paths = _safe_get_module_paths  # type: ignore[attr-defined]
+
+_patch_streamlit_watcher()
 
 # ---------------------------------------------------------------------------
 # Ensure the project root is on sys.path so sibling-package imports work
@@ -83,6 +114,17 @@ _NAV_ITEMS = ["Overview", "Library", "Annotations", "Activity", "Vocabulary", "I
 def _go_to(view: str, book_id: str | None = None) -> None:
     st.session_state["view"] = view
     st.session_state["selected_book_id"] = book_id
+
+
+import shutil
+
+
+def _safe_device_copy(device_path: Path) -> Path:
+    """Copy device SQLite to a temp file to avoid holding a lock on the mounted Kobo."""
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".sqlite")
+    tmp.close()
+    shutil.copy2(device_path, tmp.name)
+    return Path(tmp.name)
 
 
 def _load_telemetry(db_path: Path) -> None:
@@ -198,24 +240,34 @@ with st.sidebar:
         else:
             if not st.session_state["books"] and "device_loaded" not in st.session_state:
                 st.session_state["device_loaded"] = True
+                tmp_path: Path | None = None
                 try:
-                    raw = parse_sqlite(dev.db_path)
+                    tmp_path = _safe_device_copy(dev.db_path)
+                    raw = parse_sqlite(tmp_path)
                     device_books = normalize(raw, source="kobo_sqlite")
                     if device_books:
                         st.session_state["books"] = device_books
-                        _load_telemetry(dev.db_path)
+                        _load_telemetry(tmp_path)
                         _go_to("overview")
                         st.rerun()
                 except Exception as exc:
                     st.error(f"Error reading device: {exc}")
+                finally:
+                    if tmp_path is not None:
+                        try:
+                            os.unlink(tmp_path)
+                        except OSError:
+                            pass
 
             if st.button("Reload from device", width="stretch", key="load_device"):
+                tmp_path_reload: Path | None = None
                 try:
-                    raw = parse_sqlite(dev.db_path)
+                    tmp_path_reload = _safe_device_copy(dev.db_path)
+                    raw = parse_sqlite(tmp_path_reload)
                     device_books = normalize(raw, source="kobo_sqlite")
                     if device_books:
                         st.session_state["books"] = device_books
-                        _load_telemetry(dev.db_path)
+                        _load_telemetry(tmp_path_reload)
                         total_ann = sum(len(b.annotations) for b in device_books)
                         st.toast(f"Loaded {len(device_books)} book(s), {total_ann} annotations")
                         _go_to("overview")
@@ -224,6 +276,12 @@ with st.sidebar:
                         st.warning("No annotations found on device.")
                 except Exception as exc:
                     st.error(f"Error reading device: {exc}")
+                finally:
+                    if tmp_path_reload is not None:
+                        try:
+                            os.unlink(tmp_path_reload)
+                        except OSError:
+                            pass
         st.divider()
 
     # --- Manual upload ---
@@ -376,6 +434,7 @@ with st.sidebar:
                         export_books, tmp_dir, insight_cards=cards,
                         sessions=st.session_state.get("sessions"),
                         snapshots=st.session_state.get("snapshots"),
+                        word_lookups=word_lookups,
                     )
                     html_content = (Path(tmp_dir) / "index.html").read_text(encoding="utf-8")
                     st.download_button(

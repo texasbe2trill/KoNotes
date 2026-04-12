@@ -101,3 +101,22 @@ class TestExportMarkdownFooter:
         result = export_book_markdown(_make_book())
         assert "Kobo community" in result
         assert "KoNotes" in result
+
+
+class TestExportFooterConsistency:
+    """All export formats must use 'Made with love' and include GitHub link."""
+
+    def test_json_footer_love(self):
+        data = json.loads(export_book_json(_make_book()))
+        assert "Made with love" in data["footer"]
+        assert "github.com/texasbe2trill/KoNotes" in data["footer"]
+
+    def test_text_footer_love(self):
+        result = export_book_text(_make_book())
+        assert "Made with love" in result
+        assert "github.com/texasbe2trill/KoNotes" in result
+
+    def test_markdown_footer_love(self):
+        result = export_book_markdown(_make_book())
+        assert "Made with love" in result
+        assert "github.com/texasbe2trill/KoNotes" in result

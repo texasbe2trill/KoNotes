@@ -18,6 +18,7 @@ from pathlib import Path
 from models.activity import ProgressSnapshot, ReadingSession
 from models.book import Book
 from models.insight import InsightCard
+from models.vocabulary import WordLookup
 from utils.text import slugify
 
 
@@ -1329,11 +1330,70 @@ def _render_insights_section(
     return "\n".join(parts)
 
 
+def _render_vocabulary_section(word_lookups: list[WordLookup]) -> str:
+    """Render an HTML section for vocabulary/word lookups."""
+    if not word_lookups:
+        return ""
+
+    total = len(word_lookups)
+    unique_words = len({wl.word.lower() for wl in word_lookups})
+    books_with_lookups = len({wl.book_title for wl in word_lookups if wl.book_title})
+    languages = {wl.language for wl in word_lookups if wl.language}
+
+    # Top words by frequency
+    word_freq: Counter[str] = Counter()
+    for wl in word_lookups:
+        word_freq[wl.word.lower()] += 1
+    top_words = word_freq.most_common(20)
+
+    # Lookups per book
+    book_freq: Counter[str] = Counter()
+    for wl in word_lookups:
+        book_freq[wl.book_title or "Unknown"] += 1
+    top_books = book_freq.most_common(10)
+
+    parts: list[str] = [
+        '<section class="vocab-section">',
+        '  <h2>Vocabulary</h2>',
+        '  <div class="hero-stats">',
+        f'    <div class="hero-stat cyan"><div class="value">{total}</div>'
+        f'<div class="label">Total Lookups</div></div>',
+        f'    <div class="hero-stat purple"><div class="value">{unique_words}</div>'
+        f'<div class="label">Unique Words</div></div>',
+        f'    <div class="hero-stat brand"><div class="value">{books_with_lookups}</div>'
+        f'<div class="label">Books</div></div>',
+    ]
+    if languages:
+        parts.append(
+            f'    <div class="hero-stat green"><div class="value">{len(languages)}</div>'
+            f'<div class="label">Language{"s" if len(languages) != 1 else ""}</div></div>'
+        )
+    parts.append("  </div>")
+
+    # Top words chart
+    if top_words:
+        parts.append('  <div class="charts-grid">')
+        parts.append('    <div class="chart-card">')
+        parts.append("      <h3>Most Looked Up Words</h3>")
+        parts.append(f"      {_svg_bar_chart(top_words, '#06b6d4')}")
+        parts.append("    </div>")
+        if top_books and len(top_books) > 1:
+            parts.append('    <div class="chart-card">')
+            parts.append("      <h3>Lookups per Book</h3>")
+            parts.append(f"      {_svg_bar_chart(top_books, '#a855f7')}")
+            parts.append("    </div>")
+        parts.append("  </div>")
+
+    parts.append("</section>")
+    return "\n".join(parts)
+
+
 def _render_page(
     books: list[Book],
     insight_cards: list[InsightCard] | None = None,
     sessions: list[ReadingSession] | None = None,
     snapshots: list[ProgressSnapshot] | None = None,
+    word_lookups: list[WordLookup] | None = None,
 ) -> str:
     """Render a single-page HTML site with dashboard, charts, insights, and annotations."""
     total_ann = sum(len(b.annotations) for b in books)
@@ -1501,6 +1561,13 @@ def _render_page(
     if activity_html:
         parts.append(activity_html)
         parts.append("\n")
+
+    # ── Vocabulary section ───────────────────────────────────
+    if word_lookups:
+        vocab_html = _render_vocabulary_section(word_lookups)
+        if vocab_html:
+            parts.append(vocab_html)
+            parts.append("\n")
 
     # ── Reading Intelligence section ─────────────────────────
     if insight_cards:
@@ -1739,6 +1806,7 @@ def export_static_site(
     insight_cards: list[InsightCard] | None = None,
     sessions: list[ReadingSession] | None = None,
     snapshots: list[ProgressSnapshot] | None = None,
+    word_lookups: list[WordLookup] | None = None,
 ) -> Path:
     """Generate a single-page static HTML site in *output_dir*.
 
@@ -1755,6 +1823,8 @@ def export_static_site(
         Optional reading sessions for activity charts.
     snapshots:
         Optional progress snapshots for progress-over-time charts.
+    word_lookups:
+        Optional vocabulary lookups for a Vocabulary section.
 
     Returns the path to the output directory.
     """
@@ -1767,6 +1837,7 @@ def export_static_site(
             insight_cards=insight_cards,
             sessions=sessions,
             snapshots=snapshots,
+            word_lookups=word_lookups,
         ),
         encoding="utf-8",
     )

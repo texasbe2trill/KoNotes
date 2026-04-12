@@ -1,13 +1,36 @@
 """Vocabulary view -- display words looked up on the Kobo."""
 from __future__ import annotations
 
-from collections import Counter
-from datetime import datetime
+from collections import Counter, defaultdict
+from datetime import datetime, timedelta
 
+import plotly.graph_objects as go
 import streamlit as st
 
 from models.book import Book
 from models.vocabulary import WordLookup
+
+# Chart styling constants (consistent with charts.py palette)
+_BLUE = "#3b82f6"
+_CYAN = "#06b6d4"
+_PURPLE = "#a855f7"
+_BG_TRANSPARENT = "rgba(0,0,0,0)"
+_GRID_SUBTLE = "rgba(148,163,184,0.08)"
+_TEXT_MUTED = "#64748b"
+_TEXT_DEFAULT = "#94a3b8"
+
+
+def _dark_chart_layout(height: int = 260, **overrides: dict) -> dict:
+    """Shared layout for dark-themed Plotly charts."""
+    defaults = dict(
+        height=height,
+        margin=dict(l=0, r=10, t=10, b=30),
+        paper_bgcolor=_BG_TRANSPARENT,
+        plot_bgcolor=_BG_TRANSPARENT,
+        font=dict(color=_TEXT_DEFAULT, size=12),
+    )
+    defaults.update(overrides)
+    return defaults
 
 
 def render_vocabulary(
@@ -69,27 +92,92 @@ def render_vocabulary(
         st.caption("No words match the current filters.")
         return
 
+    # Build frequency map for the Frequency column
+    word_freq: Counter[str] = Counter(wl.word.lower() for wl in word_lookups)
+
     # Display as a clean table
-    rows: list[dict[str, str]] = []
+    rows: list[dict[str, str | int]] = []
     for wl in sorted_lookups:
         rows.append({
             "Word": wl.word,
             "Book": wl.book_title or wl.book_id[:30],
             "Language": wl.language or "--",
-            "Date": wl.looked_up_at.strftime("%Y-%m-%d %H:%M") if wl.looked_up_at else "--",
+            "Frequency": word_freq[wl.word.lower()],
         })
 
     st.dataframe(
         rows,
-        use_container_width=True,
         hide_index=True,
         column_config={
             "Word": st.column_config.TextColumn(width="medium"),
             "Book": st.column_config.TextColumn(width="large"),
             "Language": st.column_config.TextColumn(width="small"),
-            "Date": st.column_config.TextColumn(width="medium"),
+            "Frequency": st.column_config.NumberColumn(width="small", format="%d"),
         },
     )
+
+    # ── Lookup Activity Timeline ────────────────────────────────
+    dated_lookups = [wl for wl in word_lookups if wl.looked_up_at]
+    if dated_lookups:
+        st.markdown("---")
+        col_timeline, col_freq = st.columns(2, gap="large")
+
+        with col_timeline:
+            st.markdown('<div class="kn-section-header">Lookup Activity</div>', unsafe_allow_html=True)
+            weekly: dict[str, int] = defaultdict(int)
+            for wl in dated_lookups:
+                week_start = wl.looked_up_at - timedelta(days=wl.looked_up_at.weekday())  # type: ignore[operator]
+                weekly[week_start.strftime("%Y-%m-%d")] += 1
+            weeks = sorted(weekly.keys())
+            counts = [weekly[w] for w in weeks]
+            labels = [datetime.strptime(w, "%Y-%m-%d").strftime("%b %d") for w in weeks]
+            fig_timeline = go.Figure(
+                data=[go.Scatter(
+                    x=labels, y=counts,
+                    mode="lines",
+                    fill="tozeroy",
+                    line=dict(color=_CYAN, width=2.5, shape="spline"),
+                    fillcolor="rgba(6,182,212,0.1)",
+                    hovertemplate="%{x}<br>%{y} lookups<extra></extra>",
+                )],
+            )
+            fig_timeline.update_layout(
+                **_dark_chart_layout(height=240),
+                xaxis=dict(gridcolor=_BG_TRANSPARENT, tickangle=-45),
+                yaxis=dict(gridcolor=_GRID_SUBTLE, title="Lookups",
+                           title_font=dict(size=11, color=_TEXT_MUTED)),
+            )
+            st.plotly_chart(fig_timeline, config={"displayModeBar": False}, theme=None)
+
+        with col_freq:
+            st.markdown('<div class="kn-section-header">Most Looked Up Words</div>', unsafe_allow_html=True)
+            word_freq: Counter[str] = Counter(wl.word.lower() for wl in word_lookups)
+            top_words = word_freq.most_common(10)
+            if top_words:
+                w_labels = [w for w, _ in top_words]
+                w_counts = [c for _, c in top_words]
+                w_labels.reverse()
+                w_counts.reverse()
+                fig_freq = go.Figure(
+                    data=[go.Bar(
+                        x=w_counts, y=w_labels,
+                        orientation="h",
+                        marker=dict(
+                            color=w_counts,
+                            colorscale=[[0, "#1e2a4a"], [1, _PURPLE]],
+                            line=dict(width=0),
+                            cornerradius=4,
+                        ),
+                        hovertemplate="%{y}<br>%{x} lookups<extra></extra>",
+                    )],
+                )
+                fig_freq.update_layout(
+                    **_dark_chart_layout(height=240),
+                    xaxis=dict(gridcolor=_GRID_SUBTLE, title="Lookups",
+                               title_font=dict(size=11, color=_TEXT_MUTED)),
+                    yaxis=dict(gridcolor=_BG_TRANSPARENT),
+                )
+                st.plotly_chart(fig_freq, config={"displayModeBar": False}, theme=None)
 
     # ── Words by book breakdown ──────────────────────────────────
     st.markdown("---")
@@ -101,6 +189,34 @@ def render_vocabulary(
         title = wl.book_title or wl.book_id[:30]
         book_word_counts[title] += 1
         book_words.setdefault(title, []).append(wl.word)
+
+    # Bar chart of lookups per book (top 10)
+    top_books = book_word_counts.most_common(10)
+    if top_books:
+        chart_titles = [t[:35] + "..." if len(t) > 35 else t for t, _ in top_books]
+        chart_counts = [c for _, c in top_books]
+        chart_titles.reverse()
+        chart_counts.reverse()
+        fig = go.Figure(
+            data=[go.Bar(
+                x=chart_counts, y=chart_titles,
+                orientation="h",
+                marker=dict(
+                    color=chart_counts,
+                    colorscale=[[0, "#1e3a5f"], [1, _BLUE]],
+                    line=dict(width=0),
+                    cornerradius=4,
+                ),
+                hovertemplate="%{y}<br>%{x} lookups<extra></extra>",
+            )],
+        )
+        fig.update_layout(
+            **_dark_chart_layout(height=min(260, 40 * len(top_books) + 60)),
+            xaxis=dict(gridcolor=_GRID_SUBTLE, title="Lookups",
+                       title_font=dict(size=11, color=_TEXT_MUTED)),
+            yaxis=dict(gridcolor=_BG_TRANSPARENT),
+        )
+        st.plotly_chart(fig, config={"displayModeBar": False}, theme=None)
 
     for title, count in book_word_counts.most_common():
         with st.expander(f"{title} ({count} word{'s' if count != 1 else ''})"):
@@ -115,8 +231,6 @@ def render_vocabulary(
 
     # ── Footer ───────────────────────────────────────────────────
     st.markdown(
-        '<div style="text-align:center; padding:2rem 0 1rem; font-size:0.75rem; color:#64748b;">'
-        'Made with love for the Kobo community.'
-        '</div>',
+        '<div class="kn-footer">Made with love for the Kobo community.</div>',
         unsafe_allow_html=True,
     )

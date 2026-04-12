@@ -417,3 +417,24 @@ class TestGenerateLabel:
         clusters = cluster_highlights_across_books(books, provider)
         for c in clusters:
             assert not c.label.startswith("Idea ")
+
+
+# ---------------------------------------------------------------------------
+# LLM summary configuration
+# ---------------------------------------------------------------------------
+
+
+class TestLLMSummaryConfig:
+    def test_max_tokens_sufficient(self):
+        """Ensure max_tokens is >= 1000 to avoid truncated summaries."""
+        import ast
+        from pathlib import Path
+
+        source = Path("services/summaries.py").read_text()
+        tree = ast.parse(source)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.keyword) and node.arg == "max_tokens":
+                if isinstance(node.value, ast.Constant) and isinstance(node.value.value, int):
+                    assert node.value.value >= 1000, (
+                        f"max_tokens={node.value.value} is too low; should be >= 1000"
+                    )

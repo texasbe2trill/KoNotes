@@ -7,7 +7,7 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Streamlit](https://img.shields.io/badge/built%20with-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-330%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-361%20passed-brightgreen.svg)]()
 
 [Getting Started](#getting-started) · [Features](#features) · [CLI](#cli-usage) · [Web UI](#web-ui) · [Supported Formats](#supported-inputs) · [Roadmap](#roadmap) · [Contributing](#contributing)
 
@@ -360,10 +360,10 @@ pytest tests/ -v
 ```
 
 ```
-198 passed
+361 passed
 ```
 
-Tests cover all parsers (HTML, TXT, Markdown, SQLite), normalization, model validation, chapter normalization, export formats (JSON, TXT, Markdown, HTML), device detection, CLI subcommands, schema helpers, SQLite telemetry extraction (sessions, snapshots, shelves, vocabulary, ratings), library statistics, AI insights (theme detection, clustering, similarity search, summaries), and static HTML site generation.
+Tests cover all parsers (HTML, TXT, Markdown, SQLite), normalization, model validation, chapter normalization, export formats (JSON, TXT, Markdown, HTML), device detection, CLI subcommands, schema helpers, SQLite telemetry extraction (sessions, snapshots, shelves, vocabulary, ratings), library statistics, AI insights (theme detection, clustering, similarity search, summaries), insight feed and export, and static HTML site generation.
 
 ---
 
@@ -404,8 +404,11 @@ KoNotes/
 │   ├── stats.py                # Library statistics (15+ metrics)
 │   ├── library_summary.py      # Aggregated library summary builder
 │   ├── embeddings.py           # Local embedding provider (sentence-transformers)
+│   ├── insight_feed.py         # Evidence-backed reading intelligence feed
+│   ├── insight_formatter.py    # LLM output post-processing
+│   ├── insight_export.py       # Insight card export (Markdown + text)
 │   ├── insights.py             # Theme detection, clustering, similarity search
-│   ├── summaries.py            # Smart summary generation (template-based)
+│   ├── summaries.py            # Smart summary generation (template + LLM)
 │   ├── export_markdown.py      # Per-book Markdown export
 │   ├── export_json.py          # Per-book JSON export
 │   ├── export_text.py          # Per-book plain-text export
@@ -426,6 +429,7 @@ KoNotes/
 │   ├── test_sqlite_parser.py   # SQLite telemetry extraction tests
 │   ├── test_stats.py           # Library statistics tests
 │   ├── test_insights.py        # AI insights + embedding tests
+│   ├── test_insight_feed.py    # Insight feed + export tests
 │   └── test_export_html.py     # Static HTML site exporter tests
 ├── main.py                     # CLI entry point (argparse)
 ├── requirements.txt            # Runtime + dev dependencies
@@ -498,7 +502,10 @@ KoNotes is built in phases. Phases 1 through 4 are complete.
 ### Phase 4 -- Integrations & Sharing
 - [x] Vocabulary view -- browse dictionary lookups from your Kobo
 - [x] Shareable single-page static HTML export
-- [x] 198 tests passing
+- [x] Structured Insight Feed with evidence-backed reading intelligence
+- [x] Insight export (Markdown and plain text)
+- [x] Activity charts (annotation timeline, progress snapshots, reading sessions)
+- [x] 361 tests passing
 
 ### Phase 5 -- Future
 - [ ] CSV export format
