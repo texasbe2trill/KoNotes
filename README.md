@@ -6,8 +6,6 @@
 Turn your Kobo highlights and reading data into structured, readable insight.
 </p>
 
-</div>
-
 <br>
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/)
@@ -16,16 +14,13 @@ Turn your Kobo highlights and reading data into structured, readable insight.
 ![Tests](https://img.shields.io/badge/tests-358_passed-22c55e?style=flat-square)
 ![Version](https://img.shields.io/badge/version-0.5.0-3b82f6?style=flat-square)
 
-<br>
+<br><br>
 
 [**Try It**](#try-it) · [**Features**](#features) · [**Example Insights**](#example-insights) · [**CLI**](#cli) · [**Web UI**](#web-ui) · [**Roadmap**](#roadmap)
 
-<br>
+<br><br>
 
-> *No cloud. No account. No tracking.*
-> *Your reading data, processed locally.*
-
-<br>
+> <em>No cloud. No account. No tracking.<br><strong>Your reading data stays local.</strong></em>
 
 </div>
 
