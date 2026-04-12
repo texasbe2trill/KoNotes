@@ -6,10 +6,6 @@
 Turn your Kobo highlights and reading data into structured, readable insight.
 </p>
 
-<br>
-
-<img src="https://img.shields.io/badge/KoNotes-3b82f6?style=for-the-badge" />
-
 </div>
 
 <br>
