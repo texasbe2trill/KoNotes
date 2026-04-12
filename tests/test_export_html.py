@@ -180,7 +180,8 @@ class TestExportStaticSite:
         with tempfile.TemporaryDirectory() as tmp:
             export_static_site(books, tmp)
             content = (Path(tmp) / "index.html").read_text()
-            assert "<script>" not in content
+            # User-supplied XSS payload must be escaped
+            assert 'alert("xss")' not in content
             assert "&lt;script&gt;" in content
 
     def test_returns_output_path(self):
