@@ -61,7 +61,7 @@ def _ai_available() -> bool:
 def _get_provider():
     from services.embeddings import get_provider
     try:
-        return get_provider("local")
+        return get_provider()
     except ImportError as exc:
         st.error(str(exc))
         return None

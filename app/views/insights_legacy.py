@@ -37,7 +37,7 @@ def _get_provider():
     """Return the local embedding provider, or None."""
     from services.embeddings import get_provider
     try:
-        return get_provider("local")
+        return get_provider()
     except ImportError as exc:
         st.error(str(exc))
         return None

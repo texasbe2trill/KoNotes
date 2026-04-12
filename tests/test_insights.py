@@ -289,36 +289,8 @@ class TestGenerateSummary:
         from services.summaries import generate_summary
 
         book = _make_book(n_highlights=5)
-        result = generate_summary(book, api_key=None)
+        result = generate_summary(book)
         assert result.method == "template"
-
-    def test_llm_fallback_on_error(self):
-        from services.summaries import generate_summary
-
-        book = _make_book(n_highlights=5)
-        # Pass an invalid key -- should fall back to template
-        with patch("services.summaries.generate_llm_summary", side_effect=Exception("API error")):
-            result = generate_summary(book, api_key="sk-fake")
-        assert result.method == "template"
-
-
-# ---------------------------------------------------------------------------
-# Embedding provider factory
-# ---------------------------------------------------------------------------
-
-
-class TestGetProvider:
-    def test_openai_requires_key(self):
-        from services.embeddings import get_provider
-
-        with pytest.raises(ValueError, match="OPENAI_API_KEY"):
-            get_provider("openai", api_key=None)
-
-    def test_openai_requires_key_empty(self):
-        from services.embeddings import get_provider
-
-        with pytest.raises(ValueError, match="OPENAI_API_KEY"):
-            get_provider("openai", api_key="")
 
 
 # ---------------------------------------------------------------------------

@@ -102,73 +102,9 @@ def generate_template_summary(
     )
 
 
-def generate_llm_summary(
-    book: Book,
-    api_key: str,
-    themes: list[ThemeCluster] | None = None,
-) -> BookSummary:
-    """Generate a summary using OpenAI GPT-4o-mini from the book's highlights."""
-    try:
-        from openai import OpenAI  # type: ignore[import-not-found]
-    except ImportError as exc:
-        raise ImportError(
-            "openai is required for LLM summaries. "
-            "Install with: pip install 'konotes[openai]'"
-        ) from exc
-
-    highlights = [a for a in book.annotations if a.kind == "highlight"]
-    if not highlights:
-        return generate_template_summary(book, themes)
-
-    # Build the prompt with highlight texts
-    highlight_block = "\n".join(f"- {h.text}" for h in highlights[:50])
-
-    author_part = f" by {book.author}" if book.author else ""
-    system_prompt = (
-        "You are a reading assistant. Given a reader's highlights from a book, "
-        "produce a concise 'what I learned' summary in 2-4 paragraphs. "
-        "Focus on the key ideas, recurring themes, and notable insights. "
-        "Write in second person ('you'). Do not use emojis."
-    )
-    user_prompt = (
-        f"Book: {book.title}{author_part}\n\n"
-        f"Highlights ({len(highlights)} total, showing up to 50):\n{highlight_block}\n\n"
-        "Summarise what the reader took away from this book."
-    )
-
-    client = OpenAI(api_key=api_key)
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        max_tokens=1200,
-        temperature=0.7,
-    )
-    summary_text = response.choices[0].message.content or ""
-
-    theme_labels = [t.label for t in themes] if themes else []
-
-    return BookSummary(
-        book_id=book.id,
-        book_title=book.title,
-        summary=summary_text.strip(),
-        themes=theme_labels,
-        highlight_count=len(highlights),
-        method="llm",
-    )
-
-
 def generate_summary(
     book: Book,
-    api_key: str | None = None,
     themes: list[ThemeCluster] | None = None,
 ) -> BookSummary:
-    """Generate a book summary. Uses LLM if api_key is provided, otherwise template."""
-    if api_key:
-        try:
-            return generate_llm_summary(book, api_key, themes)
-        except Exception:
-            logger.warning("LLM summary failed for %s, falling back to template", book.title)
+    """Generate a book summary using the local template engine."""
     return generate_template_summary(book, themes)
