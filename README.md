@@ -1,91 +1,306 @@
 <div align="center">
 
-# KoNotes
+<br>
 
-**Turn your Kobo highlights and reading data into structured, readable insight.**
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/Ko-Notes-3b82f6?style=for-the-badge&labelColor=0f172a&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMiAzaDZhNCA0IDAgMCAxIDQgNCA0IDQgMCAwIDEgNC00aDZNMTIgMTNWMyIvPjxwYXRoIGQ9Ik0yIDN2MTZhMSAxIDAgMCAwIDEgMWg1LjVhMi41IDIuNSAwIDAgMSAyLjUgMi41IDIuNSAyLjUgMCAwIDEgMi41LTIuNUgyMWExIDEgMCAwIDAgMS0xVjMiLz48L3N2Zz4=">
+  <img src="https://img.shields.io/badge/Ko-Notes-3b82f6?style=for-the-badge&labelColor=ffffff&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMiAzaDZhNCA0IDAgMCAxIDQgNCA0IDQgMCAwIDEgNC00aDZNMTIgMTNWMyIvPjxwYXRoIGQ9Ik0yIDN2MTZhMSAxIDAgMCAwIDEgMWg1LjVhMi41IDIuNSAwIDAgMSAyLjUgMi41IDIuNSAyLjUgMCAwIDEgMi41LTIuNUgyMWExIDEgMCAwIDAgMS0xVjMiLz48L3N2Zz4=" alt="KoNotes">
+</picture>
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![Streamlit](https://img.shields.io/badge/built%20with-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-361%20passed-brightgreen.svg)]()
+### Turn your Kobo highlights and reading data<br>into structured, readable insight.
 
-[Getting Started](#getting-started) · [Features](#features) · [CLI](#cli-usage) · [Web UI](#web-ui) · [Supported Formats](#supported-inputs) · [Roadmap](#roadmap) · [Contributing](#contributing)
+<br>
+
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![Streamlit](https://img.shields.io/badge/streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io)
+[![License: MIT](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
+![Tests](https://img.shields.io/badge/tests-358_passed-22c55e?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.5.0-3b82f6?style=flat-square)
+
+<br>
+
+[**Try It**](#try-it) · [**Features**](#features) · [**Example Insights**](#example-insights) · [**CLI**](#cli) · [**Web UI**](#web-ui) · [**Roadmap**](#roadmap)
+
+<br>
+
+> *No cloud. No account. No tracking.*
+> *Your reading data, processed locally.*
+
+<br>
 
 </div>
 
 ---
 
+<br>
+
 ## The Problem
 
 Kobo e-readers create rich annotation data -- highlights, notes, bookmarks, dictionary lookups, reading sessions -- but getting that data out and doing something useful with it is harder than it should be.
 
-- **The SQLite database** is the richest source but opaque to most users
-- **HTML exports** are messy and inconsistent
-- **TXT exports** mix metadata with content in unpredictable ways
-- **Dictionary lookups and reading sessions** are completely hidden
+<table>
+<tr>
+<td width="50%">
 
-Your reading insights are trapped in formats that weren't designed to be reused.
+**What Kobo gives you**
+- An opaque SQLite database
+- Messy, inconsistent HTML exports
+- Plain-text dumps with unpredictable formatting
+- Dictionary lookups and reading sessions buried in the database
 
-## The Solution
+</td>
+<td width="50%">
 
-KoNotes parses every Kobo annotation format, extracts maximum telemetry from KoboReader.sqlite (highlights, notes, shelves, reading sessions, progress history, vocabulary lookups, ratings, page turns, word counts), normalizes everything into clean structures, and gives you a local-first dashboard to browse, search, filter, and export your reading data.
+**What KoNotes gives you**
+- Clean, structured data from every format
+- A local dashboard to browse, search, and filter
+- AI-powered reading intelligence
+- Export to Markdown, JSON, HTML, or plain text
+- Full vocabulary and reading session history
 
-No cloud. No account. No tracking. Just your reading data, made useful.
+</td>
+</tr>
+</table>
+
+<br>
 
 ---
+
+<br>
+
+## What KoNotes Reveals
+
+KoNotes isn't just a parser -- it turns raw reading data into personal intelligence about how you read.
+
+- **Reading patterns** -- when you read, how long your sessions last, and how your pace changes over time
+- **Highlight behavior** -- which books made you stop and mark something, and what themes keep resurfacing
+- **Vocabulary growth** -- every word you looked up, how often, and in which books
+- **Cross-book connections** -- ideas that echo across different authors, surfaced automatically
+- **Engagement signals** -- which books held your attention, which ones stalled, and where your deepest reading happens
+- **Progress momentum** -- streaks, slowdowns, and completion curves across your entire library
+
+Most of this data already exists on your Kobo. KoNotes makes it visible.
+
+<br>
+
+---
+
+<br>
+
+## Try It
+
+<div align="center">
+
+![KoNotes CLI Demo](docs/demo/konotes-cli.gif)
+
+</div>
+
+**With a Kobo connected via USB:**
+
+```bash
+git clone https://github.com/texasbe2trill/KoNotes.git && cd KoNotes
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+konotes detect-device          # find your Kobo
+konotes parse <path>           # parse the database
+streamlit run app/app.py       # launch the dashboard
+```
+
+**With an exported annotation file:**
+
+```bash
+konotes parse my-annotations.html
+konotes export my-annotations.html -f markdown -o ./output
+```
+
+**No Kobo on hand?** A synthetic test database is included so you can try KoNotes immediately:
+
+```bash
+konotes parse docs/KoNotes_synthetic.sqlite
+streamlit run app/app.py
+# then upload docs/KoNotes_synthetic.sqlite in the browser
+```
+
+KoNotes also works with any `.html`, `.txt`, or `.md` annotation export. See [Supported Inputs](#supported-inputs).
+
+<br>
+
+---
+
+<br>
+
+## Screenshots
+
+<div align="center">
+
+| Overview | Library |
+|:---:|:---:|
+| ![Overview](docs/screenshots/overview.png) | ![Library](docs/screenshots/library.png) |
+| *Library-wide metrics, top authors, reading time* | *Browse books with progress bars and shelf badges* |
+
+| AI Insights | Activity |
+|:---:|:---:|
+| ![Insights](docs/screenshots/insights.png) | ![Activity](docs/screenshots/activity.png) |
+| *Evidence-backed reading intelligence feed* | *Sessions, progress curves, annotation timelines* |
+
+| Book Detail | Vocabulary |
+|:---:|:---:|
+| ![Book Detail](docs/screenshots/book-detail.png) | ![Vocabulary](docs/screenshots/vocabulary.png) |
+| *Per-book annotations grouped by chapter* | *Every word you looked up, searchable by book* |
+
+</div>
+
+<br>
+
+---
+
+<br>
 
 ## Features
 
+<table>
+<tr>
+<td width="33%" valign="top">
+
 ### Core
-- **Automatic device detection** -- plug in your Kobo via USB and KoNotes finds and parses it automatically
-- **KoboReader.sqlite parsing** -- the primary data source: annotations, shelves, reading progress, sessions, vocabulary lookups, ratings, page turns, publisher, ISBN, and language
-- **Multi-format fallback** -- also parses HTML, TXT, and Markdown annotation exports
-- **Smart normalization** -- deduplicates across sources, groups by book, classifies by type
-- **Chapter normalization** -- cleans Kobo chapter IDs (e.g. `au Author s Note` becomes `Author's Note`)
-- **Fully local** -- nothing leaves your machine. Read-only database access.
+- Automatic Kobo device detection via USB
+- KoboReader.sqlite parsing (highlights, notes, shelves, sessions, vocabulary, ratings, page turns)
+- Multi-format fallback (HTML, TXT, Markdown)
+- Smart normalization and deduplication
+- Schema-aware adaptive parsing
+- Fully local, read-only database access
+
+</td>
+<td width="33%" valign="top">
 
 ### Dashboard
-- **Overview** -- library-wide metrics, top authors, shelves, recent activity, annotation trends, reading time
-- **Library** -- all books at a glance with annotation counts, reading progress, shelf info, and author/status filters
-- **Book detail** -- per-book annotations with chapter grouping, filtering, search, pagination, series/subtitle display, and shelf badges
-- **Annotations** -- cross-book annotation search and filtering
-- **Activity** -- reading sessions, progress distribution, annotation timeline, and progress snapshots
-- **Vocabulary** -- browse every word you looked up on your Kobo, filterable by book and searchable
-- **AI Insights** -- structured Insight Feed with evidence-backed reading intelligence, theme detection, highlight clustering, similarity search, and smart book summaries (local embeddings)
+- **Overview** -- library-wide metrics and charts
+- **Library** -- browse books with filters
+- **Book Detail** -- per-book annotations by chapter
+- **Annotations** -- cross-book search
+- **Activity** -- sessions, progress, timelines
+- **Vocabulary** -- dictionary lookup explorer
+- **AI Insights** -- reading intelligence feed
 
-### Reading Intelligence (Insight Feed)
-- **Structured Insight Feed** -- ranked, evidence-backed insight cards across 10+ categories (reading patterns, highlight behavior, vocabulary activity, engagement, momentum, deep reading signals, and more)
-- **Top-level summary** -- scannable reading intelligence takeaways at the top of the page
-- **Collapsible detail** -- every insight expands with full body, supporting evidence, and actionable recommendations
-- **Filters and controls** -- filter by category, book, priority, or actionable-only
-- **Insight export** -- export all (or filtered) insights to Markdown or plain text
-- **AI analysis** -- theme detection, cross-book clustering, similarity search, and smart summaries via local embeddings
+</td>
+<td width="33%" valign="top">
 
-### Export
-- **Multi-format export** -- Markdown, JSON, and plain-text export per book
-- **Static HTML export** -- generate a self-contained single-page reading site
-- **Rich CLI** -- subcommands for parsing, exporting, summarizing, book lookup, and device detection
+### Intelligence
+- Evidence-backed Insight Feed (10+ categories)
+- Theme detection via semantic clustering
+- Cross-book idea discovery
+- Smart book summaries
+- Highlight similarity search
+- Local embeddings (no API keys)
+- Export insights to Markdown or text
+
+</td>
+</tr>
+</table>
+
+<br>
 
 ---
+
+<br>
+
+## Example Insights
+
+Here's a sample of what KoNotes surfaces from a real reading library. All data below is synthetic.
+
+<table>
+<tr>
+<td>
+
+**Insight: Deep Reading Detected**
+> You highlighted 42 passages in *Dune* -- 3x your library average. Chapter 2 alone has 11 highlights, the densest chapter across all your books.
+
+**Insight: Recurring Theme -- Power & Control**
+> The concept of power and control surfaces across 4 books in your library. Highlights from *Dune*, *Neuromancer*, *1984*, and *The Left Hand of Darkness* share semantic overlap, even though they span different authors and decades.
+
+**Insight: Vocabulary Spike**
+> You looked up 23 words while reading *The Left Hand of Darkness* -- the most of any book. Top lookups: *kemmer*, *shifgrethor*, *ansible*. Your vocabulary activity peaks during sci-fi reads.
+
+**Insight: Reading Momentum**
+> You averaged 4.2 reading sessions per week in March, up from 1.8 in February. Your longest session was 1h 42m in *Neuromancer* on March 14.
+
+</td>
+</tr>
+</table>
+
+These insights are generated automatically from your Kobo data. With AI features enabled, KoNotes also detects themes, clusters ideas across books, and generates per-book summaries.
+
+<br>
+
+---
+
+<br>
+
+## Getting Started
+
+### Prerequisites
+
+- **Python 3.12** or higher
+- **pip**
+
+### Install
+
+```bash
+git clone https://github.com/texasbe2trill/KoNotes.git
+cd KoNotes
+
+python3 -m venv .venv
+source .venv/bin/activate    # macOS / Linux
+# .venv\Scripts\activate     # Windows
+
+pip install -r requirements.txt
+```
+
+<details>
+<summary><b>Optional: Install AI features</b></summary>
+
+<br>
+
+For theme detection, clustering, similarity search, and smart summaries:
+
+```bash
+pip install '.[ai]'
+```
+
+This installs `sentence-transformers`, `scikit-learn`, and `numpy`. All AI processing runs locally on your machine -- no API keys needed. The embedding model (~80 MB) is downloaded once on first use and cached.
+
+</details>
+
+### Launch
+
+```bash
+# Web UI
+streamlit run app/app.py
+
+# CLI
+konotes --help
+```
+
+<br>
+
+---
+
+<br>
 
 ## Supported Inputs
 
 | Format | Extensions | Source | Priority |
-|--------|-----------|--------|----------|
-| KoboReader SQLite database | `.sqlite`, `.db` | Kobo device (`.kobo/`) | **Primary** |
-| Kobo HTML annotation export | `.html`, `.htm` | Kobo app / device | Secondary |
-| Kobo plain-text annotation export | `.txt` | Kobo app / device | Secondary |
-| Kobo Markdown annotation export | `.md` | Kobo app / device | Secondary |
+|:-------|:----------|:-------|:---------|
+| KoboReader SQLite | `.sqlite`, `.db` | Kobo device `.kobo/` folder | **Primary** |
+| Kobo HTML export | `.html`, `.htm` | Kobo app / device | Secondary |
+| Kobo plain-text export | `.txt` | Kobo app / device | Secondary |
+| Kobo Markdown export | `.md` | Kobo app / device | Secondary |
 
-### Schema-Aware SQLite Parsing
+<details>
+<summary><b>How to get your data</b></summary>
 
-KoNotes uses adaptive, schema-aware SQLite parsing. Kobo database schemas
-can vary across firmware versions and device models. KoNotes reads only the
-columns and tables that exist in your particular database and gracefully
-handles missing metadata -- so it works whether your `.sqlite` file is from
-the latest firmware or an older Kobo device.
-
-### How to get your data
+<br>
 
 **From a Kobo e-reader (recommended):**
 Connect via USB. KoNotes detects it automatically. Or navigate to the `.kobo/` hidden folder and copy `KoboReader.sqlite`.
@@ -93,264 +308,152 @@ Connect via USB. KoNotes detects it automatically. Or navigate to the `.kobo/` h
 **From the Kobo app:**
 Open a book, tap the highlights icon, *Share annotations*, and choose your format.
 
+KoNotes uses adaptive, schema-aware SQLite parsing -- it reads only the columns and tables that exist in your specific database and gracefully handles missing metadata. Works across firmware versions and device models.
+
+</details>
+
+<br>
+
 ---
 
-## Getting Started
+<br>
 
-### Prerequisites
+## CLI
 
-- Python 3.12 or higher
-- pip
+KoNotes ships with six CLI subcommands. Every command works with any supported file format.
 
-### Install
-
-```bash
-# Clone the repository
-git clone https://github.com/texasbe2trill/KoNotes.git
-cd KoNotes
-
-# Create a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate    # macOS / Linux
-# .venv\Scripts\activate     # Windows
-
-# Install core dependencies
-pip install -r requirements.txt
-
-# (Optional) Install AI features for theme detection, clustering, and summaries
-pip install '.[ai]'
-```
-
-### Launch the web UI
+### `detect-device`
 
 ```bash
-streamlit run app/app.py
-```
-
-The app opens in your browser at [http://localhost:8501](http://localhost:8501).
-
-### Quick start with CLI
-
-```bash
-# Auto-detect your Kobo and parse
 konotes detect-device
+```
+```
+Kobo Libra 2
+  Mount: /Volumes/KOBOeReader
+  Database: /Volumes/KOBOeReader/.kobo/KoboReader.sqlite
+```
+
+### `parse`
+
+```bash
 konotes parse /Volumes/KOBOeReader/.kobo/KoboReader.sqlite
 ```
-
----
-
-## CLI Usage
-
-KoNotes provides a full CLI with six subcommands. Every command shown below uses the Kobo SQLite database as the source, but you can substitute any supported file (`.html`, `.txt`, `.md`).
-
-### `detect-device` -- Find connected Kobo devices
-
-```bash
-$ konotes detect-device
 ```
-
-```
-+------------------------------------------+
-| KoNotes                                  |
-| Turn your Kobo highlights and reading    |
-| data into structured, readable insight.  |
-+------------------------------------------+
-
-Scanning for Kobo devices...
-
-  Found: Kobo Libra 2
-  Path:  /Volumes/KOBOeReader
-  DB:    /Volumes/KOBOeReader/.kobo/KoboReader.sqlite
-```
-
-### `parse` -- Parse an annotation file
-
-```bash
-$ konotes parse /Volumes/KOBOeReader/.kobo/KoboReader.sqlite
-```
-
-```
-+------------------------------------------+
-| KoNotes                                  |
-| Turn your Kobo highlights and reading    |
-| data into structured, readable insight.  |
-+------------------------------------------+
-
 Parsed: KoboReader.sqlite
   Books           24
   Annotations    387
   Highlights     312
   Notes           75
+  In Progress      8
+  Completed        16
+  Avg HL/Book    13.0
 
-              Books
-+---------------------------+-------------------+------+-------+
-| Title                     | Author            | High | Notes |
-+---------------------------+-------------------+------+-------+
-| Dune                      | Frank Herbert     |   42 |    12 |
-| Neuromancer               | William Gibson    |   28 |     6 |
-| The Left Hand of Darkness | Ursula K. Le Guin |   19 |     3 |
-| ...                       | ...               |  ... |   ... |
-+---------------------------+-------------------+------+-------+
+                              Books
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━┓
+┃ Title                       ┃ Author            ┃ Highlights ┃ Notes ┃ Progress ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━┩
+│ Dune                        │ Frank Herbert     │         42 │    12 │     100% │
+├─────────────────────────────┼───────────────────┼────────────┼───────┼──────────┤
+│ Neuromancer                 │ William Gibson    │         28 │     6 │      73% │
+├─────────────────────────────┼───────────────────┼────────────┼───────┼──────────┤
+│ The Left Hand of Darkness   │ Ursula K. Le Guin │         19 │     3 │      45% │
+└─────────────────────────────┴───────────────────┴────────────┴───────┴──────────┘
 ```
 
-### `export` -- Export annotations to a file
+### `export`
 
 ```bash
-# Export as Markdown (default)
-$ konotes export /Volumes/KOBOeReader/.kobo/KoboReader.sqlite -o ./output
-
-# Export as JSON (includes telemetry and exporter metadata)
-$ konotes export /Volumes/KOBOeReader/.kobo/KoboReader.sqlite -f json -o ./output
-
-# Export as plain text
-$ konotes export /Volumes/KOBOeReader/.kobo/KoboReader.sqlite -f text -o ./output
+konotes export KoboReader.sqlite -f markdown -o ./output
+konotes export KoboReader.sqlite -f json -o ./output
+konotes export KoboReader.sqlite -f text -o ./output
 ```
 
-```
-+------------------------------------------+
-| KoNotes                                  |
-+------------------------------------------+
+> **Tip:** The Markdown export renders beautifully in Markdown editors like [Bear](https://bear.app), [Obsidian](https://obsidian.md), and [Typora](https://typora.io). KoNotes is not affiliated with or endorsed by any of these apps.
 
-Exported 24 books to ./output/
-  Format: markdown
-  Files:  24 created
-```
-
-### `summary` -- Show library statistics
+### `summary`
 
 ```bash
-$ konotes summary /Volumes/KOBOeReader/.kobo/KoboReader.sqlite
+konotes summary KoboReader.sqlite
 ```
-
 ```
-+------------------------------------------+
-| KoNotes                                  |
-+------------------------------------------+
-
-Library Summary
   Books           24
   Annotations    387
   Highlights     312
   Notes           75
-  Avg HL/book   13.0
+  Avg HL/Book   13.0
 
-  Top Authors
-    Frank Herbert        (3 books)
-    William Gibson       (2 books)
-    Ursula K. Le Guin    (2 books)
+Top Authors:
+  Frank Herbert -- 3 book(s)
+  William Gibson -- 2 book(s)
 
-  Shelves
-    sci-fi               12 books
-    currently-reading      3 books
-    classics               5 books
+Most Highlighted:
+  Dune -- 42 highlight(s)
+  Neuromancer -- 28 highlight(s)
 
-  Recent Sessions
-    2024-12-28  Dune  (45 min, +12% progress)
-    2024-12-27  Neuromancer  (30 min, +8% progress)
+Shelves:
+  sci-fi (12 book(s))
+  currently-reading (3 book(s))
 ```
 
-### `book` -- Look up a specific book
+### `book`
 
 ```bash
-$ konotes book /Volumes/KOBOeReader/.kobo/KoboReader.sqlite "Dune"
+konotes book KoboReader.sqlite "Dune"
 ```
-
 ```
-+------------------------------------------+
-| KoNotes                                  |
-+------------------------------------------+
-
-  Dune
-  Frank Herbert
+Dune
+  Author: Frank Herbert
   Series: Dune Chronicles #1
-  Publisher: Ace Books
-  ISBN: 978-0-441-17271-9
-  Shelves: sci-fi, classics
-  Progress: 100% read
-  Last Read: 2024-12-28
-  Rating: 5/5
+  Progress: 100%
+  Highlights: 42  Notes: 12
 
-  Highlights (42)
-  ─────────────────
-  [Chapter 2] Fear is the mind-killer.
-  [Chapter 2] I must not fear. Fear is the...
-  [Chapter 5] He who controls the spice...
-  ...
-
-  Notes (12)
-  ────────────
-  [Chapter 2] The litany against fear is a...
-  ...
+  HL Fear is the mind-killer. Fear is the little-death that brings total
+  obliteration.
+  HL He who controls the spice controls the universe.
+  NT The litany against fear is a central theme -- connects to the Bene
+  Gesserit training...
+  ... and 49 more
 ```
 
-### `export-html` -- Generate a static HTML reading site
+### `export-html`
 
 ```bash
-$ konotes export-html /Volumes/KOBOeReader/.kobo/KoboReader.sqlite -o ./my-site
+konotes export-html KoboReader.sqlite -o ./my-site
 ```
-
 ```
-+------------------------------------------+
-| KoNotes                                  |
-+------------------------------------------+
-
 Static site exported to: ./my-site/
   Open ./my-site/index.html in a browser to view.
 ```
 
-This generates a single self-contained `index.html` file with your entire library, annotations, and metadata in a dark-themed reading site. Open it in any browser or host it anywhere.
+Generates a single self-contained `index.html` with your full library, annotations, charts, and reading intelligence. Dark-themed. No dependencies. Works offline.
+
+<br>
 
 ---
+
+<br>
 
 ## Web UI
 
-The Streamlit dashboard has six main views, plus a book detail view.
+Launch with `streamlit run app/app.py` and open [localhost:8501](http://localhost:8501).
 
-### Overview
+| View | What it does |
+|:-----|:-------------|
+| **Overview** | Library-wide metrics, top authors, annotation trends, reading time, shelf distribution |
+| **Library** | Browse all books with progress bars, shelf badges, and author/status filters |
+| **Book Detail** | Per-book annotations grouped by chapter, with search, filtering, export, and full metadata |
+| **Annotations** | Cross-book annotation search -- find any highlight by keyword |
+| **Activity** | Reading sessions, progress distribution, annotation timeline, progress snapshots over time |
+| **Vocabulary** | Every dictionary lookup from your Kobo, searchable and filterable by book, with frequency data |
+| **AI Insights** | Insight Feed with 10+ categories, theme detection, clustering, similarity search, summaries |
 
-The overview dashboard shows library-wide metrics at a glance: total books, highlights, notes, reading time, words looked up, and average highlights per book. Below the stats, you'll find top authors, annotation activity charts, reading progress distribution, reading time breakdowns, vocabulary lookups, and shelf distribution.
+Plug in your Kobo via USB and the app detects it. Or drag-and-drop any supported file.
 
-![Overview Dashboard](docs/screenshots/overview.png)
-
-### Library
-
-Browse all your books with annotation counts, reading progress bars, shelf badges, and author info. Filter by author, reading status, or search by title. Click any book card to open the detail view.
-
-![Library View](docs/screenshots/library.png)
-
-### Book Detail
-
-Per-book view with all annotations grouped by chapter. Filter by type (highlights/notes), search within the book, and export to Markdown, JSON, or plain text. Shows series info, subtitle, publisher, ISBN, shelves, progress, and rating.
-
-![Book Detail](docs/screenshots/book-detail.png)
-
-### Annotations
-
-Search across every annotation in your entire library. Filter by type and sort by date or book. Useful for finding that one highlight you remember but can't place.
-
-![Annotations View](docs/screenshots/annotations.png)
-
-### Activity
-
-Reading sessions detected from your Kobo's bookmark timestamps, progress distribution across your library, annotation timeline showing when you highlighted or noted things, and per-book progress snapshots over time.
-
-![Activity View](docs/screenshots/activity.png)
-
-### Vocabulary
-
-Every word you looked up in the Kobo dictionary, displayed in a searchable, filterable table. Filter by book, search by word, and see the full breakdown of lookups per book with expandable word lists.
-
-![Vocabulary View](docs/screenshots/vocabulary.png)
-
-### AI Insights
-
-Theme detection clusters your highlights by semantic topic. Cross-book clustering surfaces recurring ideas across multiple books. Smart summaries generate a "what I learned" overview per book. Similarity search finds highlights that echo each other. All processing runs locally using sentence-transformers.
-
-![AI Insights](docs/screenshots/insights.png)
-
-> **Note:** Screenshots are placeholders. To add your own, take screenshots of the running app and save them to `docs/screenshots/`.
+<br>
 
 ---
+
+<br>
 
 ## Running Tests
 
@@ -360,12 +463,16 @@ pytest tests/ -v
 ```
 
 ```
-361 passed
+358 passed
 ```
 
-Tests cover all parsers (HTML, TXT, Markdown, SQLite), normalization, model validation, chapter normalization, export formats (JSON, TXT, Markdown, HTML), device detection, CLI subcommands, schema helpers, SQLite telemetry extraction (sessions, snapshots, shelves, vocabulary, ratings), library statistics, AI insights (theme detection, clustering, similarity search, summaries), insight feed and export, and static HTML site generation.
+Tests cover every parser, normalizer, model, CLI subcommand, export format, SQLite telemetry extractor, AI insight pipeline, insight feed, and static HTML exporter.
+
+<br>
 
 ---
+
+<br>
 
 ## Project Structure
 
@@ -373,205 +480,247 @@ Tests cover all parsers (HTML, TXT, Markdown, SQLite), normalization, model vali
 KoNotes/
 ├── app/
 │   ├── app.py                  # Streamlit entry point
-│   ├── charts.py               # Shared Plotly chart helpers and color palette
-│   ├── assets/
-│   │   ├── logo.svg            # Brand logo
-│   │   └── styles.css          # Custom CSS
-│   └── views/
-│       ├── overview.py         # Overview dashboard
-│       ├── activity.py         # Activity view (sessions, progress, timeline)
-│       ├── library.py          # Library dashboard with filters
-│       ├── book_detail.py      # Per-book detail with export
-│       ├── annotations.py      # Cross-book annotation search
-│       ├── vocabulary_view.py  # Vocabulary / dictionary lookups view
-│       └── insights.py         # AI Insights view (themes, clusters, summaries)
-├── models/
-│   ├── annotation.py           # Annotation Pydantic model
-│   ├── book.py                 # Book Pydantic model
-│   ├── activity.py             # ReadingSession + ProgressSnapshot models
-│   ├── insight.py              # ThemeCluster, HighlightSimilarity, BookSummary
-│   ├── vocabulary.py           # WordLookup model
-│   ├── shelf.py                # Shelf model
-│   └── device.py               # KoboDevice model
-├── parser/
-│   ├── base.py                 # Abstract parser interface
-│   ├── export_parsers.py       # HTML / TXT / Markdown parsers
-│   ├── sqlite_parser.py        # KoboReader.sqlite parser (read-only)
-│   ├── normalizer.py           # Raw dicts -> typed models
-│   ├── chapter_normalize.py    # xhtml path -> human-readable chapter names
-│   └── device_detection.py     # Scan for connected Kobo devices
-├── services/
-│   ├── stats.py                # Library statistics (15+ metrics)
-│   ├── library_summary.py      # Aggregated library summary builder
-│   ├── embeddings.py           # Local embedding provider (sentence-transformers)
-│   ├── insight_feed.py         # Evidence-backed reading intelligence feed
-│   ├── insight_formatter.py    # LLM output post-processing
-│   ├── insight_export.py       # Insight card export (Markdown + text)
-│   ├── insights.py             # Theme detection, clustering, similarity search
-│   ├── summaries.py            # Smart summary generation (template + LLM)
-│   ├── export_markdown.py      # Per-book Markdown export
-│   ├── export_json.py          # Per-book JSON export
-│   ├── export_text.py          # Per-book plain-text export
-│   ├── export_html.py          # Single-page static HTML site exporter
-│   └── cli_output.py           # Rich terminal formatting
-├── utils/
-│   ├── text.py                 # Text utilities (slugify, truncate)
-│   └── schema.py               # Schema-aware SQLite helpers
-├── tests/
-│   ├── fixtures/               # Synthetic sample export files
-│   ├── test_export_parsers.py  # Parser tests
-│   ├── test_normalizer.py      # Normalization + model tests
-│   ├── test_chapter_normalize.py
-│   ├── test_exports.py         # JSON/TXT/Markdown export tests
-│   ├── test_device_detection.py
-│   ├── test_schema.py          # Schema helper tests
-│   ├── test_cli.py             # CLI subcommand tests
-│   ├── test_sqlite_parser.py   # SQLite telemetry extraction tests
-│   ├── test_stats.py           # Library statistics tests
-│   ├── test_insights.py        # AI insights + embedding tests
-│   ├── test_insight_feed.py    # Insight feed + export tests
-│   └── test_export_html.py     # Static HTML site exporter tests
-├── main.py                     # CLI entry point (argparse)
-├── requirements.txt            # Runtime + dev dependencies
-└── pyproject.toml              # Project metadata & build config
+│   ├── charts.py               # Shared Plotly chart helpers
+│   ├── assets/                 # Logo, CSS
+│   └── views/                  # Overview, Library, Activity, Vocabulary, Insights, ...
+├── models/                     # Pydantic models (Book, Annotation, Session, Insight, ...)
+├── parser/                     # SQLite, HTML, TXT, Markdown parsers + device detection
+├── services/                   # Stats, exports, AI, embeddings, insight feed
+├── utils/                      # Text utilities, schema helpers
+├── tests/                      # 358 tests across 13 modules
+├── main.py                     # CLI entry point
+├── pyproject.toml              # Project metadata & build config
+└── requirements.txt            # Runtime dependencies
 ```
 
-### Architecture Decisions
+<details>
+<summary><b>Architecture Decisions</b></summary>
+
+<br>
 
 | Decision | Rationale |
-|----------|-----------|
-| **Local-first AI** | Embeddings via sentence-transformers run entirely on your machine -- no API keys needed |
-| **Pydantic models** | Typed, validated data structures with JSON serialization built in |
+|:---------|:----------|
+| **Local-first AI** | Embeddings via sentence-transformers run entirely on your machine |
+| **Pydantic models** | Typed, validated data structures with JSON serialization |
 | **Abstract parser interface** | New input formats slot in without touching existing code |
-| **Read-only SQLite access** | Opens the database with `?mode=ro` -- zero risk of corrupting user data |
-| **Schema-aware queries** | Checks for table/column existence before querying -- handles firmware variations gracefully |
-| **Streamlit** | Fast to iterate, zero frontend build step, accessible to non-technical contributors |
+| **Read-only SQLite** | Opens the database with `?mode=ro` -- zero risk to user data |
+| **Schema-aware queries** | Handles firmware variations gracefully |
+| **Streamlit** | Fast to iterate, zero frontend build step |
 | **No database / no server** | All processing happens in-memory per session |
-| **Rich CLI output** | Colored, table-formatted terminal output via the `rich` library |
-| **Single-page HTML export** | One self-contained file, no dependencies, works offline |
+| **Single-page HTML export** | One file, no dependencies, works offline |
+
+</details>
+
+<br>
 
 ---
 
+<br>
+
 ## Roadmap
 
-KoNotes is built in phases. Phases 1 through 4 are complete.
+Phases 1 through 4 are complete. Phase 5 is next.
 
-### Phase 1 -- MVP
+<details>
+<summary><b>Phase 1 -- MVP</b> &nbsp; ✅</summary>
+
 - [x] Parse Kobo HTML, TXT, and Markdown annotation exports
 - [x] Parse KoboReader.sqlite (read-only)
 - [x] Normalize into typed `Book` / `Annotation` models
-- [x] Library view with stats and search
-- [x] Per-book detail view with filtering and pagination
+- [x] Library and book detail views
 - [x] Cross-book annotation search
-- [x] Per-book Markdown export
-- [x] CLI summary mode
+- [x] Markdown export and CLI summary
 
-### Phase 1.5 -- Polish
-- [x] Rich CLI with subcommands (parse, export, summary, detect-device)
-- [x] Chapter title normalization (xhtml paths to readable names)
-- [x] JSON and plain-text export formats
-- [x] Enhanced SQLite extraction (shelves, reading progress, publisher, ISBN, language)
+</details>
+
+<details>
+<summary><b>Phase 1.5 -- Polish</b> &nbsp; ✅</summary>
+
+- [x] Rich CLI with subcommands (parse, export, summary, detect-device, book, export-html)
+- [x] Chapter title normalization
+- [x] JSON and plain-text export
+- [x] Enhanced SQLite extraction (shelves, progress, publisher, ISBN, language)
 - [x] Schema-aware SQLite helpers for firmware compatibility
-- [x] Device detection (auto-scan for connected Kobo devices)
-- [x] Extended Book model (shelves, read_status, read_percent, publisher, ISBN, language)
-- [x] Reading insights in library (recently read, in progress, shelves)
-- [x] Consistent branding (SVG logo, custom CSS)
-- [x] Expanded test suite (92 tests)
+- [x] Device detection
+- [x] 92 tests
 
-### Phase 2 -- Reading Intelligence Dashboard
-- [x] Reading session detection from SQLite Bookmark timestamps
-- [x] Progress snapshot extraction from the database
-- [x] New domain models: ReadingSession, ProgressSnapshot, Shelf
-- [x] Extended Book model (series, content_type, is_archived, is_favorited, date_added)
-- [x] Library statistics layer (15+ metrics)
-- [x] Overview dashboard (metrics, activity charts, reading time, shelves)
-- [x] Activity view (sessions, progress distribution, annotation timeline)
-- [x] Enhanced library view (author and status filters, series display)
-- [x] Enhanced book detail view (subtitle, series, shelf badges, ISBN, last read date)
-- [x] CLI book lookup subcommand with partial title matching
-- [x] JSON export with telemetry and exporter metadata blocks
-- [x] Expanded test suite (135 tests)
+</details>
 
-### Phase 3 -- AI/ML Features
+<details>
+<summary><b>Phase 2 -- Reading Intelligence Dashboard</b> &nbsp; ✅</summary>
+
+- [x] Reading session detection
+- [x] Progress snapshot extraction
+- [x] Library statistics (15+ metrics)
+- [x] Overview, Activity, and enhanced Library views
+- [x] CLI book lookup with partial matching
+- [x] JSON export with telemetry metadata
+- [x] 135 tests
+
+</details>
+
+<details>
+<summary><b>Phase 3 -- AI/ML Features</b> &nbsp; ✅</summary>
+
 - [x] Theme detection -- cluster highlights by semantic topic
-- [x] Highlight clustering -- surface recurring ideas across multiple books
-- [x] Reading insights -- most-highlighted authors, genres, and ideas
-- [x] Smart summaries -- generate a "what I learned" summary per book
-- [x] Similarity search -- find highlights that echo each other
+- [x] Highlight clustering -- recurring ideas across books
+- [x] Smart summaries -- "what I learned" per book
+- [x] Similarity search -- find echoing highlights
 
-### Phase 4 -- Integrations & Sharing
-- [x] Vocabulary view -- browse dictionary lookups from your Kobo
-- [x] Shareable single-page static HTML export
-- [x] Structured Insight Feed with evidence-backed reading intelligence
+</details>
+
+<details>
+<summary><b>Phase 4 -- Integrations & Sharing</b> &nbsp; ✅</summary>
+
+- [x] Vocabulary view -- browse dictionary lookups
+- [x] Static HTML export with charts and reading intelligence
+- [x] Structured Insight Feed with evidence-backed cards
 - [x] Insight export (Markdown and plain text)
-- [x] Activity charts (annotation timeline, progress snapshots, reading sessions)
-- [x] 361 tests passing
+- [x] Activity charts (timeline, snapshots, sessions)
+- [x] 358 tests
 
-### Phase 5 -- Future
+</details>
+
+<details>
+<summary><b>Phase 5 -- Future</b></summary>
+
 - [ ] CSV export format
 - [ ] Reading goals and streaks
 - [ ] Annotation tagging and categorization
 - [ ] Spaced repetition integration
 - [ ] Reading statistics export (PDF report)
 
+</details>
+
+<br>
+
 ---
+
+<br>
 
 ## Contributing
 
-Contributions are welcome. KoNotes is designed to be easy to extend -- the parser interface, service layer, and UI are cleanly separated.
-
-### Getting set up
+Contributions are welcome. KoNotes is designed to be easy to extend.
 
 ```bash
 git clone https://github.com/texasbe2trill/KoNotes.git
 cd KoNotes
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-pip install '.[ai]'  # optional, for AI features
-pytest tests/ -v     # make sure everything passes
+pip install '.[ai]'
+pytest tests/ -v
 ```
 
-### How to contribute
-
-1. **Open an issue first** to discuss what you'd like to change
-2. Fork the repo and create a feature branch: `git checkout -b feature/your-feature`
+1. **Open an issue first** to discuss your change
+2. Fork and create a feature branch
 3. Write tests for your changes
-4. Make sure all tests pass: `pytest tests/ -v`
+4. Make sure all tests pass
 5. Open a pull request
 
-### Good first contributions
+**Good first contributions:** new export formats (CSV, EPUB), UI improvements, reading goals, enhanced classification heuristics.
 
-- Add a new export format (e.g., CSV, EPUB)
-- Improve annotation classification heuristics
-- Improve the Streamlit UI styling
-- Add reading goals or streak tracking
-- Enhance the static HTML export
+<br>
 
 ---
 
-## Privacy & Data Usage
+<br>
 
-KoNotes is a local-first tool.
+## Privacy & Data
 
-- All data is processed locally on your machine
-- KoNotes does not access Kobo servers or accounts
-- KoNotes only reads files explicitly provided by the user
-- KoboReader.sqlite is accessed in read-only mode (`?mode=ro`)
-- AI features (theme detection, clustering, summaries) run entirely on your machine
-- KoNotes prompts for user confirmation before reading device data
+<table>
+<tr>
+<td>
 
-Users are responsible for complying with applicable terms of service.
+KoNotes is a **local-first** tool. Your reading data never leaves your machine.
+
+- All parsing, analysis, and rendering happens locally
+- No Kobo server or account access
+- SQLite opened in read-only mode (`?mode=ro`)
+- User consent required before reading device data
+- Streamlit telemetry is disabled (`gatherUsageStats = false`)
+- No KoNotes telemetry, tracking, or analytics
+
+**AI features and network access:**
+- The `all-MiniLM-L6-v2` embedding model (~80 MB) is downloaded once from [HuggingFace Hub](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) on first use, then cached locally at `~/.cache/huggingface/`. After that initial download, all AI processing is fully offline.
+- KoNotes never sends your reading data, highlights, or annotations to any external service.
+
+</td>
+</tr>
+</table>
+
+<br>
 
 ---
+
+<br>
+
+## Support the Project
+
+If you find KoNotes useful, consider giving it a star so it can reach more readers.
+
+<div align="center">
+
+[![Star on GitHub](https://img.shields.io/github/stars/texasbe2trill/KoNotes?style=social)](https://github.com/texasbe2trill/KoNotes)
+
+<br>
+
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-texasbe2trill-ea4aaa?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/texasbe2trill)
+</div>
+
+<br>
+
+---
+
+<br>
+
+## Acknowledgements
+
+- [Streamlit](https://streamlit.io) -- the framework powering the KoNotes dashboard
+- [sentence-transformers](https://www.sbert.net) -- local embeddings for AI features
+- [Plotly](https://plotly.com/python/) -- interactive charts and visualizations
+- [Rich](https://rich.readthedocs.io) -- beautiful terminal output
+- [Pydantic](https://docs.pydantic.dev) -- data validation and modeling
+- [Kobo](https://www.kobo.com) -- for building e-readers that respect open data
+- Every reader who highlights, notes, and looks up words -- your curiosity is what makes this project meaningful
+
+<br>
+
+## Disclaimer
+
+KoNotes is an independent, open-source project. It is **not affiliated with, endorsed by, or sponsored by Rakuten Kobo Inc.** "Kobo" is a trademark of Rakuten Kobo Inc.
+
+- KoNotes **does not** access Kobo accounts, servers, or APIs
+- KoNotes **does not** bypass, circumvent, or interact with DRM
+- KoNotes only processes files explicitly provided by the user
+- All database access is read-only (`?mode=ro`)
+
+<br>
+
+---
+
+<br>
+
+## Demo Data
+
+All example data shown in this README, in tests, and in demo fixtures is **entirely synthetic**. The included `docs/KoNotes_synthetic.sqlite` database contains generated data for testing -- no real user data or copyrighted book content is included. Book titles and author names used in examples are references for illustration only; no copyrighted text from those works is reproduced.
+
+<br>
+
+---
+
+<br>
 
 ## License
 
-MIT -- [texasbe2trill](https://github.com/texasbe2trill)
+MIT -- [Chris Campbell](https://github.com/texasbe2trill)
 
----
+<br>
 
 <div align="center">
 
 **KoNotes** -- Made with love for the Kobo community.
+
+<br>
+<br>
 
 </div>
