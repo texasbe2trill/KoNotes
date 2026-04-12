@@ -1,13 +1,16 @@
 <div align="center">
 
+<h1>KoNotes</h1>
+
+<p>
+Turn your Kobo highlights and reading data into structured, readable insight.
+</p>
+
 <br>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/Ko-Notes-3b82f6?style=for-the-badge&labelColor=0f172a&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMiAzaDZhNCA0IDAgMCAxIDQgNCA0IDQgMCAwIDEgNC00aDZNMTIgMTNWMyIvPjxwYXRoIGQ9Ik0yIDN2MTZhMSAxIDAgMCAwIDEgMWg1LjVhMi41IDIuNSAwIDAgMSAyLjUgMi41IDIuNSAyLjUgMCAwIDEgMi41LTIuNUgyMWExIDEgMCAwIDAgMS0xVjMiLz48L3N2Zz4=">
-  <img src="https://img.shields.io/badge/Ko-Notes-3b82f6?style=for-the-badge&labelColor=ffffff&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMiAzaDZhNCA0IDAgMCAxIDQgNCA0IDQgMCAwIDEgNC00aDZNMTIgMTNWMyIvPjxwYXRoIGQ9Ik0yIDN2MTZhMSAxIDAgMCAwIDEgMWg1LjVhMi41IDIuNSAwIDAgMSAyLjUgMi41IDIuNSAyLjUgMCAwIDEgMi41LTIuNUgyMWExIDEgMCAwIDAgMS0xVjMiLz48L3N2Zz4=" alt="KoNotes">
-</picture>
+<img src="https://img.shields.io/badge/KoNotes-3b82f6?style=for-the-badge" />
 
-### Turn your Kobo highlights and reading data<br>into structured, readable insight.
+</div>
 
 <br>
 
@@ -660,7 +663,9 @@ If you find KoNotes useful, consider giving it a star so it can reach more reade
 
 <div align="center">
 
-[![Star on GitHub](https://img.shields.io/github/stars/texasbe2trill/KoNotes?style=social)](https://github.com/texasbe2trill/KoNotes)
+[![Star on GitHub](https://img.shields.io/github/stars/texasbe2trill/konotes?style=social)](https://github.com/texasbe2trill/konotes)
+
+</div>
 
 <br>
 
