@@ -7,9 +7,13 @@ from pathlib import Path
 import pytest
 
 from parser.sqlite_parser import (
+    _title_from_path,
+    extract_page_turns,
     extract_progress_snapshots,
+    extract_ratings,
     extract_reading_sessions,
     extract_shelves,
+    extract_word_lookups,
     parse_sqlite,
 )
 
@@ -255,3 +259,186 @@ class TestExtractProgressSnapshots:
         conn.close()
         snapshots = extract_progress_snapshots(db_path)
         assert snapshots == []
+
+
+# ── Word Lookups ─────────────────────────────────────────────────
+
+
+@pytest.fixture
+def kobo_db_with_wordlist(kobo_db) -> Path:
+    """Extend the base fixture with WordList, ratings, and Event tables."""
+    conn = sqlite3.connect(str(kobo_db))
+    conn.execute("""
+        CREATE TABLE WordList (
+            Text TEXT,
+            VolumeId TEXT,
+            DictSuffix TEXT,
+            DateCreated TEXT
+        )
+    """)
+    conn.execute("""
+        INSERT INTO WordList VALUES
+            ('stoicism', 'file:///vol1', '-en', '2026-03-10T09:30:00')
+    """)
+    conn.execute("""
+        INSERT INTO WordList VALUES
+            ('ephemeral', 'file:///vol1', '-en', '2026-03-10T10:00:00')
+    """)
+    conn.execute("""
+        INSERT INTO WordList VALUES
+            ('bonjour', 'file:///vol2', '-fr', '2026-04-01T15:00:00')
+    """)
+    conn.execute("""
+        INSERT INTO WordList VALUES
+            ('soleil', 'file:///mnt/onboard/Author/My Great Book - Author.kepub.epub', '-fr', '2026-04-02T10:00:00')
+    """)
+
+    # Ratings table
+    conn.execute("""
+        CREATE TABLE ratings (
+            ContentID TEXT,
+            Rating INTEGER,
+            DateModified TEXT
+        )
+    """)
+    conn.execute("INSERT INTO ratings VALUES ('file:///vol1', 5, '2026-03-15')")
+    conn.execute("INSERT INTO ratings VALUES ('file:///vol2', 3, '2026-04-01')")
+    conn.execute("INSERT INTO ratings VALUES ('file:///vol3', 0, '2026-04-01')")  # invalid
+    conn.execute("INSERT INTO ratings VALUES ('file:///vol4', 6, '2026-04-01')")  # out of range
+
+    # Event table with page turns (type 46)
+    conn.execute("""
+        CREATE TABLE Event (
+            ContentID TEXT,
+            EventType INTEGER,
+            EventCount INTEGER
+        )
+    """)
+    conn.execute("INSERT INTO Event VALUES ('file:///vol1', 46, 120)")
+    conn.execute("INSERT INTO Event VALUES ('file:///vol1', 46, 80)")  # second batch
+    conn.execute("INSERT INTO Event VALUES ('file:///vol2', 46, 50)")
+    conn.execute("INSERT INTO Event VALUES ('file:///vol1', 3, 5)")  # not page turns
+
+    conn.commit()
+    conn.close()
+    return kobo_db
+
+
+class TestExtractWordLookups:
+    def test_returns_lookups(self, kobo_db_with_wordlist):
+        lookups = extract_word_lookups(kobo_db_with_wordlist)
+        assert len(lookups) == 4
+
+    def test_word_text(self, kobo_db_with_wordlist):
+        lookups = extract_word_lookups(kobo_db_with_wordlist)
+        words = [w.word for w in lookups]
+        assert "stoicism" in words
+        assert "bonjour" in words
+
+    def test_book_title_resolved(self, kobo_db_with_wordlist):
+        lookups = extract_word_lookups(kobo_db_with_wordlist)
+        vol1_lookups = [w for w in lookups if w.book_id == "file:///vol1"]
+        assert vol1_lookups[0].book_title == "Test Book"
+
+    def test_language_extracted(self, kobo_db_with_wordlist):
+        lookups = extract_word_lookups(kobo_db_with_wordlist)
+        fr_lookups = [w for w in lookups if w.language == "fr"]
+        assert len(fr_lookups) >= 1
+
+    def test_timestamp_parsed(self, kobo_db_with_wordlist):
+        lookups = extract_word_lookups(kobo_db_with_wordlist)
+        assert lookups[0].looked_up_at is not None
+
+    def test_file_path_fallback(self, kobo_db_with_wordlist):
+        lookups = extract_word_lookups(kobo_db_with_wordlist)
+        path_lookup = [w for w in lookups if w.word == "soleil"]
+        assert len(path_lookup) == 1
+        assert path_lookup[0].book_title == "My Great Book"
+
+    def test_empty_db(self, tmp_path):
+        db_path = tmp_path / "empty.sqlite"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("CREATE TABLE dummy (id INTEGER)")
+        conn.commit()
+        conn.close()
+        lookups = extract_word_lookups(db_path)
+        assert lookups == []
+
+
+class TestExtractRatings:
+    def test_returns_valid_ratings(self, kobo_db_with_wordlist):
+        ratings = extract_ratings(kobo_db_with_wordlist)
+        assert ratings["file:///vol1"] == 5
+        assert ratings["file:///vol2"] == 3
+
+    def test_excludes_invalid_ratings(self, kobo_db_with_wordlist):
+        ratings = extract_ratings(kobo_db_with_wordlist)
+        # Rating 0 and 6 should be excluded
+        assert "file:///vol3" not in ratings
+        assert "file:///vol4" not in ratings
+
+    def test_count(self, kobo_db_with_wordlist):
+        ratings = extract_ratings(kobo_db_with_wordlist)
+        assert len(ratings) == 2
+
+    def test_empty_db(self, tmp_path):
+        db_path = tmp_path / "empty.sqlite"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("CREATE TABLE dummy (id INTEGER)")
+        conn.commit()
+        conn.close()
+        ratings = extract_ratings(db_path)
+        assert ratings == {}
+
+
+class TestExtractPageTurns:
+    def test_aggregates_per_book(self, kobo_db_with_wordlist):
+        turns = extract_page_turns(kobo_db_with_wordlist)
+        # vol1 has 120 + 80 = 200
+        assert turns["file:///vol1"] == 200
+        assert turns["file:///vol2"] == 50
+
+    def test_excludes_non_page_turn_events(self, kobo_db_with_wordlist):
+        turns = extract_page_turns(kobo_db_with_wordlist)
+        # Type 3 events should not contribute
+        assert turns["file:///vol1"] == 200  # not 205
+
+    def test_empty_db(self, tmp_path):
+        db_path = tmp_path / "empty.sqlite"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("CREATE TABLE dummy (id INTEGER)")
+        conn.commit()
+        conn.close()
+        turns = extract_page_turns(db_path)
+        assert turns == {}
+
+
+class TestTitleFromPath:
+    def test_kepub_epub(self):
+        path = "file:///mnt/onboard/Author/Sapiens - Yuval Noah Harari.kepub.epub"
+        assert _title_from_path(path) == "Sapiens"
+
+    def test_plain_epub(self):
+        path = "file:///mnt/onboard/Books/The Great Gatsby - F. Scott Fitzgerald.epub"
+        assert _title_from_path(path) == "The Great Gatsby"
+
+    def test_no_author_suffix(self):
+        path = "file:///mnt/onboard/Books/Meditations.epub"
+        assert _title_from_path(path) == "Meditations"
+
+    def test_url_encoded(self):
+        path = "file:///mnt/onboard/Books/My%20Book%20Title%20-%20Author.kepub.epub"
+        assert _title_from_path(path) == "My Book Title"
+
+    def test_pdf(self):
+        path = "file:///mnt/onboard/Research Paper - J. Smith.pdf"
+        assert _title_from_path(path) == "Research Paper"
+
+    def test_none_input(self):
+        assert _title_from_path(None) is None
+
+    def test_non_file_path(self):
+        assert _title_from_path("some-uuid-string") is None
+
+    def test_empty_string(self):
+        assert _title_from_path("") is None

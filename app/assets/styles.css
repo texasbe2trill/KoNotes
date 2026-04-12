@@ -31,12 +31,12 @@
     background: transparent !important;
 }
 [data-testid="stSidebar"] [role="radiogroup"] label:hover {
-    background: rgba(74, 158, 255, 0.08) !important;
+    background: rgba(59, 130, 246, 0.08) !important;
 }
 [data-testid="stSidebar"] [role="radiogroup"] label[data-checked="true"],
 [data-testid="stSidebar"] [role="radiogroup"] label[data-baseweb="radio"][aria-checked="true"] {
-    background: rgba(74, 158, 255, 0.12) !important;
-    border-left: 3px solid #4a9eff !important;
+    background: rgba(59, 130, 246, 0.12) !important;
+    border-left: 3px solid #3b82f6 !important;
 }
 
 /* Nav buttons in sidebar — clean style */
@@ -50,7 +50,7 @@
     transition: background 0.15s;
 }
 [data-testid="stSidebar"] button[kind="secondary"]:hover {
-    background: rgba(74, 158, 255, 0.08);
+    background: rgba(59, 130, 246, 0.08);
 }
 
 /* ============================================================
@@ -58,20 +58,20 @@
    ============================================================ */
 
 [data-testid="stMetric"] {
-    background: rgba(74, 158, 255, 0.04);
-    border: 1px solid rgba(74, 158, 255, 0.10);
+    background: rgba(59, 130, 246, 0.04);
+    border: 1px solid rgba(59, 130, 246, 0.10);
     border-radius: 10px;
     padding: 0.85rem 1rem;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 [data-testid="stMetric"]:hover {
-    border-color: rgba(74, 158, 255, 0.25);
-    box-shadow: 0 2px 8px rgba(74, 158, 255, 0.06);
+    border-color: rgba(59, 130, 246, 0.25);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.06);
 }
 [data-testid="stMetric"] [data-testid="stMetricValue"] {
     font-size: 1.7rem;
     font-weight: 700;
-    color: #4a9eff;
+    color: #3b82f6;
 }
 [data-testid="stMetric"] [data-testid="stMetricLabel"] {
     font-size: 0.72rem;
@@ -86,21 +86,21 @@
    ============================================================ */
 
 .kn-stat-card {
-    background: rgba(74, 158, 255, 0.04);
-    border: 1px solid rgba(74, 158, 255, 0.10);
+    background: rgba(59, 130, 246, 0.04);
+    border: 1px solid rgba(59, 130, 246, 0.10);
     border-radius: 10px;
     padding: 1rem 1.1rem;
     text-align: center;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 .kn-stat-card:hover {
-    border-color: rgba(74, 158, 255, 0.25);
-    box-shadow: 0 2px 8px rgba(74, 158, 255, 0.06);
+    border-color: rgba(59, 130, 246, 0.25);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.06);
 }
 .kn-stat-value {
     font-size: 1.7rem;
     font-weight: 700;
-    color: #4a9eff;
+    color: #3b82f6;
     line-height: 1.2;
 }
 .kn-stat-label {
@@ -165,8 +165,8 @@
     color: #b8860b;
 }
 .kn-badge-note {
-    background: rgba(74, 158, 255, 0.15);
-    color: #4a9eff;
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
 }
 .kn-badge-other {
     background: rgba(150, 150, 150, 0.15);
@@ -176,8 +176,8 @@
     display: inline-block;
     padding: 0.2rem 0.6rem;
     border-radius: 12px;
-    background: rgba(74, 158, 255, 0.08);
-    color: #4a9eff;
+    background: rgba(59, 130, 246, 0.08);
+    color: #3b82f6;
     font-size: 0.78rem;
     margin: 0.15rem 0.1rem;
     font-weight: 500;
@@ -191,7 +191,7 @@
     margin: 0.15rem 0.1rem;
 }
 .kn-badge-progress.done { background: rgba(16, 185, 129, 0.12); color: #10b981; }
-.kn-badge-progress.reading { background: rgba(74, 158, 255, 0.12); color: #4a9eff; }
+.kn-badge-progress.reading { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
 .kn-badge-progress.unstarted { background: rgba(150, 150, 150, 0.12); color: #999; }
 
 /* ============================================================
@@ -226,7 +226,7 @@
 .kn-progress-fill {
     height: 100%;
     border-radius: 3px;
-    background: linear-gradient(90deg, #4a9eff, #38bdf8);
+    background: linear-gradient(90deg, #3b82f6, #38bdf8);
     transition: width 0.3s ease;
 }
 .kn-progress-fill.complete {
@@ -250,8 +250,8 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: rgba(74, 158, 255, 0.1);
-    color: #4a9eff;
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
     font-size: 0.7rem;
     font-weight: 700;
     display: inline-flex;
@@ -273,7 +273,7 @@
    ============================================================ */
 
 blockquote {
-    border-left: 3px solid #4a9eff !important;
+    border-left: 3px solid #3b82f6 !important;
     padding-left: 1rem !important;
     font-style: italic;
     margin: 0.3rem 0 !important;
@@ -286,9 +286,9 @@ blockquote {
 .kn-chapter {
     font-size: 0.95rem;
     font-weight: 600;
-    color: #4a9eff;
+    color: #3b82f6;
     padding: 0.6rem 0 0.2rem 0;
-    border-bottom: 1px solid rgba(74, 158, 255, 0.12);
+    border-bottom: 1px solid rgba(59, 130, 246, 0.12);
     margin-bottom: 0.5rem;
 }
 
@@ -313,7 +313,7 @@ button[data-testid="stDownloadButton"] {
     font-weight: 800;
     letter-spacing: -0.02em;
     margin-bottom: 0.3rem;
-    background: linear-gradient(135deg, #4a9eff, #7c3aed);
+    background: linear-gradient(135deg, #3b82f6, #7c3aed);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -327,8 +327,8 @@ button[data-testid="stDownloadButton"] {
 .kn-step {
     padding: 1.2rem;
     border-radius: 10px;
-    border: 1px solid rgba(74, 158, 255, 0.12);
-    background: rgba(74, 158, 255, 0.03);
+    border: 1px solid rgba(59, 130, 246, 0.12);
+    background: rgba(59, 130, 246, 0.03);
     height: 100%;
 }
 .kn-step-num {
@@ -337,7 +337,7 @@ button[data-testid="stDownloadButton"] {
     height: 28px;
     line-height: 28px;
     border-radius: 50%;
-    background: #4a9eff;
+    background: #3b82f6;
     color: #fff;
     text-align: center;
     font-weight: 700;

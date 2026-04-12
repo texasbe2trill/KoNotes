@@ -38,7 +38,7 @@ def _build_parser() -> argparse.ArgumentParser:
         description="KoNotes -- Turn your Kobo highlights into structured, readable insight.",
     )
     parser.add_argument(
-        "--version", action="version", version="konotes 0.3.0"
+        "--version", action="version", version="konotes 0.5.0"
     )
     sub = parser.add_subparsers(dest="command")
 
@@ -74,6 +74,17 @@ def _build_parser() -> argparse.ArgumentParser:
     p_book.add_argument("file", type=Path, help="Path to annotation file or KoboReader.sqlite")
     p_book.add_argument("title", help="Book title (or partial match)")
     p_book.set_defaults(func=_cmd_book)
+
+    # export-html
+    p_html = sub.add_parser("export-html", help="Export a static HTML reading site")
+    p_html.add_argument("file", type=Path, help="Path to annotation file or KoboReader.sqlite")
+    p_html.add_argument(
+        "-o", "--output",
+        type=Path,
+        default=None,
+        help="Output directory (default: ./konotes-site)",
+    )
+    p_html.set_defaults(func=_cmd_export_html)
 
     # detect-device
     p_detect = sub.add_parser("detect-device", help="Scan for connected Kobo devices")
@@ -264,6 +275,38 @@ def _cmd_book(args: argparse.Namespace) -> int:
     for book in matches:
         print_book_detail(book)
 
+    return 0
+
+
+def _cmd_export_html(args: argparse.Namespace) -> int:
+    from services.cli_output import console, print_banner, print_error, print_success
+
+    print_banner()
+
+    path: Path = args.file
+    if not path.exists():
+        print_error(f"File not found: {path}")
+        return 1
+
+    if not _confirm_device_access(path):
+        console.print("Aborted.")
+        return 0
+
+    books, err = _load_books(path)
+    if err:
+        print_error(err)
+        return 1
+
+    if not books:
+        print_error("No annotations found.")
+        return 1
+
+    from services.export_html import export_static_site
+
+    out_dir: Path = args.output or Path("konotes-site")
+    export_static_site(books, out_dir)
+    print_success(f"Static site exported to: {out_dir}/")
+    console.print(f"  Open {out_dir / 'index.html'} in a browser to view.")
     return 0
 
 

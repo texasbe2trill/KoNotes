@@ -396,18 +396,21 @@ def extract_word_lookups(db_path: Path) -> list[WordLookup]:
         # Build title map for readable book names (multiple ID formats)
         title_map: dict[str, str] = {}
         if table_exists(conn, "content"):
+            has_book_id = column_exists(conn, "content", "BookID")
+            cols = "ContentID, BookID, Title" if has_book_id else "ContentID, Title"
             try:
                 for row in conn.execute(
-                    "SELECT ContentID, BookID, Title FROM content WHERE ContentType = 6"
+                    f"SELECT {cols} FROM content WHERE ContentType = 6"  # noqa: S608
                 ):
                     cid = row["ContentID"]
                     title = row["Title"]
                     if cid and title:
                         title_map[cid] = title
                     # Also map by BookID (file:///mnt/onboard/... path)
-                    bid = _safe_get(row, "BookID")
-                    if bid and title:
-                        title_map[bid] = title
+                    if has_book_id:
+                        bid = _safe_get(row, "BookID")
+                        if bid and title:
+                            title_map[bid] = title
             except sqlite3.OperationalError:
                 pass
 

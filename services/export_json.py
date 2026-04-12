@@ -53,7 +53,7 @@ def export_book_json(book: Book) -> str:
         },
         "exporter": {
             "tool": "KoNotes",
-            "version": "0.3.0",
+            "version": "0.5.0",
             "url": "https://github.com/texasbe2trill/KoNotes",
         },
         "footer": _FOOTER,

@@ -5,6 +5,7 @@ Entry point: run with ``streamlit run app/app.py``
 from __future__ import annotations
 
 import os
+import sqlite3
 import sys
 import tempfile
 from pathlib import Path
@@ -76,7 +77,7 @@ for key, default in _DEFAULTS.items():
 # Navigation helpers
 # ---------------------------------------------------------------------------
 
-_NAV_ITEMS = ["Overview", "Library", "Annotations", "Activity"]
+_NAV_ITEMS = ["Overview", "Library", "Annotations", "Activity", "Vocabulary", "Insights"]
 
 
 def _go_to(view: str, book_id: str | None = None) -> None:
@@ -106,14 +107,43 @@ def _load_telemetry(db_path: Path) -> None:
     try:
         ratings = extract_ratings(db_path)
         page_turns = extract_page_turns(db_path)
-        for book in st.session_state.get("books", []):
-            # Match by checking if any known ID maps to this book
+        if ratings or page_turns:
+            # Build ContentID → book title lookup from SQLite
+            cid_title: dict[str, tuple[str, str | None]] = {}
+            try:
+                uri = db_path.as_uri() + "?mode=ro"
+                conn = sqlite3.connect(uri, uri=True)
+                conn.row_factory = sqlite3.Row
+                for row in conn.execute(
+                    "SELECT ContentID, Title, Attribution FROM content WHERE ContentType = 6"
+                ):
+                    cid_title[row["ContentID"]] = (
+                        row["Title"] or "Unknown Book",
+                        row["Attribution"] or None,
+                    )
+                conn.close()
+            except Exception:
+                pass
+
+            # Build title-based index into loaded books
+            book_by_title: dict[str, Book] = {}
+            for book in st.session_state.get("books", []):
+                key = (book.title, book.author)
+                book_by_title[str(key)] = book
+
             for cid, rating in ratings.items():
-                if cid in (book.id or ""):
-                    book.rating = rating
+                info = cid_title.get(cid)
+                if info:
+                    key = str(info)
+                    if key in book_by_title:
+                        book_by_title[key].rating = rating
+
             for cid, turns in page_turns.items():
-                if cid in (book.id or ""):
-                    book.page_turns = turns
+                info = cid_title.get(cid)
+                if info:
+                    key = str(info)
+                    if key in book_by_title:
+                        book_by_title[key].page_turns = turns
     except Exception:
         pass
     st.session_state["db_path"] = db_path
@@ -127,7 +157,7 @@ with st.sidebar:
     st.markdown(
         '<div style="text-align:center; padding: 0.4rem 0 0.2rem;">'
         '<span style="font-size:1.5rem; font-weight:800; letter-spacing:-0.02em;">'
-        '<span style="color:#4a9eff;">Ko</span>Notes</span>'
+        '<span style="color:#3b82f6;">Ko</span>Notes</span>'
         '<div style="font-size:0.72rem; color:#666; margin-top:2px;">Reading Intelligence</div>'
         '</div>',
         unsafe_allow_html=True,
@@ -288,6 +318,8 @@ with st.sidebar:
             "library": "Library",
             "annotations": "Annotations",
             "activity": "Activity",
+            "vocabulary": "Vocabulary",
+            "insights": "Insights",
         }
         current_nav = _view_to_nav.get(current_view, "Overview")
         current_idx = _NAV_ITEMS.index(current_nav) if current_nav in _NAV_ITEMS else 0
@@ -306,6 +338,8 @@ with st.sidebar:
             "Library": "library",
             "Annotations": "annotations",
             "Activity": "activity",
+            "Vocabulary": "vocabulary",
+            "Insights": "insights",
         }
         new_view = _nav_to_view.get(selected_nav, "overview")
         if new_view != current_view and current_view != "book_detail":
@@ -326,9 +360,26 @@ with st.sidebar:
             unsafe_allow_html=True,
         )
 
+        # HTML export button
+        with st.expander("Export"):
+            if st.button("Export static HTML site", width="stretch", key="export_html"):
+                from services.export_html import export_static_site
+                import tempfile
+
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    export_static_site(st.session_state["books"], tmp_dir)
+                    html_content = (Path(tmp_dir) / "index.html").read_text(encoding="utf-8")
+                    st.download_button(
+                        "Download site (.html)",
+                        data=html_content,
+                        file_name="konotes.html",
+                        mime="text/html",
+                        key="dl_html",
+                    )
+
     st.divider()
     st.markdown(
-        '<div style="text-align:center; font-size:0.68rem; color:#475569;">v0.3.0</div>',
+        '<div style="text-align:center; font-size:0.68rem; color:#475569;">v0.5.0</div>',
         unsafe_allow_html=True,
     )
 
@@ -463,3 +514,19 @@ elif view == "activity":
     sessions_data: list[ReadingSession] = st.session_state.get("sessions", [])
     snapshots_data: list[ProgressSnapshot] = st.session_state.get("snapshots", [])
     render_activity(books, sessions_data, snapshots_data)
+
+# ---------------------------------------------------------------------------
+# Vocabulary view
+# ---------------------------------------------------------------------------
+elif view == "vocabulary":
+    from app.views.vocabulary_view import render_vocabulary
+
+    word_lookups_data = st.session_state.get("word_lookups", [])
+    render_vocabulary(word_lookups_data, books)
+
+# ---------------------------------------------------------------------------
+# AI Insights view
+# ---------------------------------------------------------------------------
+elif view == "insights":
+    from app.views.insights import render_insights
+    render_insights(books)

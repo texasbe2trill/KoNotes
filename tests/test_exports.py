@@ -74,7 +74,7 @@ class TestExportJSON:
         data = json.loads(export_book_json(_make_book()))
         assert "exporter" in data
         assert data["exporter"]["tool"] == "KoNotes"
-        assert data["exporter"]["version"] == "0.3.0"
+        assert data["exporter"]["version"] == "0.5.0"
 
 
 class TestExportText:
