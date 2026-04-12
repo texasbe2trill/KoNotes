@@ -11,11 +11,13 @@ from __future__ import annotations
 
 import html
 import math
-from collections import Counter
-from datetime import datetime
+from collections import Counter, defaultdict
+from datetime import datetime, timedelta
 from pathlib import Path
 
+from models.activity import ProgressSnapshot, ReadingSession
 from models.book import Book
+from models.insight import InsightCard
 from utils.text import slugify
 
 
@@ -90,10 +92,11 @@ header .gen-date { color: var(--text-dim); font-size: 0.75rem; margin-top: 0.6re
 /* ── Hero stats ─────────────────────────────────────────── */
 .hero-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 0.75rem;
     margin: 2rem 0;
 }
+@media (max-width: 680px) { .hero-stats { grid-template-columns: repeat(2, 1fr); } }
 .hero-stat {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -107,7 +110,11 @@ header .gen-date { color: var(--text-dim); font-size: 0.75rem; margin-top: 0.6re
     transform: translateY(-3px);
     box-shadow: 0 8px 24px rgba(0,0,0,0.25);
 }
-.hero-stat .value { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+.hero-stat .value {
+    font-size: 1.8rem; font-weight: 800; line-height: 1;
+    white-space: nowrap;
+}
+.hero-stat .value.compact { font-size: 1.3rem; }
 .hero-stat .label {
     font-size: 0.65rem; color: var(--text-muted);
     text-transform: uppercase; letter-spacing: 0.07em; margin-top: 0.4rem;
@@ -118,6 +125,7 @@ header .gen-date { color: var(--text-dim); font-size: 0.75rem; margin-top: 0.6re
 .hero-stat.purple .value { color: var(--purple); }
 .hero-stat.rose .value { color: var(--rose); }
 .hero-stat.cyan .value { color: var(--cyan); }
+.hero-stat.teal .value { color: var(--teal); }
 
 /* ── Section headings ───────────────────────────────────── */
 .section-heading {
@@ -277,6 +285,8 @@ nav.toc .author-toc { color: var(--text-dim); font-size: 0.72rem; }
     padding: 0.12rem 0.5rem; border-radius: 20px;
     border: 1px solid var(--border); color: var(--text-muted);
     background: rgba(255,255,255,0.015);
+    word-break: break-word; overflow-wrap: break-word;
+    max-width: 100%;
 }
 .pill.hl { border-color: var(--brand); color: var(--brand); }
 .pill.note { border-color: var(--amber); color: var(--amber); }
@@ -378,6 +388,163 @@ footer {
     text-align: center; color: var(--text-dim); font-size: 0.8rem;
 }
 footer a { color: var(--text-muted); }
+
+/* ── Reading Intelligence section ────────────────────────── */
+.ri-header {
+    font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em;
+    margin-bottom: 0.15rem;
+}
+.ri-subtitle {
+    font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;
+}
+.ri-takeaway-bar {
+    border: 1px solid rgba(139,92,246,0.15);
+    border-radius: 14px;
+    padding: 1rem 1.3rem;
+    background: rgba(139,92,246,0.03);
+    margin-bottom: 1.5rem;
+}
+.ri-takeaway-title {
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--purple); margin-bottom: 0.55rem;
+}
+.ri-takeaway-item {
+    font-size: 0.85rem; color: var(--text);
+    padding: 0.25rem 0; line-height: 1.55;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.ri-takeaway-item:last-child { border-bottom: none; }
+.ri-takeaway-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(168,85,247,0.15); color: var(--purple);
+    font-size: 0.62rem; font-weight: 700; margin-right: 0.5rem;
+}
+.ri-cat-heading {
+    font-size: 0.95rem; font-weight: 700; color: var(--text);
+    margin: 1.5rem 0 0.75rem; padding-bottom: 0.4rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.ri-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.75rem;
+    background: var(--surface);
+    transition: border-color 0.2s;
+}
+.ri-card:hover { border-color: rgba(59,130,246,0.2); }
+.ri-card-header {
+    display: flex; align-items: baseline;
+    justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;
+    margin-bottom: 0.3rem;
+}
+.ri-card-title { font-weight: 700; font-size: 0.92rem; line-height: 1.35; flex: 1; }
+.ri-cat-pill {
+    display: inline-block; font-size: 0.6rem; font-weight: 600;
+    padding: 0.1rem 0.45rem; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+}
+.ri-priority {
+    font-size: 0.58rem; font-weight: 700; letter-spacing: 0.05em;
+}
+.ri-summary {
+    font-size: 0.85rem; line-height: 1.65; color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+.ri-books-pills { margin-top: 0.25rem; }
+.ri-pill {
+    display: inline-block; font-size: 0.65rem;
+    padding: 0.1rem 0.45rem; border-radius: 20px;
+    border: 1px solid var(--border); color: var(--text-muted);
+    background: rgba(255,255,255,0.015); margin: 0.1rem 0.05rem;
+    white-space: nowrap;
+}
+.ri-detail {
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding-top: 0.6rem; margin-top: 0.5rem;
+}
+.ri-detail summary {
+    cursor: pointer; list-style: none;
+    font-size: 0.78rem; font-weight: 600; color: var(--brand);
+    padding: 0.25rem 0;
+}
+.ri-detail summary::-webkit-details-marker { display: none; }
+.ri-detail summary::before {
+    content: '\\25B6'; display: inline-block; margin-right: 0.4rem;
+    font-size: 0.5rem; transition: transform 0.2s;
+}
+.ri-detail[open] > summary::before { transform: rotate(90deg); }
+.ri-body p {
+    font-size: 0.85rem; line-height: 1.7; color: var(--text);
+    margin: 0 0 0.4rem;
+}
+.ri-evidence { margin-top: 0.5rem; }
+.ri-evidence-title {
+    font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--text-dim); margin-bottom: 0.3rem;
+}
+.ri-evidence-row {
+    display: flex; justify-content: space-between;
+    padding: 0.2rem 0; font-size: 0.82rem;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.ri-evidence-row:last-child { border-bottom: none; }
+.ri-evidence-label { color: var(--text-muted); }
+.ri-evidence-value { font-weight: 500; color: var(--text); }
+.ri-rec {
+    display: flex; align-items: flex-start; gap: 0.5rem;
+    padding: 0.55rem 0.8rem; border-radius: 8px;
+    background: rgba(59,130,246,0.04);
+    border: 1px solid rgba(59,130,246,0.1);
+    font-size: 0.82rem; color: var(--text-muted);
+    margin-top: 0.5rem; line-height: 1.55;
+}
+.ri-rec-label {
+    font-weight: 700; font-size: 0.66rem; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--brand); flex-shrink: 0; margin-top: 1px;
+}
+.ri-stats-line {
+    font-size: 0.78rem; color: var(--text-dim); margin-bottom: 0.75rem;
+}
+
+/* ── Activity charts ─────────────────────────────────────── */
+.activity-section { margin: 2rem 0; }
+.activity-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+@media (max-width: 680px) { .activity-grid { grid-template-columns: 1fr; } }
+.activity-full { grid-column: 1 / -1; }
+.activity-insight {
+    font-size: 0.82rem; line-height: 1.6; color: var(--text-muted);
+    padding: 0.75rem 1rem; border-radius: 10px;
+    border: 1px solid rgba(59,130,246,0.12);
+    background: rgba(59,130,246,0.03);
+    margin-bottom: 1rem;
+}
+.activity-insight strong { color: var(--text); }
+.svg-chart-container { overflow-x: auto; }
+.svg-chart-container svg { display: block; width: 100%; height: auto; }
+.chart-card .chart-caption {
+    font-size: 0.7rem; color: var(--text-dim); margin-top: 0.4rem;
+    text-align: center;
+}
+.legend-row {
+    display: flex; flex-wrap: wrap; gap: 0.3rem 0.75rem;
+    justify-content: center; margin-top: 0.5rem;
+}
+.legend-item {
+    display: flex; align-items: center; gap: 0.2rem;
+    font-size: 0.65rem; color: var(--text-muted);
+}
+.legend-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    display: inline-block; flex-shrink: 0;
+}
 
 /* ── Print styles ───────────────────────────────────────── */
 @media print {
@@ -518,8 +685,657 @@ def _svg_bar_chart(items: list[tuple[str, int]], color: str = "#3b82f6", max_ite
     return "\n".join(parts)
 
 
-def _render_page(books: list[Book]) -> str:
-    """Render a single-page HTML site with dashboard, charts, and annotations."""
+# ---------------------------------------------------------------------------
+# Activity SVG charts (pure inline SVG, no external dependencies)
+# ---------------------------------------------------------------------------
+
+
+def _svg_vertical_bars(
+    labels: list[str],
+    values: list[int],
+    width: int = 460,
+    height: int = 200,
+    color: str = "#3b82f6",
+    *,
+    highlight_max: bool = False,
+    dim_color: str = "rgba(59,130,246,0.4)",
+) -> str:
+    """Render a vertical bar chart as inline SVG."""
+    if not values:
+        return '<p style="color:var(--text-dim); font-size:0.85rem;">No data.</p>'
+
+    max_val = max(values) or 1
+    pad_left = 35
+    pad_right = 10
+    pad_top = 15
+    pad_bottom = 45
+    chart_w = width - pad_left - pad_right
+    chart_h = height - pad_top - pad_bottom
+    n = len(values)
+    bar_w = max(2, min(20, chart_w // max(n, 1) - 2))
+    step = chart_w / max(n, 1)
+
+    parts = [f'<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">']
+
+    # Y-axis gridlines
+    for i in range(5):
+        y = pad_top + chart_h - (chart_h * i / 4)
+        parts.append(
+            f'<line x1="{pad_left}" y1="{y:.0f}" x2="{width - pad_right}" y2="{y:.0f}" '
+            f'stroke="rgba(255,255,255,0.05)" stroke-width="1"/>'
+        )
+        tick_val = int(max_val * i / 4)
+        parts.append(
+            f'<text x="{pad_left - 4}" y="{y + 3:.0f}" text-anchor="end" '
+            f'fill="#64748b" font-size="8">{tick_val}</text>'
+        )
+
+    # Bars
+    for i, (label, val) in enumerate(zip(labels, values)):
+        bar_h = (val / max_val) * chart_h if max_val else 0
+        x = pad_left + step * i + (step - bar_w) / 2
+        y = pad_top + chart_h - bar_h
+        bar_color = color if not highlight_max else (
+            color if val == max_val else dim_color
+        )
+        parts.append(
+            f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w}" height="{bar_h:.1f}" '
+            f'rx="2" fill="{bar_color}" opacity="0.85">'
+            f'<title>{_esc(label)}: {val}</title></rect>'
+        )
+        # X-axis labels (show subset if too many)
+        if n <= 15 or i % max(1, n // 12) == 0:
+            short_label = label[:6] if len(label) > 6 else label
+            parts.append(
+                f'<text x="{x + bar_w / 2:.1f}" y="{pad_top + chart_h + 14}" '
+                f'text-anchor="middle" fill="#64748b" font-size="7" '
+                f'transform="rotate(-45 {x + bar_w / 2:.1f} {pad_top + chart_h + 14})">'
+                f'{_esc(short_label)}</text>'
+            )
+
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def _svg_scatter(
+    points: list[tuple[str, float, str, str]],
+    width: int = 460,
+    height: int = 220,
+) -> str:
+    """Render a scatter plot as inline SVG.
+
+    Each point is (x_label, y_value, color, tooltip).
+    """
+    if not points:
+        return '<p style="color:var(--text-dim); font-size:0.85rem;">No data.</p>'
+
+    pad_left = 40
+    pad_right = 10
+    pad_top = 15
+    pad_bottom = 40
+    chart_w = width - pad_left - pad_right
+    chart_h = height - pad_top - pad_bottom
+
+    y_vals = [p[1] for p in points]
+    max_y = max(y_vals) or 1
+    n = len(points)
+
+    parts = [f'<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">']
+
+    # Y-axis gridlines
+    for i in range(5):
+        y = pad_top + chart_h - (chart_h * i / 4)
+        parts.append(
+            f'<line x1="{pad_left}" y1="{y:.0f}" x2="{width - pad_right}" y2="{y:.0f}" '
+            f'stroke="rgba(255,255,255,0.05)" stroke-width="1"/>'
+        )
+        tick_val = max_y * i / 4
+        parts.append(
+            f'<text x="{pad_left - 4}" y="{y + 3:.0f}" text-anchor="end" '
+            f'fill="#64748b" font-size="8">{tick_val:.0f}</text>'
+        )
+
+    # Points
+    for i, (x_label, y_val, color, tooltip) in enumerate(points):
+        x = pad_left + (chart_w * i / max(n - 1, 1))
+        y = pad_top + chart_h - (y_val / max_y) * chart_h
+        r = max(3, min(8, y_val / max_y * 6 + 2))
+        parts.append(
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" '
+            f'fill="{color}" opacity="0.8">'
+            f'<title>{_esc(tooltip)}</title></circle>'
+        )
+
+    # X-axis labels
+    label_step = max(1, n // 8)
+    for i in range(0, n, label_step):
+        x = pad_left + (chart_w * i / max(n - 1, 1))
+        short = points[i][0][:8]
+        parts.append(
+            f'<text x="{x:.1f}" y="{pad_top + chart_h + 14}" '
+            f'text-anchor="middle" fill="#64748b" font-size="7" '
+            f'transform="rotate(-45 {x:.1f} {pad_top + chart_h + 14})">'
+            f'{_esc(short)}</text>'
+        )
+
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def _svg_line_chart(
+    series: list[tuple[str, list[tuple[str, float]], str]],
+    width: int = 460,
+    height: int = 220,
+    y_max: float = 100,
+    y_label: str = "%",
+) -> str:
+    """Render a multi-series line chart as inline SVG.
+
+    Each series is (name, [(x_label, y_value), ...], color).
+    """
+    if not series:
+        return '<p style="color:var(--text-dim); font-size:0.85rem;">No data.</p>'
+
+    pad_left = 35
+    pad_right = 10
+    pad_top = 15
+    pad_bottom = 40
+    chart_w = width - pad_left - pad_right
+    chart_h = height - pad_top - pad_bottom
+
+    # Collect all unique x labels in order
+    all_x: list[str] = []
+    seen: set[str] = set()
+    for _, pts, _ in series:
+        for xl, _ in pts:
+            if xl not in seen:
+                all_x.append(xl)
+                seen.add(xl)
+    all_x.sort()
+    n = len(all_x)
+    x_idx = {xl: i for i, xl in enumerate(all_x)}
+
+    parts = [f'<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">']
+
+    # Y-axis gridlines
+    for i in range(5):
+        y = pad_top + chart_h - (chart_h * i / 4)
+        parts.append(
+            f'<line x1="{pad_left}" y1="{y:.0f}" x2="{width - pad_right}" y2="{y:.0f}" '
+            f'stroke="rgba(255,255,255,0.05)" stroke-width="1"/>'
+        )
+        tick_val = y_max * i / 4
+        parts.append(
+            f'<text x="{pad_left - 4}" y="{y + 3:.0f}" text-anchor="end" '
+            f'fill="#64748b" font-size="8">{tick_val:.0f}{y_label}</text>'
+        )
+
+    # Lines + markers
+    for name, pts, color in series:
+        coords = []
+        for xl, yv in pts:
+            idx = x_idx.get(xl, 0)
+            x = pad_left + (chart_w * idx / max(n - 1, 1))
+            y = pad_top + chart_h - (min(yv, y_max) / y_max) * chart_h
+            coords.append((x, y, xl, yv))
+
+        if len(coords) >= 2:
+            path_d = " ".join(
+                f"{'M' if i == 0 else 'L'} {x:.1f} {y:.1f}"
+                for i, (x, y, _, _) in enumerate(coords)
+            )
+            parts.append(
+                f'<path d="{path_d}" fill="none" stroke="{color}" '
+                f'stroke-width="2" opacity="0.85"/>'
+            )
+
+        for x, y, xl, yv in coords:
+            parts.append(
+                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3" fill="{color}">'
+                f'<title>{_esc(name)}: {yv:.0f}% on {_esc(xl)}</title></circle>'
+            )
+
+    # X-axis labels
+    label_step = max(1, n // 8)
+    for i in range(0, n, label_step):
+        x = pad_left + (chart_w * i / max(n - 1, 1))
+        short = all_x[i][:8]
+        parts.append(
+            f'<text x="{x:.1f}" y="{pad_top + chart_h + 14}" '
+            f'text-anchor="middle" fill="#64748b" font-size="7" '
+            f'transform="rotate(-45 {x:.1f} {pad_top + chart_h + 14})">'
+            f'{_esc(short)}</text>'
+        )
+
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def _build_activity_section(
+    books: list[Book],
+    sessions: list[ReadingSession] | None = None,
+    snapshots: list[ProgressSnapshot] | None = None,
+) -> str:
+    """Build the Reading Activity HTML section with inline SVG charts."""
+    all_annotations = [a for b in books for a in b.annotations]
+    has_timestamps = any(a.created_at for a in all_annotations)
+    has_time_data = any(b.time_spent_reading for b in books)
+    has_sessions = bool(sessions)
+    has_snapshots = bool(snapshots)
+    if not has_timestamps and not has_time_data and not has_sessions and not has_snapshots:
+        return ""
+
+    parts: list[str] = []
+    parts.append('<div class="activity-section">')
+    parts.append('<div class="section-heading"><span class="icon"></span>Reading Activity</div>')
+
+    # ── Activity insight text ────────────────────────────────
+    insight_parts: list[str] = []
+    books_with_time = [b for b in books if b.time_spent_reading and b.time_spent_reading > 0]
+    if books_with_time:
+        total_sec = sum(b.time_spent_reading or 0 for b in books_with_time)
+        avg_min = (total_sec / len(books_with_time)) / 60
+        insight_parts.append(
+            f"Average reading time per book: <strong>{avg_min:.0f} minutes</strong>."
+        )
+
+    day_counter: Counter[str] = Counter()
+    for ann in all_annotations:
+        if ann.created_at:
+            day_counter[ann.created_at.strftime("%Y-%m-%d")] += 1
+
+    active_days = len(day_counter)
+    if active_days >= 2:
+        dates_sorted = sorted(day_counter.keys())
+        first = datetime.strptime(dates_sorted[0], "%Y-%m-%d")
+        last = datetime.strptime(dates_sorted[-1], "%Y-%m-%d")
+        span = max((last - first).days, 1)
+        pct = (active_days / span) * 100
+        insight_parts.append(
+            f"You annotated on <strong>{pct:.0f}%</strong> of days "
+            f"across a <strong>{span}-day</strong> window."
+        )
+
+    if day_counter:
+        busiest_day, busiest_count = max(day_counter.items(), key=lambda x: x[1])
+        dt = datetime.strptime(busiest_day, "%Y-%m-%d")
+        insight_parts.append(
+            f"Most active day: <strong>{dt.strftime('%b %d, %Y')}</strong> "
+            f"with {busiest_count} annotations."
+        )
+
+    if insight_parts:
+        parts.append(
+            '<div class="activity-insight">' + " ".join(insight_parts) + '</div>'
+        )
+
+    parts.append('<div class="activity-grid">')
+
+    # ── 1. Annotation Timeline ───────────────────────────────
+    if day_counter:
+        day_data = dict(day_counter)
+        dates_sorted = sorted(day_data.keys())
+        first_dt = datetime.strptime(dates_sorted[0], "%Y-%m-%d")
+        last_dt = datetime.strptime(dates_sorted[-1], "%Y-%m-%d")
+
+        # Fill in zero days
+        all_dates: list[str] = []
+        all_counts: list[int] = []
+        cur = first_dt
+        while cur <= last_dt:
+            ds = cur.strftime("%Y-%m-%d")
+            all_dates.append(ds)
+            all_counts.append(day_data.get(ds, 0))
+            cur += timedelta(days=1)
+
+        # Weekly aggregation if span > 90 days
+        if len(all_dates) > 90:
+            weekly: dict[str, int] = defaultdict(int)
+            for ds, c in zip(all_dates, all_counts):
+                dt_w = datetime.strptime(ds, "%Y-%m-%d")
+                wk = (dt_w - timedelta(days=dt_w.weekday())).strftime("%Y-%m-%d")
+                weekly[wk] += c
+            sorted_weeks = sorted(weekly.keys())
+            bar_labels = [datetime.strptime(w, "%Y-%m-%d").strftime("%b %d") for w in sorted_weeks]
+            bar_values = [weekly[w] for w in sorted_weeks]
+            period_label = "Weekly"
+        else:
+            bar_labels = [datetime.strptime(d, "%Y-%m-%d").strftime("%b %d") for d in all_dates]
+            bar_values = all_counts
+            period_label = "Daily"
+
+        parts.append('<div class="chart-card activity-full">')
+        parts.append(f"  <h3>Annotation Timeline ({period_label})</h3>")
+        parts.append(f'  <div class="svg-chart-container">{_svg_vertical_bars(bar_labels, bar_values, width=600, height=200, color="#3b82f6")}</div>')
+        parts.append("</div>")
+
+    # ── 2. Day of Week ───────────────────────────────────────
+    if day_counter:
+        dow_counter: Counter[str] = Counter()
+        day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        for ann in all_annotations:
+            if ann.created_at:
+                dow_counter[day_names[ann.created_at.weekday()]] += 1
+
+        dow_values = [dow_counter.get(d, 0) for d in day_names]
+        if any(dow_values):
+            parts.append('<div class="chart-card">')
+            parts.append("  <h3>Day of Week</h3>")
+            parts.append(
+                f'  <div class="svg-chart-container">'
+                f'{_svg_vertical_bars(day_names, dow_values, width=300, height=180, color="#3b82f6", highlight_max=True)}'
+                f'</div>'
+            )
+            max_day_idx = dow_values.index(max(dow_values))
+            parts.append(f'  <div class="chart-caption">Most active: {day_names[max_day_idx]}</div>')
+            parts.append("</div>")
+
+    # ── 3. Time of Day ────────────────────────────────────────
+    hour_counter: Counter[int] = Counter()
+    for ann in all_annotations:
+        if ann.created_at:
+            hour_counter[ann.created_at.hour] += 1
+
+    if hour_counter:
+        hours_24 = list(range(24))
+        hour_labels = [f"{h:02d}" for h in hours_24]
+        hour_values = [hour_counter.get(h, 0) for h in hours_24]
+
+        peak_hour = max(hour_counter, key=lambda h: hour_counter[h])
+        period = (
+            "morning" if 5 <= peak_hour < 12 else
+            "afternoon" if 12 <= peak_hour < 17 else
+            "evening" if 17 <= peak_hour < 21 else "night"
+        )
+
+        parts.append('<div class="chart-card">')
+        parts.append("  <h3>Time of Day</h3>")
+        parts.append(
+            f'  <div class="svg-chart-container">'
+            f'{_svg_vertical_bars(hour_labels, hour_values, width=300, height=180, color="#a855f7", highlight_max=True, dim_color="rgba(168,85,247,0.4)")}'
+            f'</div>'
+        )
+        parts.append(f'  <div class="chart-caption">Peak: {peak_hour:02d}:00 ({period})</div>')
+        parts.append("</div>")
+
+    # ── 4. Reading Time by Book ───────────────────────────────
+    timed = [(b.title, b.time_spent_reading or 0) for b in books
+             if b.time_spent_reading and b.time_spent_reading > 0]
+    if timed:
+        timed.sort(key=lambda x: x[1], reverse=True)
+        top_timed = timed[:10]
+        time_items = [(t, s // 60) for t, s in top_timed]  # Convert to minutes for display
+        parts.append('<div class="chart-card activity-full">')
+        parts.append("  <h3>Reading Time by Book</h3>")
+        parts.append(f"  {_svg_bar_chart(time_items, '#22c55e', max_items=10)}")
+        parts.append(
+            f'  <div class="chart-caption">Values in minutes</div>'
+        )
+        parts.append("</div>")
+
+    # ── 5. Reading Sessions Scatter ───────────────────────────
+    session_points: list[tuple[str, float, str, str]] = []
+    book_color_map: dict[str, str] = {}
+    color_idx = 0
+    # Build title map: Book.id (SHA1) + VolumeID (from snapshots/sessions) -> title
+    title_map = {b.id: b.title for b in books}
+    if snapshots:
+        for snap in snapshots:
+            if snap.book_id not in title_map and snap.book_title:
+                title_map[snap.book_id] = snap.book_title
+    for s in sessions or []:
+        if s.book_id not in title_map:
+            title_map[s.book_id] = s.book_title
+    for s in sorted(sessions or [], key=lambda s: s.start_time):
+        if s.book_id not in book_color_map:
+            book_color_map[s.book_id] = _COLORS[color_idx % len(_COLORS)]
+            color_idx += 1
+        bcolor = book_color_map[s.book_id]
+        x_label = s.start_time.strftime("%b %d")
+        tooltip = (
+            f"{s.book_title}\n"
+            f"{s.start_time.strftime('%b %d, %Y %H:%M')}\n"
+            f"Duration: {s.duration_minutes:.0f} min"
+        )
+        session_points.append((x_label, s.duration_minutes, bcolor, tooltip))
+
+    if session_points:
+        # Sort by date
+        session_points.sort(key=lambda p: p[0])
+        parts.append('<div class="chart-card activity-full">')
+        parts.append("  <h3>Reading Sessions</h3>")
+        parts.append(
+            f'  <div class="svg-chart-container">'
+            f'{_svg_scatter(session_points, width=600, height=220)}'
+            f'</div>'
+        )
+        # Legend
+        legend_items: list[tuple[str, str]] = []
+        for bid, lcolor in book_color_map.items():
+            raw_title = title_map.get(bid, bid[:20])
+            short_title = raw_title[:25] + "..." if len(raw_title) > 25 else raw_title
+            legend_items.append((short_title, lcolor))
+        if legend_items:
+            parts.append('<div class="legend-row">')
+            for name, lcolor in legend_items[:10]:
+                parts.append(
+                    f'<span class="legend-item">'
+                    f'<span class="legend-dot" style="background:{lcolor};"></span>'
+                    f'{_esc(name)}</span>'
+                )
+            parts.append("</div>")
+        parts.append(
+            '  <div class="chart-caption">Bubble size reflects session duration</div>'
+        )
+        parts.append("</div>")
+
+    # ── 6. Reading Progress Curves ────────────────────────────
+    progress_series: list[tuple[str, list[tuple[str, float]], str]] = []
+    if snapshots:
+        # Group by book
+        snap_by_book: dict[str, list[ProgressSnapshot]] = defaultdict(list)
+        for snap in snapshots:
+            snap_by_book[snap.book_id].append(snap)
+
+        for i, (bid, book_snaps) in enumerate(snap_by_book.items()):
+            sorted_snaps = sorted(
+                [s for s in book_snaps if s.recorded_at],
+                key=lambda s: s.recorded_at or datetime.min,
+            )
+            if len(sorted_snaps) < 2:
+                continue
+            pts = [(s.recorded_at.strftime("%Y-%m-%d"), s.percent) for s in sorted_snaps if s.recorded_at]
+            raw_title = title_map.get(bid, bid[:20])
+            short_title = raw_title[:25] + "..." if len(raw_title) > 25 else raw_title
+            progress_series.append((
+                short_title,
+                pts,
+                _COLORS[i % len(_COLORS)],
+            ))
+
+    # Limit to top 8 by number of points
+    progress_series.sort(key=lambda s: len(s[1]), reverse=True)
+    progress_series = progress_series[:8]
+
+    if progress_series:
+        parts.append('<div class="chart-card activity-full">')
+        parts.append("  <h3>Reading Progress Over Time</h3>")
+        parts.append(
+            f'  <div class="svg-chart-container">'
+            f'{_svg_line_chart(progress_series, width=600, height=220, y_max=100, y_label="%")}'
+            f'</div>'
+        )
+        # Legend
+        parts.append('<div class="legend-row">')
+        for name, _, lcolor in progress_series:
+            parts.append(
+                f'<span class="legend-item">'
+                f'<span class="legend-dot" style="background:{lcolor};"></span>'
+                f'{_esc(name)}</span>'
+            )
+        parts.append("</div>")
+        parts.append("</div>")
+
+    parts.append("</div>")  # activity-grid
+    parts.append("</div>")  # activity-section
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Reading Intelligence HTML section
+# ---------------------------------------------------------------------------
+
+_CATEGORY_COLORS: dict[str, str] = {
+    "Library Overview": "#3b82f6",
+    "Most Engaged Books": "#22c55e",
+    "Highlight Behavior": "#f59e0b",
+    "Reading Patterns": "#6366f1",
+    "Books in Progress": "#06b6d4",
+    "Vocabulary Activity": "#14b8a6",
+    "Reading Momentum": "#22c55e",
+    "Forgotten Insights": "#f43f5e",
+    "Deep Reading Signals": "#a855f7",
+    "Cross-Book Themes": "#a855f7",
+    "Book Summary": "#3b82f6",
+}
+
+
+def _render_insight_card(card: InsightCard) -> str:
+    """Render a single InsightCard as HTML."""
+    color = _CATEGORY_COLORS.get(card.category, "#3b82f6")
+
+    # Priority indicator
+    if card.priority_score >= 0.7:
+        pri_color, pri_label = "#22c55e", "HIGH"
+    elif card.priority_score >= 0.45:
+        pri_color, pri_label = "#f59e0b", "MEDIUM"
+    else:
+        pri_color, pri_label = "#64748b", "LOW"
+
+    parts: list[str] = [
+        '<div class="ri-card">',
+        '<div class="ri-card-header">',
+        f'<div class="ri-card-title" style="color:{color};">{_esc(card.title)}</div>',
+        '<div>',
+        f'<span class="ri-cat-pill" style="background:rgba({_hex_to_rgb(color)},0.12); '
+        f'color:{color};">{_esc(card.category)}</span> ',
+        f'<span class="ri-priority" style="color:{pri_color};">{pri_label}</span>',
+        '</div></div>',
+        f'<div class="ri-summary">{_esc(card.summary)}</div>',
+    ]
+
+    # Related books pills
+    if card.related_books:
+        pills = "".join(
+            f'<span class="ri-pill" style="border-color:{color}; color:{color};">'
+            f'{_esc(b)}</span>'
+            for b in card.related_books[:5]
+        )
+        parts.append(f'<div class="ri-books-pills">{pills}</div>')
+
+    # Collapsible detail
+    has_detail = card.body or card.evidence or card.recommendation
+    if has_detail:
+        parts.append('<details class="ri-detail">')
+        parts.append('<summary>View details</summary>')
+
+        if card.body:
+            parts.append('<div class="ri-body">')
+            paragraphs = card.body.split("\n\n") if "\n\n" in card.body else [card.body]
+            for p in paragraphs:
+                if p.strip():
+                    parts.append(f"<p>{_esc(p.strip())}</p>")
+            parts.append("</div>")
+
+        if card.evidence:
+            parts.append('<div class="ri-evidence">')
+            parts.append('<div class="ri-evidence-title">Supporting Evidence</div>')
+            for ev in card.evidence:
+                parts.append(
+                    f'<div class="ri-evidence-row">'
+                    f'<span class="ri-evidence-label">{_esc(ev.label)}</span>'
+                    f'<span class="ri-evidence-value">{_esc(ev.value)}</span>'
+                    f'</div>'
+                )
+            parts.append("</div>")
+
+        if card.recommendation:
+            parts.append(
+                f'<div class="ri-rec">'
+                f'<span class="ri-rec-label">Next Step</span>'
+                f'{_esc(card.recommendation)}'
+                f'</div>'
+            )
+
+        parts.append("</details>")
+
+    parts.append("</div>")
+    return "\n".join(parts)
+
+
+def _hex_to_rgb(hex_color: str) -> str:
+    """Convert hex color to CSS rgb() components string."""
+    h = hex_color.lstrip("#")
+    return f"{int(h[0:2], 16)},{int(h[2:4], 16)},{int(h[4:6], 16)}"
+
+
+def _render_insights_section(
+    cards: list[InsightCard],
+    takeaways: list[str],
+) -> str:
+    """Render the full Reading Intelligence HTML section."""
+    parts: list[str] = []
+
+    parts.append('<div class="section-heading"><span class="icon"></span>Reading Intelligence</div>')
+    parts.append('<div class="ri-subtitle">'
+                 'Evidence-backed insights from your Kobo library</div>')
+
+    # Takeaway bar
+    if takeaways:
+        parts.append('<div class="ri-takeaway-bar">')
+        parts.append('<div class="ri-takeaway-title">Key Takeaways</div>')
+        for i, t in enumerate(takeaways, 1):
+            parts.append(
+                f'<div class="ri-takeaway-item">'
+                f'<span class="ri-takeaway-num">{i}</span>'
+                f'{_esc(t)}'
+                f'</div>'
+            )
+        parts.append("</div>")
+
+    # Stats line
+    cats = sorted({c.category for c in cards})
+    parts.append(
+        f'<div class="ri-stats-line">'
+        f'{len(cards)} insight{"s" if len(cards) != 1 else ""} '
+        f'across {len(cats)} categories</div>'
+    )
+
+    # Group by category
+    grouped: dict[str, list[InsightCard]] = {}
+    for card in cards:
+        grouped.setdefault(card.category, []).append(card)
+
+    for category in cats:
+        cat_cards = grouped[category]
+        color = _CATEGORY_COLORS.get(category, "#3b82f6")
+        parts.append(
+            f'<div class="ri-cat-heading" style="border-bottom-color:{color};">'
+            f'{_esc(category)}</div>'
+        )
+        for card in cat_cards:
+            parts.append(_render_insight_card(card))
+
+    return "\n".join(parts)
+
+
+def _render_page(
+    books: list[Book],
+    insight_cards: list[InsightCard] | None = None,
+    sessions: list[ReadingSession] | None = None,
+    snapshots: list[ProgressSnapshot] | None = None,
+) -> str:
+    """Render a single-page HTML site with dashboard, charts, insights, and annotations."""
     total_ann = sum(len(b.annotations) for b in books)
     total_hl = sum(
         sum(1 for a in b.annotations if a.kind == "highlight")
@@ -533,6 +1349,14 @@ def _render_page(books: list[Book]) -> str:
 
     unique_authors = len({b.author for b in books if b.author})
 
+    # Count unique days with at least one annotation
+    active_days = len({
+        a.created_at.date()
+        for b in books
+        for a in b.annotations
+        if a.created_at is not None
+    })
+
     _sentinel = datetime(1970, 1, 1)
     sorted_books = sorted(books, key=lambda b: b.title.lower())
 
@@ -540,15 +1364,20 @@ def _render_page(books: list[Book]) -> str:
     author_counter: Counter[str] = Counter()
     shelf_counter: Counter[str] = Counter()
     book_hl_counts: list[tuple[str, int]] = []
+    book_note_counts: list[tuple[str, int]] = []
     for b in books:
         hl_c = sum(1 for a in b.annotations if a.kind == "highlight")
+        note_c = sum(1 for a in b.annotations if a.kind == "note")
         if b.author:
             author_counter[b.author] += hl_c
         for s in b.shelves:
             shelf_counter[s] += 1
         if hl_c > 0:
             book_hl_counts.append((b.title, hl_c))
+        if note_c > 0:
+            book_note_counts.append((b.title, note_c))
     book_hl_counts.sort(key=lambda x: x[1], reverse=True)
+    book_note_counts.sort(key=lambda x: x[1], reverse=True)
 
     top_authors = author_counter.most_common(8)
     top_shelves = shelf_counter.most_common(8)
@@ -598,6 +1427,8 @@ def _render_page(books: list[Book]) -> str:
         ("amber", str(total_notes), "Notes"),
         ("purple", str(total_ann), "Annotations"),
     ]
+    if active_days > 0:
+        stats_items.append(("teal", str(active_days), "Active Days"))
     if total_reading_sec > 0:
         stats_items.append(("cyan", _format_time(total_reading_sec), "Reading Time"))
     if total_words > 0:
@@ -609,9 +1440,10 @@ def _render_page(books: list[Book]) -> str:
 
     parts.append('<div class="hero-stats">\n')
     for css_class, value, label in stats_items:
+        val_cls = "value compact" if len(value) > 6 else "value"
         parts.append(
             f'  <div class="hero-stat {css_class}">'
-            f'<div class="value">{value}</div>'
+            f'<div class="{val_cls}">{value}</div>'
             f'<div class="label">{label}</div></div>\n'
         )
     parts.append("</div>\n")
@@ -641,6 +1473,13 @@ def _render_page(books: list[Book]) -> str:
             parts.append(f"  {_svg_bar_chart(book_hl_counts, 'multi')}\n")
             parts.append("</div>\n")
 
+        # Notes per book bar chart
+        if book_note_counts:
+            parts.append('<div class="chart-card">\n')
+            parts.append("  <h3>Notes per Book</h3>\n")
+            parts.append(f"  {_svg_bar_chart(book_note_counts, '#22c55e')}\n")
+            parts.append("</div>\n")
+
         # Top authors bar chart
         if top_authors and len(top_authors) > 1:
             parts.append('<div class="chart-card">\n')
@@ -656,6 +1495,20 @@ def _render_page(books: list[Book]) -> str:
             parts.append("</div>\n")
 
         parts.append("</div>\n")  # charts-grid
+
+    # ── Reading Activity section ─────────────────────────────
+    activity_html = _build_activity_section(books, sessions=sessions, snapshots=snapshots)
+    if activity_html:
+        parts.append(activity_html)
+        parts.append("\n")
+
+    # ── Reading Intelligence section ─────────────────────────
+    if insight_cards:
+        from services.insight_feed import extract_takeaways
+
+        takeaways = extract_takeaways(insight_cards)
+        parts.append(_render_insights_section(insight_cards, takeaways))
+        parts.append("\n")
 
     # ── Table of contents ────────────────────────────────────
     if sorted_books:
@@ -879,14 +1732,43 @@ def _render_page(books: list[Book]) -> str:
     return "".join(parts)
 
 
-def export_static_site(books: list[Book], output_dir: str | Path) -> Path:
+def export_static_site(
+    books: list[Book],
+    output_dir: str | Path,
+    *,
+    insight_cards: list[InsightCard] | None = None,
+    sessions: list[ReadingSession] | None = None,
+    snapshots: list[ProgressSnapshot] | None = None,
+) -> Path:
     """Generate a single-page static HTML site in *output_dir*.
+
+    Parameters
+    ----------
+    books:
+        All loaded books with annotations.
+    output_dir:
+        Target directory (created if needed).
+    insight_cards:
+        Optional pre-built InsightCard list. When provided, a Reading
+        Intelligence section is embedded in the HTML page.
+    sessions:
+        Optional reading sessions for activity charts.
+    snapshots:
+        Optional progress snapshots for progress-over-time charts.
 
     Returns the path to the output directory.
     """
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
-    (out / "index.html").write_text(_render_page(books), encoding="utf-8")
+    (out / "index.html").write_text(
+        _render_page(
+            books,
+            insight_cards=insight_cards,
+            sessions=sessions,
+            snapshots=snapshots,
+        ),
+        encoding="utf-8",
+    )
 
     return out

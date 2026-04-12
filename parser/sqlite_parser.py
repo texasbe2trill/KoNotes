@@ -418,18 +418,27 @@ def extract_progress_snapshots(db_path: Path) -> list[ProgressSnapshot]:
         if not ({"ChapterProgress", "DateCreated"} <= bm_cols):
             return []
         has_volume_id = "VolumeID" in bm_cols
+        has_content = table_exists(conn, "content")
 
-        vid_col = "VolumeID, " if has_volume_id else ""
-        sql = (
-            f"SELECT {vid_col}ChapterProgress, DateCreated "
-            f"FROM Bookmark "
-            f"WHERE DateCreated IS NOT NULL AND ChapterProgress IS NOT NULL "
-            f"ORDER BY DateCreated"
-        )
+        select_parts = ["b.ChapterProgress", "b.DateCreated"]
+        if has_volume_id:
+            select_parts.insert(0, "b.VolumeID")
+        if has_content and has_volume_id:
+            select_parts.append("bk.Title AS BookTitle")
+
+        sql = f"SELECT {', '.join(select_parts)} FROM Bookmark b"  # noqa: S608
+        if has_content and has_volume_id:
+            sql += " LEFT JOIN content bk ON b.VolumeID = bk.ContentID"
+        sql += " WHERE b.DateCreated IS NOT NULL AND b.ChapterProgress IS NOT NULL"
+        sql += " ORDER BY b.DateCreated"
+
         for row in safe_execute(conn, sql):
             ts = _parse_ts(row["DateCreated"])
+            vid = _safe_get(row, "VolumeID") or "unknown" if has_volume_id else "unknown"
+            raw_title = _safe_get(row, "BookTitle") or ""
             snapshots.append(ProgressSnapshot(
-                book_id=_safe_get(row, "VolumeID") or "unknown" if has_volume_id else "unknown",
+                book_id=vid,
+                book_title=raw_title,
                 percent=round(row["ChapterProgress"] * 100, 1),
                 recorded_at=ts,
             ))

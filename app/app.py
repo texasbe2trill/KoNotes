@@ -364,10 +364,19 @@ with st.sidebar:
         with st.expander("Export"):
             if st.button("Export static HTML site", width="stretch", key="export_html"):
                 from services.export_html import export_static_site
+                from services.insight_feed import build_feed
                 import tempfile
 
+                export_books = st.session_state["books"]
+                word_lookups = st.session_state.get("word_lookups", [])
+                cards = build_feed(export_books, word_lookups=word_lookups)
+
                 with tempfile.TemporaryDirectory() as tmp_dir:
-                    export_static_site(st.session_state["books"], tmp_dir)
+                    export_static_site(
+                        export_books, tmp_dir, insight_cards=cards,
+                        sessions=st.session_state.get("sessions"),
+                        snapshots=st.session_state.get("snapshots"),
+                    )
                     html_content = (Path(tmp_dir) / "index.html").read_text(encoding="utf-8")
                     st.download_button(
                         "Download site (.html)",

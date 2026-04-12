@@ -302,9 +302,33 @@ def _cmd_export_html(args: argparse.Namespace) -> int:
         return 1
 
     from services.export_html import export_static_site
+    from services.insight_feed import build_feed
 
     out_dir: Path = args.output or Path("konotes-site")
-    export_static_site(books, out_dir)
+    cards = build_feed(books)
+
+    # Load activity data if source is SQLite
+    sessions = None
+    snapshots = None
+    if path.suffix == ".sqlite" or path.name == "KoboReader.sqlite":
+        from parser.sqlite_parser import (
+            extract_progress_snapshots,
+            extract_reading_sessions,
+        )
+
+        try:
+            sessions = extract_reading_sessions(path)
+        except Exception:
+            sessions = []
+        try:
+            snapshots = extract_progress_snapshots(path)
+        except Exception:
+            snapshots = []
+
+    export_static_site(
+        books, out_dir, insight_cards=cards,
+        sessions=sessions, snapshots=snapshots,
+    )
     print_success(f"Static site exported to: {out_dir}/")
     console.print(f"  Open {out_dir / 'index.html'} in a browser to view.")
     return 0

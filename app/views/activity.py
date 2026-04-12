@@ -85,7 +85,7 @@ def render_activity(
 
     # ── Progress curves ──────────────────────────────────────────
     if snapshots:
-        _render_progress_curves(snapshots, books)
+        _render_progress_curves(snapshots, books, sessions)
 
     # ── Footer ───────────────────────────────────────────────────
     st.markdown(
@@ -447,7 +447,9 @@ def _render_sessions_timeline(
 
 
 def _render_progress_curves(
-    snapshots: list[ProgressSnapshot], books: list[Book]
+    snapshots: list[ProgressSnapshot],
+    books: list[Book],
+    sessions: list[ReadingSession] | None = None,
 ) -> None:
     """Line chart showing reading progress over time per book."""
     st.markdown(
@@ -461,7 +463,14 @@ def _render_progress_curves(
     for snap in snapshots:
         book_snaps[snap.book_id].append(snap)
 
+    # Build title map: Book.id (SHA1) + VolumeID (from snapshots/sessions) -> title
     title_map = {b.id: b.title for b in books}
+    for snap in snapshots:
+        if snap.book_id not in title_map and snap.book_title:
+            title_map[snap.book_id] = snap.book_title
+    for s in sessions or []:
+        if s.book_id not in title_map:
+            title_map[s.book_id] = s.book_title
 
     # Filter to books with at least 2 snapshots
     valid = {

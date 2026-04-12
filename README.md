@@ -7,7 +7,7 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Streamlit](https://img.shields.io/badge/built%20with-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-292%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-330%20passed-brightgreen.svg)]()
 
 [Getting Started](#getting-started) · [Features](#features) · [CLI](#cli-usage) · [Web UI](#web-ui) · [Supported Formats](#supported-inputs) · [Roadmap](#roadmap) · [Contributing](#contributing)
 

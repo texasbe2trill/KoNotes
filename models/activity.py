@@ -10,6 +10,7 @@ class ProgressSnapshot(BaseModel):
     """A point-in-time reading progress record for a book."""
 
     book_id: str
+    book_title: str = ""
     percent: float
     recorded_at: datetime | None = None
 
