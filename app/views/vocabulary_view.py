@@ -11,9 +11,7 @@ from models.book import Book
 from models.vocabulary import WordLookup
 
 # Chart styling constants (consistent with charts.py palette)
-_BLUE = "#3b82f6"
 _CYAN = "#06b6d4"
-_PURPLE = "#a855f7"
 _BG_TRANSPARENT = "rgba(0,0,0,0)"
 _GRID_SUBTLE = "rgba(148,163,184,0.08)"
 _TEXT_MUTED = "#64748b"
@@ -120,114 +118,31 @@ def render_vocabulary(
     dated_lookups = [wl for wl in word_lookups if wl.looked_up_at]
     if dated_lookups:
         st.markdown("---")
-        col_timeline, col_freq = st.columns(2, gap="large")
-
-        with col_timeline:
-            st.markdown('<div class="kn-section-header">Lookup Activity</div>', unsafe_allow_html=True)
-            weekly: dict[str, int] = defaultdict(int)
-            for wl in dated_lookups:
-                week_start = wl.looked_up_at - timedelta(days=wl.looked_up_at.weekday())  # type: ignore[operator]
-                weekly[week_start.strftime("%Y-%m-%d")] += 1
-            weeks = sorted(weekly.keys())
-            counts = [weekly[w] for w in weeks]
-            labels = [datetime.strptime(w, "%Y-%m-%d").strftime("%b %d") for w in weeks]
-            fig_timeline = go.Figure(
-                data=[go.Scatter(
-                    x=labels, y=counts,
-                    mode="lines",
-                    fill="tozeroy",
-                    line=dict(color=_CYAN, width=2.5, shape="spline"),
-                    fillcolor="rgba(6,182,212,0.1)",
-                    hovertemplate="%{x}<br>%{y} lookups<extra></extra>",
-                )],
-            )
-            fig_timeline.update_layout(
-                **_dark_chart_layout(height=240),
-                xaxis=dict(gridcolor=_BG_TRANSPARENT, tickangle=-45),
-                yaxis=dict(gridcolor=_GRID_SUBTLE, title="Lookups",
-                           title_font=dict(size=11, color=_TEXT_MUTED)),
-            )
-            st.plotly_chart(fig_timeline, config={"displayModeBar": False}, theme=None)
-
-        with col_freq:
-            st.markdown('<div class="kn-section-header">Most Looked Up Words</div>', unsafe_allow_html=True)
-            word_freq: Counter[str] = Counter(wl.word.lower() for wl in word_lookups)
-            top_words = word_freq.most_common(10)
-            if top_words:
-                w_labels = [w for w, _ in top_words]
-                w_counts = [c for _, c in top_words]
-                w_labels.reverse()
-                w_counts.reverse()
-                fig_freq = go.Figure(
-                    data=[go.Bar(
-                        x=w_counts, y=w_labels,
-                        orientation="h",
-                        marker=dict(
-                            color=w_counts,
-                            colorscale=[[0, "#1e2a4a"], [1, _PURPLE]],
-                            line=dict(width=0),
-                            cornerradius=4,
-                        ),
-                        hovertemplate="%{y}<br>%{x} lookups<extra></extra>",
-                    )],
-                )
-                fig_freq.update_layout(
-                    **_dark_chart_layout(height=240),
-                    xaxis=dict(gridcolor=_GRID_SUBTLE, title="Lookups",
-                               title_font=dict(size=11, color=_TEXT_MUTED)),
-                    yaxis=dict(gridcolor=_BG_TRANSPARENT),
-                )
-                st.plotly_chart(fig_freq, config={"displayModeBar": False}, theme=None)
-
-    # ── Words by book breakdown ──────────────────────────────────
-    st.markdown("---")
-    st.markdown("### Words by Book")
-
-    book_word_counts: Counter[str] = Counter()
-    book_words: dict[str, list[str]] = {}
-    for wl in word_lookups:
-        title = wl.book_title or wl.book_id[:30]
-        book_word_counts[title] += 1
-        book_words.setdefault(title, []).append(wl.word)
-
-    # Bar chart of lookups per book (top 10)
-    top_books = book_word_counts.most_common(10)
-    if top_books:
-        chart_titles = [t[:35] + "..." if len(t) > 35 else t for t, _ in top_books]
-        chart_counts = [c for _, c in top_books]
-        chart_titles.reverse()
-        chart_counts.reverse()
-        fig = go.Figure(
-            data=[go.Bar(
-                x=chart_counts, y=chart_titles,
-                orientation="h",
-                marker=dict(
-                    color=chart_counts,
-                    colorscale=[[0, "#1e3a5f"], [1, _BLUE]],
-                    line=dict(width=0),
-                    cornerradius=4,
-                ),
-                hovertemplate="%{y}<br>%{x} lookups<extra></extra>",
+        st.markdown('<div class="kn-section-header">Lookup Activity</div>', unsafe_allow_html=True)
+        weekly: dict[str, int] = defaultdict(int)
+        for wl in dated_lookups:
+            week_start = wl.looked_up_at - timedelta(days=wl.looked_up_at.weekday())  # type: ignore[operator]
+            weekly[week_start.strftime("%Y-%m-%d")] += 1
+        weeks = sorted(weekly.keys())
+        counts = [weekly[w] for w in weeks]
+        labels = [datetime.strptime(w, "%Y-%m-%d").strftime("%b %d") for w in weeks]
+        fig_timeline = go.Figure(
+            data=[go.Scatter(
+                x=labels, y=counts,
+                mode="lines",
+                fill="tozeroy",
+                line=dict(color=_CYAN, width=2.5, shape="spline"),
+                fillcolor="rgba(6,182,212,0.1)",
+                hovertemplate="%{x}<br>%{y} lookups<extra></extra>",
             )],
         )
-        fig.update_layout(
-            **_dark_chart_layout(height=min(260, 40 * len(top_books) + 60)),
-            xaxis=dict(gridcolor=_GRID_SUBTLE, title="Lookups",
+        fig_timeline.update_layout(
+            **_dark_chart_layout(height=240),
+            xaxis=dict(gridcolor=_BG_TRANSPARENT, tickangle=-45),
+            yaxis=dict(gridcolor=_GRID_SUBTLE, title="Lookups",
                        title_font=dict(size=11, color=_TEXT_MUTED)),
-            yaxis=dict(gridcolor=_BG_TRANSPARENT),
         )
-        st.plotly_chart(fig, config={"displayModeBar": False}, theme=None)
-
-    for title, count in book_word_counts.most_common():
-        with st.expander(f"{title} ({count} word{'s' if count != 1 else ''})"):
-            words = sorted(set(book_words[title]), key=str.lower)
-            word_tags = " ".join(
-                f'<span style="display:inline-block; background:#1e293b; border:1px solid #334155; '
-                f'border-radius:4px; padding:0.2rem 0.6rem; margin:0.15rem; font-size:0.85rem; '
-                f'color:#e2e8f0;">{word}</span>'
-                for word in words
-            )
-            st.markdown(word_tags, unsafe_allow_html=True)
+        st.plotly_chart(fig_timeline, config={"displayModeBar": False}, theme=None)
 
     # ── Footer ───────────────────────────────────────────────────
     st.markdown(

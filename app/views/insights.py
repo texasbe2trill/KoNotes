@@ -647,33 +647,32 @@ def _render_themes(themes: list[ThemeCluster]) -> None:
         book_themes.setdefault(book_title, []).append(theme)
 
     for book_title, theme_list in book_themes.items():
-        total_hl = sum(t.size for t in theme_list)
-        st.markdown(
-            f'<div class="kn-ai-book-group">'
-            f'<div class="kn-ai-book-title">{html_mod.escape(book_title)}</div>'
-            f'<div class="kn-ai-book-meta">'
-            f'{len(theme_list)} theme{"s" if len(theme_list) != 1 else ""} '
-            f'&middot; {total_hl} highlights</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
+        # Show only top themes per book (by highlight count), cap at 5
+        top_themes = sorted(theme_list, key=lambda t: t.size, reverse=True)[:5]
+        total_hl = sum(t.size for t in top_themes)
+        extra = len(theme_list) - len(top_themes)
 
-        for i, theme in enumerate(theme_list):
-            color = _COLORS[i % len(_COLORS)]
-            rep = html_mod.escape(theme.representative_text)
-            if len(theme.representative_text) > 220:
-                rep = html_mod.escape(theme.representative_text[:220].rsplit(" ", 1)[0]) + "..."
-            st.markdown(
-                f'<div class="kn-theme-card" style="border-left-color:{color};">'
-                f'<div class="kn-theme-header">'
-                f'<span class="kn-theme-label" style="color:{color};">'
-                f'{html_mod.escape(theme.label)}</span>'
-                f'{_pill(f"{theme.size} highlights", color)}'
-                f'</div>'
-                f'<div class="kn-theme-quote">&ldquo;{rep}&rdquo;</div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+        with st.expander(
+            f"**{book_title}** — {len(top_themes)} top theme{'s' if len(top_themes) != 1 else ''} · {total_hl} highlights"
+            + (f" (+{extra} more)" if extra > 0 else ""),
+            expanded=False,
+        ):
+            for i, theme in enumerate(top_themes):
+                color = _COLORS[i % len(_COLORS)]
+                rep = html_mod.escape(theme.representative_text)
+                if len(theme.representative_text) > 220:
+                    rep = html_mod.escape(theme.representative_text[:220].rsplit(" ", 1)[0]) + "..."
+                st.markdown(
+                    f'<div class="kn-theme-card" style="border-left-color:{color};">'
+                    f'<div class="kn-theme-header">'
+                    f'<span class="kn-theme-label" style="color:{color};">'
+                    f'{html_mod.escape(theme.label)}</span>'
+                    f'{_pill(f"{theme.size} highlights", color)}'
+                    f'</div>'
+                    f'<div class="kn-theme-quote">&ldquo;{rep}&rdquo;</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
 
 
 def _render_connection_card(

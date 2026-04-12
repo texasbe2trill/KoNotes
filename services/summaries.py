@@ -86,8 +86,15 @@ def generate_template_summary(
 
     # Representative highlights paragraph
     if highlights:
-        top_hl = sorted(highlights, key=lambda a: len(a.text), reverse=True)[:3]
-        hl_quotes = [f'"{h.text[:120].rstrip()}..."' if len(h.text) > 120 else f'"{h.text}"' for h in top_hl]
+        # Pick up to 3 highlights of moderate length (prefer 40-200 char range for readability)
+        mid_range = [h for h in highlights if 40 <= len(h.text) <= 200]
+        if len(mid_range) < 3:
+            mid_range = sorted(highlights, key=lambda a: abs(len(a.text) - 120))
+        top_hl = mid_range[:3]
+        hl_quotes = [
+            f'"{h.text[:200].rstrip()}..."' if len(h.text) > 200 else f'"{h.text}"'
+            for h in top_hl
+        ]
         paragraphs.append("Notable highlights: " + " / ".join(hl_quotes))
 
     theme_labels = [t.label for t in themes] if themes else []
