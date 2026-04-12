@@ -650,20 +650,17 @@ KoNotes is a **local-first** tool. Your reading data never leaves your machine.
 
 ## Support the Project
 
-If you find KoNotes useful, consider giving it a star so it can reach more readers.
+If KoNotes is useful to you, consider giving it a star or sponsoring the project.
 
 <div align="center">
 
 [![Star on GitHub](https://img.shields.io/github/stars/texasbe2trill/konotes?style=social)](https://github.com/texasbe2trill/konotes)
 
-</div>
-
-<br>
+<br><br>
 
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-texasbe2trill-ea4aaa?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/texasbe2trill)
-</div>
 
-<br>
+</div>
 
 ---
 
