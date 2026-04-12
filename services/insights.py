@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections import Counter
 
 import numpy as np
@@ -14,6 +15,58 @@ from models.insight import HighlightSimilarity, ThemeCluster
 from services.embeddings import EmbeddingProvider
 
 logger = logging.getLogger(__name__)
+
+# Minimal stopword set for keyword extraction -- avoids adding dependencies.
+_STOPWORDS = frozenset(
+    "a an the and or but is was were are been be being to of in for on with at by "
+    "from as into about that this it its not no nor so if then than too very can "
+    "will just more most also which who whom what when where why how all each every "
+    "any both few many some such there their they them these those he she her his "
+    "him me my we us our you your do does did doing done has have had having get "
+    "got make made over own same would could should may might shall must need "
+    "want like going one even still back way much thing things well come came "
+    "see seen know knew take took tell told said say says think thought find found "
+    "give gave look looked seem seemed really only because through before after "
+    "people something other another new between first last long great little right "
+    "big high old different next important enough never always often sometimes "
+    "what where when while who whom whose why until upon yet already "
+    "out up down off away here now then there".split()
+)
+
+
+def _generate_label(
+    cluster_texts: list[str],
+    corpus_texts: list[str] | None = None,
+) -> str:
+    """Generate a short descriptive label from highlight texts via keyword extraction."""
+    cluster_words: Counter[str] = Counter()
+    for text in cluster_texts:
+        words = re.findall(r"[a-zA-Z]{3,}", text.lower())
+        cluster_words.update(w for w in words if w not in _STOPWORDS)
+
+    if not cluster_words:
+        return "General"
+
+    if corpus_texts:
+        corpus_words: Counter[str] = Counter()
+        for text in corpus_texts:
+            words = re.findall(r"[a-zA-Z]{3,}", text.lower())
+            corpus_words.update(w for w in words if w not in _STOPWORDS)
+
+        # TF-IDF-like score: cluster frequency / sqrt(corpus frequency)
+        scored: dict[str, float] = {}
+        for word, count in cluster_words.items():
+            corpus_freq = corpus_words.get(word, 1)
+            scored[word] = count / (corpus_freq ** 0.5)
+
+        top_words = sorted(scored, key=lambda w: scored[w], reverse=True)[:3]
+    else:
+        top_words = [w for w, _ in cluster_words.most_common(3)]
+
+    formatted = [w.capitalize() for w in top_words]
+    if len(formatted) >= 2:
+        return f"{formatted[0]} & {formatted[1]}"
+    return formatted[0] if formatted else "General"
 
 
 def _optimal_k(embeddings: np.ndarray, k_min: int = 2, k_max: int = 10) -> int:
@@ -63,8 +116,11 @@ def detect_themes(
         sims = cosine_similarity(cluster_embeds, centroid.reshape(1, -1)).flatten()
         rep_idx = indices[int(np.argmax(sims))]
 
+        cluster_texts = [highlights[i].text for i in indices]
+        label = _generate_label(cluster_texts, texts)
+
         cluster = ThemeCluster(
-            label=f"Theme {cluster_id + 1}",
+            label=label,
             highlight_ids=[highlights[i].id for i in indices],
             representative_text=highlights[rep_idx].text,
             book_titles=[book.title],
@@ -114,8 +170,11 @@ def cluster_highlights_across_books(
 
         book_titles = sorted(set(all_book_titles[i] for i in indices))
 
+        cluster_texts = [all_highlights[i].text for i in indices]
+        label = _generate_label(cluster_texts, texts)
+
         cluster = ThemeCluster(
-            label=f"Idea {cluster_id + 1}",
+            label=label,
             highlight_ids=[all_highlights[i].id for i in indices],
             representative_text=all_highlights[rep_idx].text,
             book_titles=book_titles,

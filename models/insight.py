@@ -1,6 +1,8 @@
 """Models for AI/ML insight features: themes, clusters, similarities, summaries."""
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -33,3 +35,47 @@ class BookSummary(BaseModel):
     themes: list[str] = Field(default_factory=list)
     highlight_count: int = 0
     method: str = "template"  # "template" or "llm"
+
+
+# ---------------------------------------------------------------------------
+# Insight Feed models
+# ---------------------------------------------------------------------------
+
+# Canonical categories -- easy to extend by appending to this list.
+INSIGHT_CATEGORIES: list[str] = [
+    "Reading Patterns",
+    "Highlight Behavior",
+    "Vocabulary Activity",
+    "Most Engaged Books",
+    "Books in Progress",
+    "Cross-Book Themes",
+    "Forgotten Insights",
+    "Reading Momentum",
+    "Deep Reading Signals",
+    "Book Summary",
+    "Library Overview",
+]
+
+
+class EvidenceItem(BaseModel):
+    """A single piece of supporting evidence for an insight."""
+
+    label: str
+    value: str
+
+
+class InsightCard(BaseModel):
+    """A discrete, renderable insight within the Insight Feed."""
+
+    id: str
+    title: str
+    category: str
+    summary: str
+    body: str = ""
+    evidence: list[EvidenceItem] = Field(default_factory=list)
+    recommendation: str | None = None
+    confidence: float | None = None
+    priority_score: float = 0.0
+    related_books: list[str] = Field(default_factory=list)
+    source: str = "computed"
+    created_at: datetime | None = None

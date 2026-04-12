@@ -2,9 +2,14 @@
 
 Only SELECT queries are executed. The database is opened in read-only mode
 using the ``?mode=ro`` URI parameter to prevent accidental writes.
+
+The Kobo database schema varies across device, firmware, and book/source type.
+All queries are built adaptively — column and table existence is checked at
+runtime so KoNotes never crashes because of missing schema elements.
 """
 from __future__ import annotations
 
+import logging
 import re
 import sqlite3
 from datetime import datetime
@@ -14,7 +19,16 @@ from typing import Any
 from models.activity import ProgressSnapshot, ReadingSession
 from models.shelf import Shelf
 from models.vocabulary import WordLookup
-from utils.schema import column_exists, table_exists
+from utils.schema import (
+    column_exists,
+    get_table_columns,
+    inspect_schema,
+    safe_execute,
+    select_existing_columns,
+    table_exists,
+)
+
+logger = logging.getLogger(__name__)
 
 _RE_KOBO_SUFFIX = re.compile(r"-\d+$")
 
@@ -23,58 +37,34 @@ _SESSION_GAP_MINUTES = 30
 
 
 # ---------------------------------------------------------------------------
-# Core annotation query
+# Adaptive query builders
 # ---------------------------------------------------------------------------
 
-_BOOKMARK_QUERY = """
-SELECT
-    b.BookmarkID,
-    b.VolumeID,
-    b.ContentID,
-    b.Text,
-    b.Annotation,
-    b.Type,
-    b.ChapterProgress,
-    b.DateCreated,
-    b.DateModified,
-    c.Title  AS ChapterTitle,
-    bk.Title AS BookTitle,
-    bk.Attribution AS Author
-FROM Bookmark b
-LEFT JOIN content c  ON b.ContentID = c.ContentID
-LEFT JOIN content bk ON b.VolumeID  = bk.ContentID
-WHERE b.Text IS NOT NULL AND b.Text != ''
-ORDER BY bk.Title, b.DateCreated
-"""
+# Bookmark columns we want, in preference order.
+# If a column is missing, it is simply omitted from the query.
+_BOOKMARK_WANT = [
+    "BookmarkID",
+    "VolumeID",
+    "ContentID",
+    "Text",
+    "Annotation",
+    "Type",
+    "ChapterProgress",
+    "DateCreated",
+    "DateModified",
+]
 
-# ---------------------------------------------------------------------------
-# Optional metadata queries (schema may vary by firmware)
-# ---------------------------------------------------------------------------
-
-_SHELF_QUERY = """
-SELECT si.ContentId, s.Name AS ShelfName
-FROM ShelfContent si
-JOIN Shelf s ON si.ShelfName = s.InternalName
-"""
-
-_BOOK_META_QUERY = """
-SELECT
-    ContentID,
-    Title,
-    Attribution    AS Author,
-    Publisher,
-    ISBN,
-    Language,
-    ReadStatus,
-    ___PercentRead AS ReadPercent,
-    DateLastRead
-FROM content
-WHERE ContentType = 6
-"""
-
-
-# Extended metadata columns — may or may not exist on a given firmware
-_EXTENDED_META_COLS = [
+# Content (book-level) metadata columns — all optional.
+_BOOK_META_WANT = [
+    "ContentID",
+    "Title",
+    "Attribution",
+    "Publisher",
+    "ISBN",
+    "Language",
+    "ReadStatus",
+    "___PercentRead",
+    "DateLastRead",
     "Subtitle",
     "Series",
     "ContentType",
@@ -88,6 +78,50 @@ _EXTENDED_META_COLS = [
     "___NumPages",
     "WordCount",
 ]
+
+
+def _build_bookmark_query(conn: sqlite3.Connection) -> tuple[str, list[str]]:
+    """Build an adaptive Bookmark SELECT based on available columns.
+
+    Returns ``(sql, available_bookmark_columns)`` or ``("", [])`` when the
+    Bookmark table is missing entirely.
+    """
+    if not table_exists(conn, "Bookmark"):
+        return "", []
+
+    bm_cols = select_existing_columns(conn, "Bookmark", _BOOKMARK_WANT)
+    if not bm_cols:
+        return "", []
+
+    # Build SELECT list with table-qualified names
+    select_parts = [f"b.{c}" for c in bm_cols]
+
+    # Optionally join content for chapter title and book title / author
+    has_content = table_exists(conn, "content")
+    content_cols = get_table_columns(conn, "content") if has_content else set()
+    has_volume_id = "VolumeID" in bm_cols
+
+    if has_content and "Title" in content_cols:
+        select_parts.append("c.Title AS ChapterTitle")
+    if has_content and has_volume_id and "Title" in content_cols:
+        select_parts.append("bk.Title AS BookTitle")
+    if has_content and has_volume_id and "Attribution" in content_cols:
+        select_parts.append("bk.Attribution AS Author")
+
+    sql = f"SELECT {', '.join(select_parts)} FROM Bookmark b"  # noqa: S608
+
+    if has_content and "ContentID" in bm_cols:
+        sql += "\nLEFT JOIN content c ON b.ContentID = c.ContentID"
+    if has_content and has_volume_id:
+        sql += "\nLEFT JOIN content bk ON b.VolumeID = bk.ContentID"
+
+    # Filter to rows with text
+    if "Text" in bm_cols:
+        sql += "\nWHERE b.Text IS NOT NULL AND b.Text != ''"
+    if has_volume_id and "Title" in content_cols:
+        sql += "\nORDER BY bk.Title, b.DateCreated" if "DateCreated" in bm_cols else ""
+
+    return sql, bm_cols
 
 
 def parse_sqlite(db_path: Path) -> list[dict[str, Any]]:
@@ -115,45 +149,57 @@ def parse_sqlite(db_path: Path) -> list[dict[str, Any]]:
     try:
         conn.row_factory = sqlite3.Row
 
+        # Log detected schema for debugging
+        schema = inspect_schema(conn)
+        logger.debug(
+            "Detected schema: %s",
+            {t: len(cols) for t, cols in schema.items()},
+        )
+
         # Gather optional metadata
         book_meta = _load_book_metadata(conn)
         shelf_map = _load_shelf_map(conn)
         chapter_titles = _load_chapter_titles(conn)
 
-        # Check if DateModified exists in Bookmark table
-        has_date_modified = column_exists(conn, "Bookmark", "DateModified")
+        # Build adaptive bookmark query
+        sql, bm_cols = _build_bookmark_query(conn)
+        if not sql:
+            logger.debug("No Bookmark table or no usable columns — returning empty.")
+            return []
 
-        cursor = conn.cursor()
-        if has_date_modified:
-            cursor.execute(_BOOKMARK_QUERY)
-        else:
-            # Fall back to query without DateModified
-            fallback = _BOOKMARK_QUERY.replace("    b.DateModified,\n", "")
-            cursor.execute(fallback)
+        rows = safe_execute(conn, sql)
+        has_volume_id = "VolumeID" in bm_cols
+        has_content_id = "ContentID" in bm_cols
+        has_date_modified = "DateModified" in bm_cols
+        has_type = "Type" in bm_cols
+        has_annotation = "Annotation" in bm_cols
+        has_progress = "ChapterProgress" in bm_cols
 
-        rows = cursor.fetchall()
         for row in rows:
-            kind = _map_bookmark_type(row["Type"])
-            text = (row["Text"] or "").strip()
-            note_text = (row["Annotation"] or "").strip()
-            volume_id = row["VolumeID"]
-            meta = book_meta.get(volume_id, {})
+            kind = _map_bookmark_type(_safe_get(row, "Type")) if has_type else "highlight"
+            text = (_safe_get(row, "Text") or "").strip()
+            note_text = (_safe_get(row, "Annotation") or "").strip() if has_annotation else ""
+            volume_id = _safe_get(row, "VolumeID") if has_volume_id else None
+            content_id = _safe_get(row, "ContentID") if has_content_id else None
+            meta = book_meta.get(volume_id, {}) if volume_id else {}
+            if not meta and content_id:
+                meta = book_meta.get(content_id, {})
 
             # Prefer full chapter title from kobo-epub+zip entries
-            content_id = row["ContentID"] if "ContentID" in row.keys() else None
+            content_id = _safe_get(row, "ContentID") if has_content_id else None
             chapter = chapter_titles.get(content_id) if content_id else None
             if not chapter:
-                chapter = row["ChapterTitle"] or None
+                chapter = _safe_get(row, "ChapterTitle")
 
             date_modified = _safe_get(row, "DateModified") if has_date_modified else None
 
             shared = {
-                "book_title": row["BookTitle"] or "Unknown Book",
-                "author": row["Author"] or None,
+                "book_title": _safe_get(row, "BookTitle") or meta.get("title") or "Unknown Book",
+                "author": _safe_get(row, "Author") or meta.get("author") or None,
                 "chapter": chapter,
-                "location": _format_progress(row["ChapterProgress"]),
-                "source_id": row["BookmarkID"],
-                "created_at": row["DateCreated"] or None,
+                "location": _format_progress(_safe_get(row, "ChapterProgress")) if has_progress else None,
+                "source_id": _safe_get(row, "BookmarkID"),
+                "created_at": _safe_get(row, "DateCreated") or None,
                 "modified_at": date_modified,
                 # Extended metadata
                 "publisher": meta.get("publisher"),
@@ -162,7 +208,7 @@ def parse_sqlite(db_path: Path) -> list[dict[str, Any]]:
                 "read_status": meta.get("read_status"),
                 "read_percent": meta.get("read_percent"),
                 "date_last_read": meta.get("date_last_read"),
-                "shelves": shelf_map.get(volume_id, []),
+                "shelves": shelf_map.get(volume_id, []) if volume_id else shelf_map.get(content_id, []),
                 "series": meta.get("series"),
                 "subtitle": meta.get("subtitle"),
                 "content_type": meta.get("content_type"),
@@ -206,40 +252,43 @@ def extract_shelves(db_path: Path) -> list[Shelf]:
         if not table_exists(conn, "Shelf"):
             return []
 
-        want = ["InternalName", "Name", "CreationDate", "LastModified"]
-        available = [c for c in want if column_exists(conn, "Shelf", c)]
+        available = select_existing_columns(
+            conn, "Shelf", ["InternalName", "Name", "CreationDate", "LastModified"]
+        )
         if "Name" not in available:
             return []
 
         cols = ", ".join(available)
-        sql = f"SELECT {cols} FROM Shelf WHERE _IsDeleted = 'false' OR _IsDeleted IS NULL"  # noqa: S608
-        try:
-            for row in conn.execute(sql):
-                name = row["Name"]
-                if not name:
-                    continue
-                # Count books in this shelf
-                count = 0
-                internal = _safe_get(row, "InternalName") or name
-                if table_exists(conn, "ShelfContent"):
-                    try:
-                        cur = conn.execute(
-                            "SELECT COUNT(*) FROM ShelfContent WHERE ShelfName = ?",
-                            (internal,),
-                        )
-                        count = cur.fetchone()[0]
-                    except sqlite3.OperationalError:
-                        pass
 
-                shelves.append(Shelf(
-                    name=name,
-                    internal_name=internal,
-                    created_at=_parse_ts(_safe_get(row, "CreationDate")),
-                    modified_at=_parse_ts(_safe_get(row, "LastModified")),
-                    book_count=count,
-                ))
-        except sqlite3.OperationalError:
-            pass
+        # Try filtering by _IsDeleted if the column exists
+        has_deleted = column_exists(conn, "Shelf", "_IsDeleted")
+        sql = f"SELECT {cols} FROM Shelf"  # noqa: S608
+        if has_deleted:
+            sql += " WHERE _IsDeleted = 'false' OR _IsDeleted IS NULL"
+
+        for row in safe_execute(conn, sql):
+            name = row["Name"]
+            if not name:
+                continue
+            # Count books in this shelf
+            count = 0
+            internal = _safe_get(row, "InternalName") or name
+            if table_exists(conn, "ShelfContent"):
+                result = safe_execute(
+                    conn,
+                    "SELECT COUNT(*) FROM ShelfContent WHERE ShelfName = ?",
+                    (internal,),
+                )
+                if result:
+                    count = result[0][0]
+
+            shelves.append(Shelf(
+                name=name,
+                internal_name=internal,
+                created_at=_parse_ts(_safe_get(row, "CreationDate")),
+                modified_at=_parse_ts(_safe_get(row, "LastModified")),
+                book_count=count,
+            ))
     finally:
         conn.close()
 
@@ -267,32 +316,42 @@ def extract_reading_sessions(
         if not table_exists(conn, "Bookmark"):
             return []
 
-        has_progress = column_exists(conn, "Bookmark", "ChapterProgress")
-        progress_col = ", b.ChapterProgress" if has_progress else ""
-
-        sql = (
-            f"SELECT b.VolumeID, b.DateCreated{progress_col}, "
-            f"bk.Title AS BookTitle "
-            f"FROM Bookmark b "
-            f"LEFT JOIN content bk ON b.VolumeID = bk.ContentID "
-            f"WHERE b.DateCreated IS NOT NULL "
-            f"ORDER BY b.VolumeID, b.DateCreated"
-        )
-
-        try:
-            rows = conn.execute(sql).fetchall()
-        except sqlite3.OperationalError:
+        bm_cols = get_table_columns(conn, "Bookmark")
+        if "DateCreated" not in bm_cols:
             return []
+
+        has_volume_id = "VolumeID" in bm_cols
+        has_progress = "ChapterProgress" in bm_cols
+        has_content = table_exists(conn, "content")
+
+        select_parts = ["b.DateCreated"]
+        if has_volume_id:
+            select_parts.insert(0, "b.VolumeID")
+        if has_progress:
+            select_parts.append("b.ChapterProgress")
+        if has_content and has_volume_id:
+            select_parts.append("bk.Title AS BookTitle")
+
+        sql = f"SELECT {', '.join(select_parts)} FROM Bookmark b"  # noqa: S608
+        if has_content and has_volume_id:
+            sql += " LEFT JOIN content bk ON b.VolumeID = bk.ContentID"
+        sql += " WHERE b.DateCreated IS NOT NULL"
+        if has_volume_id:
+            sql += " ORDER BY b.VolumeID, b.DateCreated"
+        else:
+            sql += " ORDER BY b.DateCreated"
+
+        rows = safe_execute(conn, sql)
 
         # Group by book and cluster into sessions
         book_events: dict[str, list[tuple[datetime, float | None, str]]] = {}
         for row in rows:
-            vid = row["VolumeID"]
+            vid = _safe_get(row, "VolumeID") or "unknown"
             ts = _parse_ts(row["DateCreated"])
             if not ts:
                 continue
-            progress = row["ChapterProgress"] if has_progress else None
-            title = row["BookTitle"] or "Unknown Book"
+            progress = _safe_get(row, "ChapterProgress") if has_progress else None
+            title = _safe_get(row, "BookTitle") or "Unknown Book" if has_content and has_volume_id else "Unknown Book"
             book_events.setdefault(vid, []).append((ts, progress, title))
 
         for vid, events in book_events.items():
@@ -354,25 +413,26 @@ def extract_progress_snapshots(db_path: Path) -> list[ProgressSnapshot]:
         conn.row_factory = sqlite3.Row
         if not table_exists(conn, "Bookmark"):
             return []
-        if not column_exists(conn, "Bookmark", "ChapterProgress"):
-            return []
 
+        bm_cols = get_table_columns(conn, "Bookmark")
+        if not ({"ChapterProgress", "DateCreated"} <= bm_cols):
+            return []
+        has_volume_id = "VolumeID" in bm_cols
+
+        vid_col = "VolumeID, " if has_volume_id else ""
         sql = (
-            "SELECT VolumeID, ChapterProgress, DateCreated "
-            "FROM Bookmark "
-            "WHERE DateCreated IS NOT NULL AND ChapterProgress IS NOT NULL "
-            "ORDER BY DateCreated"
+            f"SELECT {vid_col}ChapterProgress, DateCreated "
+            f"FROM Bookmark "
+            f"WHERE DateCreated IS NOT NULL AND ChapterProgress IS NOT NULL "
+            f"ORDER BY DateCreated"
         )
-        try:
-            for row in conn.execute(sql):
-                ts = _parse_ts(row["DateCreated"])
-                snapshots.append(ProgressSnapshot(
-                    book_id=row["VolumeID"],
-                    percent=round(row["ChapterProgress"] * 100, 1),
-                    recorded_at=ts,
-                ))
-        except sqlite3.OperationalError:
-            pass
+        for row in safe_execute(conn, sql):
+            ts = _parse_ts(row["DateCreated"])
+            snapshots.append(ProgressSnapshot(
+                book_id=_safe_get(row, "VolumeID") or "unknown" if has_volume_id else "unknown",
+                percent=round(row["ChapterProgress"] * 100, 1),
+                recorded_at=ts,
+            ))
     finally:
         conn.close()
 
@@ -393,47 +453,56 @@ def extract_word_lookups(db_path: Path) -> list[WordLookup]:
         if not table_exists(conn, "WordList"):
             return []
 
+        wl_cols = get_table_columns(conn, "WordList")
+        if "Text" not in wl_cols:
+            return []
+
         # Build title map for readable book names (multiple ID formats)
         title_map: dict[str, str] = {}
         if table_exists(conn, "content"):
-            has_book_id = column_exists(conn, "content", "BookID")
-            cols = "ContentID, BookID, Title" if has_book_id else "ContentID, Title"
-            try:
-                for row in conn.execute(
-                    f"SELECT {cols} FROM content WHERE ContentType = 6"  # noqa: S608
-                ):
-                    cid = row["ContentID"]
-                    title = row["Title"]
-                    if cid and title:
-                        title_map[cid] = title
-                    # Also map by BookID (file:///mnt/onboard/... path)
-                    if has_book_id:
-                        bid = _safe_get(row, "BookID")
-                        if bid and title:
-                            title_map[bid] = title
-            except sqlite3.OperationalError:
-                pass
+            content_cols = get_table_columns(conn, "content")
+            has_book_id = "BookID" in content_cols
+            has_content_type = "ContentType" in content_cols
+            meta_select = ["ContentID"]
+            if has_book_id:
+                meta_select.append("BookID")
+            meta_select.append("Title")
+            cols_str = ", ".join(meta_select)
+            sql = f"SELECT {cols_str} FROM content"  # noqa: S608
+            if has_content_type:
+                sql += " WHERE ContentType = 6"
+            for row in safe_execute(conn, sql):
+                cid = _safe_get(row, "ContentID")
+                title = _safe_get(row, "Title")
+                if cid and title:
+                    title_map[cid] = title
+                if has_book_id:
+                    bid = _safe_get(row, "BookID")
+                    if bid and title:
+                        title_map[bid] = title
 
-        try:
-            for row in conn.execute(
-                "SELECT Text, VolumeId, DictSuffix, DateCreated "
-                "FROM WordList ORDER BY DateCreated"
-            ):
-                word = row["Text"]
-                vid = row["VolumeId"]
-                if not word:
-                    continue
-                lang_suffix = row["DictSuffix"] or ""
-                lang = lang_suffix.lstrip("-") if lang_suffix else None
-                lookups.append(WordLookup(
-                    word=word,
-                    book_id=vid or "",
-                    book_title=title_map.get(vid) or _title_from_path(vid),
-                    language=lang,
-                    looked_up_at=_parse_ts(row["DateCreated"]),
-                ))
-        except sqlite3.OperationalError:
-            pass
+        # Build adaptive WordList query
+        want = ["Text", "VolumeId", "DictSuffix", "DateCreated"]
+        available = select_existing_columns(conn, "WordList", want)
+        cols_str = ", ".join(available)
+        sql = f"SELECT {cols_str} FROM WordList"  # noqa: S608
+        if "DateCreated" in available:
+            sql += " ORDER BY DateCreated"
+
+        for row in safe_execute(conn, sql):
+            word = row["Text"]
+            if not word:
+                continue
+            vid = _safe_get(row, "VolumeId") or ""
+            lang_suffix = _safe_get(row, "DictSuffix") or ""
+            lang = lang_suffix.lstrip("-") if lang_suffix else None
+            lookups.append(WordLookup(
+                word=word,
+                book_id=vid,
+                book_title=title_map.get(vid) or _title_from_path(vid),
+                language=lang,
+                looked_up_at=_parse_ts(_safe_get(row, "DateCreated")),
+            ))
     finally:
         conn.close()
 
@@ -456,14 +525,15 @@ def extract_ratings(db_path: Path) -> dict[str, int]:
         conn.row_factory = sqlite3.Row
         if not table_exists(conn, "ratings"):
             return {}
-        try:
-            for row in conn.execute("SELECT ContentID, Rating FROM ratings"):
-                cid = row["ContentID"]
-                rating = row["Rating"]
-                if cid and rating and isinstance(rating, int) and 1 <= rating <= 5:
-                    ratings[cid] = rating
-        except sqlite3.OperationalError:
-            pass
+        cols = get_table_columns(conn, "ratings")
+        if not ({"ContentID", "Rating"} <= cols):
+            return {}
+
+        for row in safe_execute(conn, "SELECT ContentID, Rating FROM ratings"):
+            cid = row["ContentID"]
+            rating = row["Rating"]
+            if cid and rating and isinstance(rating, int) and 1 <= rating <= 5:
+                ratings[cid] = rating
     finally:
         conn.close()
 
@@ -487,16 +557,18 @@ def extract_page_turns(db_path: Path) -> dict[str, int]:
         conn.row_factory = sqlite3.Row
         if not table_exists(conn, "Event"):
             return {}
-        try:
-            for row in conn.execute(
-                "SELECT ContentID, EventCount FROM Event WHERE EventType = 46"
-            ):
-                cid = row["ContentID"]
-                count = row["EventCount"] or 0
-                if cid:
-                    page_turns[cid] = page_turns.get(cid, 0) + count
-        except sqlite3.OperationalError:
-            pass
+        cols = get_table_columns(conn, "Event")
+        if not ({"ContentID", "EventType", "EventCount"} <= cols):
+            return {}
+
+        for row in safe_execute(
+            conn,
+            "SELECT ContentID, EventCount FROM Event WHERE EventType = 46",
+        ):
+            cid = row["ContentID"]
+            count = row["EventCount"] or 0
+            if cid:
+                page_turns[cid] = page_turns.get(cid, 0) + count
     finally:
         conn.close()
 
@@ -508,58 +580,76 @@ def extract_page_turns(db_path: Path) -> dict[str, int]:
 # ---------------------------------------------------------------------------
 
 def _load_book_metadata(conn: sqlite3.Connection) -> dict[str, dict[str, Any]]:
+    """Load per-book metadata from the content table.
+
+    Adaptively selects only columns that exist on this database.
+    """
     meta: dict[str, dict[str, Any]] = {}
     if not table_exists(conn, "content"):
         return meta
-    # Build a safe query based on available columns
-    want = [
-        "ContentID", "Publisher", "ISBN", "Language",
-        "ReadStatus", "___PercentRead", "DateLastRead",
-    ] + _EXTENDED_META_COLS
-    available = [c for c in want if column_exists(conn, "content", c)]
+
+    available = select_existing_columns(conn, "content", _BOOK_META_WANT)
     if "ContentID" not in available:
         return meta
 
+    # Determine content-type filter
+    has_content_type = "ContentType" in available
     cols = ", ".join(available)
-    sql = f"SELECT {cols} FROM content WHERE ContentType = 6"  # noqa: S608
-    try:
-        for row in conn.execute(sql):
-            cid = row["ContentID"]
-            meta[cid] = {
-                "publisher": _safe_get(row, "Publisher"),
-                "isbn": _safe_get(row, "ISBN"),
-                "language": _safe_get(row, "Language"),
-                "read_status": _safe_get(row, "ReadStatus"),
-                "read_percent": _safe_get(row, "___PercentRead"),
-                "date_last_read": _safe_get(row, "DateLastRead"),
-                "subtitle": _safe_get(row, "Subtitle"),
-                "series": _safe_get(row, "Series"),
-                "content_type": _safe_get(row, "ContentType"),
-                "is_archived": bool(_safe_get(row, "IsArchived")),
-                "is_favorited": bool(_safe_get(row, "IsFavorite")),
-                "date_added": _safe_get(row, "DateCreated"),
-                "time_spent_reading": _safe_get(row, "TimeSpentReading"),
-                "times_started_reading": _safe_get(row, "TimesStartedReading"),
-                "last_time_started": _safe_get(row, "LastTimeStartedReading"),
-                "last_time_finished": _safe_get(row, "LastTimeFinishedReading"),
-                "page_count": _safe_positive(row, "___NumPages"),
-                "word_count": _safe_positive(row, "WordCount"),
-            }
-    except sqlite3.OperationalError:
-        pass
+    sql = f"SELECT {cols} FROM content"  # noqa: S608
+    if has_content_type:
+        sql += " WHERE ContentType = 6"
+
+    for row in safe_execute(conn, sql):
+        cid = row["ContentID"]
+        meta[cid] = {
+            "title": _safe_get(row, "Title"),
+            "author": _safe_get(row, "Attribution"),
+            "publisher": _safe_get(row, "Publisher"),
+            "isbn": _safe_get(row, "ISBN"),
+            "language": _safe_get(row, "Language"),
+            "read_status": _safe_get(row, "ReadStatus"),
+            "read_percent": _safe_get(row, "___PercentRead"),
+            "date_last_read": _safe_get(row, "DateLastRead"),
+            "subtitle": _safe_get(row, "Subtitle"),
+            "series": _safe_get(row, "Series"),
+            "content_type": _safe_get(row, "ContentType"),
+            "is_archived": bool(_safe_get(row, "IsArchived")),
+            "is_favorited": bool(_safe_get(row, "IsFavorite")),
+            "date_added": _safe_get(row, "DateCreated"),
+            "time_spent_reading": _safe_get(row, "TimeSpentReading"),
+            "times_started_reading": _safe_get(row, "TimesStartedReading"),
+            "last_time_started": _safe_get(row, "LastTimeStartedReading"),
+            "last_time_finished": _safe_get(row, "LastTimeFinishedReading"),
+            "page_count": _safe_positive(row, "___NumPages"),
+            "word_count": _safe_positive(row, "WordCount"),
+        }
     return meta
 
 
 def _load_shelf_map(conn: sqlite3.Connection) -> dict[str, list[str]]:
+    """Load book→shelf mappings. Returns empty dict if tables are missing."""
     shelf_map: dict[str, list[str]] = {}
     if not (table_exists(conn, "Shelf") and table_exists(conn, "ShelfContent")):
         return shelf_map
-    try:
-        for row in conn.execute(_SHELF_QUERY):
-            cid = row["ContentId"]
-            shelf_map.setdefault(cid, []).append(row["ShelfName"])
-    except sqlite3.OperationalError:
-        pass
+
+    # Verify the columns we need actually exist
+    sc_cols = get_table_columns(conn, "ShelfContent")
+    shelf_cols = get_table_columns(conn, "Shelf")
+    if not ({"ShelfName", "ContentId"} <= sc_cols) or "InternalName" not in shelf_cols:
+        # Try alternative column names
+        if not ({"ShelfName", "ContentId"} <= sc_cols):
+            return shelf_map
+
+    sql = (
+        "SELECT si.ContentId, s.Name AS ShelfName "
+        "FROM ShelfContent si "
+        "JOIN Shelf s ON si.ShelfName = s.InternalName"
+    )
+    for row in safe_execute(conn, sql):
+        cid = _safe_get(row, "ContentId")
+        name = _safe_get(row, "ShelfName")
+        if cid and name:
+            shelf_map.setdefault(cid, []).append(name)
     return shelf_map
 
 
@@ -573,20 +663,31 @@ def _load_chapter_titles(conn: sqlite3.Connection) -> dict[str, str]:
     titles: dict[str, str] = {}
     if not table_exists(conn, "content"):
         return titles
-    try:
-        for row in conn.execute(
+
+    content_cols = get_table_columns(conn, "content")
+    if not ({"ContentID", "Title"} <= content_cols):
+        return titles
+
+    has_mime = "MimeType" in content_cols
+    if has_mime:
+        sql = (
             "SELECT ContentID, Title FROM content "
             "WHERE MimeType = 'application/x-kobo-epub+zip' "
             "AND Title IS NOT NULL AND Title != ''"
-        ):
-            cid = row["ContentID"]
-            title = row["Title"]
-            # Strip the -N suffix to get the xhtml ContentID
-            base = _RE_KOBO_SUFFIX.sub("", cid)
-            if base != cid and title:
-                titles[base] = title
-    except sqlite3.OperationalError:
-        pass
+        )
+    else:
+        # Without MimeType, fall back to checking for -N suffix in ContentID
+        sql = (
+            "SELECT ContentID, Title FROM content "
+            "WHERE Title IS NOT NULL AND Title != ''"
+        )
+
+    for row in safe_execute(conn, sql):
+        cid = row["ContentID"]
+        title = row["Title"]
+        base = _RE_KOBO_SUFFIX.sub("", cid)
+        if base != cid and title:
+            titles[base] = title
     return titles
 
 

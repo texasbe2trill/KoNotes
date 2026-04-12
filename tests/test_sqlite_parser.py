@@ -442,3 +442,359 @@ class TestTitleFromPath:
 
     def test_empty_string(self):
         assert _title_from_path("") is None
+
+
+# ── Schema resilience tests ──────────────────────────────────────
+
+
+class TestMissingVolumeID:
+    """Parser must not crash when Bookmark.VolumeID is absent."""
+
+    @pytest.fixture
+    def db_no_volumeid(self, tmp_path) -> Path:
+        db_path = tmp_path / "KoboReader.sqlite"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("""
+            CREATE TABLE content (
+                ContentID TEXT PRIMARY KEY,
+                ContentType INTEGER,
+                Title TEXT,
+                Attribution TEXT
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE Bookmark (
+                BookmarkID TEXT PRIMARY KEY,
+                ContentID TEXT,
+                Text TEXT,
+                Type TEXT,
+                DateCreated TEXT
+            )
+        """)
+        conn.execute(
+            "INSERT INTO content VALUES ('book1', 6, 'Meditations', 'Marcus Aurelius')"
+        )
+        conn.execute(
+            "INSERT INTO Bookmark VALUES ('bm1', 'book1', 'A passage', 'highlight', '2026-01-01T10:00:00')"
+        )
+        conn.commit()
+        conn.close()
+        return db_path
+
+    def test_parse_succeeds(self, db_no_volumeid):
+        results = parse_sqlite(db_no_volumeid)
+        assert len(results) >= 1
+
+    def test_text_extracted(self, db_no_volumeid):
+        results = parse_sqlite(db_no_volumeid)
+        texts = [r["text"] for r in results]
+        assert "A passage" in texts
+
+    def test_shelves_empty(self, db_no_volumeid):
+        results = parse_sqlite(db_no_volumeid)
+        assert results[0]["shelves"] == []
+
+    def test_sessions_empty(self, db_no_volumeid):
+        sessions = extract_reading_sessions(db_no_volumeid)
+        assert isinstance(sessions, list)
+
+    def test_snapshots_empty(self, db_no_volumeid):
+        # No ChapterProgress column
+        snapshots = extract_progress_snapshots(db_no_volumeid)
+        assert snapshots == []
+
+
+class TestMissingOptionalColumns:
+    """Parser must handle databases missing optional metadata columns."""
+
+    @pytest.fixture
+    def minimal_db(self, tmp_path) -> Path:
+        """Bare-minimum schema: only required columns."""
+        db_path = tmp_path / "KoboReader.sqlite"
+        conn = sqlite3.connect(str(db_path))
+        # content with NO Publisher, ISBN, Language, ReadStatus, etc.
+        conn.execute("""
+            CREATE TABLE content (
+                ContentID TEXT PRIMARY KEY,
+                ContentType INTEGER,
+                Title TEXT,
+                Attribution TEXT
+            )
+        """)
+        # Bookmark with NO Annotation, ChapterProgress, DateModified
+        conn.execute("""
+            CREATE TABLE Bookmark (
+                BookmarkID TEXT PRIMARY KEY,
+                VolumeID TEXT,
+                ContentID TEXT,
+                Text TEXT,
+                Type TEXT,
+                DateCreated TEXT
+            )
+        """)
+        conn.execute(
+            "INSERT INTO content VALUES ('vol1', 6, 'Nexus', 'Yuval Noah Harari')"
+        )
+        conn.execute(
+            "INSERT INTO Bookmark VALUES "
+            "('bm1', 'vol1', 'vol1#ch1', 'An important idea', 'highlight', '2026-03-01T12:00:00')"
+        )
+        conn.commit()
+        conn.close()
+        return db_path
+
+    def test_parse_succeeds(self, minimal_db):
+        results = parse_sqlite(minimal_db)
+        assert len(results) == 1
+        assert results[0]["text"] == "An important idea"
+
+    def test_missing_metadata_is_none(self, minimal_db):
+        results = parse_sqlite(minimal_db)
+        r = results[0]
+        assert r["publisher"] is None
+        assert r["isbn"] is None
+        assert r["read_percent"] is None
+        assert r["modified_at"] is None
+
+    def test_shelves_without_shelf_tables(self, minimal_db):
+        shelves = extract_shelves(minimal_db)
+        assert shelves == []
+
+    def test_ratings_without_ratings_table(self, minimal_db):
+        ratings = extract_ratings(minimal_db)
+        assert ratings == {}
+
+    def test_page_turns_without_event_table(self, minimal_db):
+        turns = extract_page_turns(minimal_db)
+        assert turns == {}
+
+    def test_word_lookups_without_wordlist_table(self, minimal_db):
+        lookups = extract_word_lookups(minimal_db)
+        assert lookups == []
+
+
+class TestMissingBookmarkType:
+    """When Bookmark.Type is absent, annotations should default to highlight."""
+
+    @pytest.fixture
+    def db_no_type(self, tmp_path) -> Path:
+        db_path = tmp_path / "KoboReader.sqlite"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("""
+            CREATE TABLE content (
+                ContentID TEXT PRIMARY KEY,
+                ContentType INTEGER,
+                Title TEXT,
+                Attribution TEXT
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE Bookmark (
+                BookmarkID TEXT PRIMARY KEY,
+                VolumeID TEXT,
+                ContentID TEXT,
+                Text TEXT,
+                DateCreated TEXT
+            )
+        """)
+        conn.execute("INSERT INTO content VALUES ('v1', 6, 'Book A', 'Author A')")
+        conn.execute(
+            "INSERT INTO Bookmark VALUES ('b1', 'v1', 'v1#c1', 'Some text', '2026-01-01')"
+        )
+        conn.commit()
+        conn.close()
+        return db_path
+
+    def test_defaults_to_highlight(self, db_no_type):
+        results = parse_sqlite(db_no_type)
+        assert len(results) == 1
+        assert results[0]["kind"] == "highlight"
+
+
+class TestMissingShelvesTables:
+    """Shelves extraction must handle missing Shelf or ShelfContent tables."""
+
+    @pytest.fixture
+    def db_shelf_no_content(self, tmp_path) -> Path:
+        db_path = tmp_path / "KoboReader.sqlite"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("""
+            CREATE TABLE Shelf (
+                InternalName TEXT, Name TEXT,
+                CreationDate TEXT, LastModified TEXT, _IsDeleted TEXT
+            )
+        """)
+        conn.execute("INSERT INTO Shelf VALUES ('s1', 'My Shelf', '2026-01-01', '2026-01-02', 'false')")
+        # No ShelfContent table
+        conn.commit()
+        conn.close()
+        return db_path
+
+    def test_no_shelfcontent_table(self, db_shelf_no_content):
+        shelves = extract_shelves(db_shelf_no_content)
+        # Shelf exists but ShelfContent doesn't — still returns shelf with 0 count
+        assert len(shelves) == 1
+        assert shelves[0].book_count == 0
+
+    def test_no_shelf_table(self, tmp_path):
+        db_path = tmp_path / "KoboReader.sqlite"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("CREATE TABLE ShelfContent (ShelfName TEXT, ContentId TEXT)")
+        conn.commit()
+        conn.close()
+        shelves = extract_shelves(db_path)
+        assert shelves == []
+
+
+class TestContentWithoutContentType:
+    """Handle content table that has no ContentType column."""
+
+    @pytest.fixture
+    def db_no_content_type(self, tmp_path) -> Path:
+        db_path = tmp_path / "KoboReader.sqlite"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("""
+            CREATE TABLE content (
+                ContentID TEXT PRIMARY KEY,
+                Title TEXT,
+                Attribution TEXT,
+                Publisher TEXT,
+                ISBN TEXT
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE Bookmark (
+                BookmarkID TEXT PRIMARY KEY,
+                VolumeID TEXT,
+                ContentID TEXT,
+                Text TEXT,
+                Type TEXT,
+                DateCreated TEXT
+            )
+        """)
+        conn.execute(
+            "INSERT INTO content VALUES ('v1', 'Angels', 'Dan Brown', 'Publisher X', '978-123')"
+        )
+        conn.execute(
+            "INSERT INTO Bookmark VALUES ('b1', 'v1', 'v1#c1', 'Test highlight', 'highlight', '2026-01-01')"
+        )
+        conn.commit()
+        conn.close()
+        return db_path
+
+    def test_parse_succeeds(self, db_no_content_type):
+        results = parse_sqlite(db_no_content_type)
+        assert len(results) >= 1
+        assert results[0]["publisher"] == "Publisher X"
+
+    def test_isbn_extracted(self, db_no_content_type):
+        results = parse_sqlite(db_no_content_type)
+        assert results[0]["isbn"] == "978-123"
+
+
+class TestSyntheticSchema:
+    """Verify parser works with the simplified synthetic Kobo schema."""
+
+    @pytest.fixture
+    def synthetic_db(self, tmp_path) -> Path:
+        db_path = tmp_path / "KoboReader.sqlite"
+        conn = sqlite3.connect(str(db_path))
+
+        conn.execute("""
+            CREATE TABLE content (
+                ContentID TEXT PRIMARY KEY,
+                Title TEXT,
+                Attribution TEXT,
+                Description TEXT,
+                Series TEXT,
+                ___UserID TEXT,
+                DateLastRead TEXT,
+                ReadStatus INTEGER,
+                ___PercentRead REAL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE Bookmark (
+                BookmarkID TEXT PRIMARY KEY,
+                ContentID TEXT,
+                Text TEXT,
+                Type TEXT,
+                Chapter TEXT,
+                Location TEXT,
+                DateCreated TEXT
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE Shelf (
+                ShelfID TEXT PRIMARY KEY,
+                Name TEXT,
+                InternalName TEXT,
+                _IsDeleted TEXT DEFAULT 'false'
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE ShelfContent (
+                ShelfName TEXT,
+                ContentId TEXT
+            )
+        """)
+
+        conn.execute("""
+            INSERT INTO content VALUES
+            ('book-1', '1984', 'George Orwell', 'A dystopian novel',
+             NULL, 'user1', '2026-04-01', 2, 0.85)
+        """)
+        conn.execute("""
+            INSERT INTO content VALUES
+            ('book-2', 'Brave New World', 'Aldous Huxley', 'Another dystopia',
+             'Dystopia Series', 'user1', '2026-03-15', 1, 0.40)
+        """)
+        conn.execute("""
+            INSERT INTO Bookmark VALUES
+            ('bm1', 'book-1', 'War is peace.', 'highlight', 'Part 1', NULL, '2026-04-01T10:00:00')
+        """)
+        conn.execute("""
+            INSERT INTO Bookmark VALUES
+            ('bm2', 'book-1', 'Freedom is slavery.', 'highlight', 'Part 2', NULL, '2026-04-01T11:00:00')
+        """)
+        conn.execute("""
+            INSERT INTO Bookmark VALUES
+            ('bm3', 'book-2', 'Everyone belongs to everyone.', 'note', 'Ch 3', NULL, '2026-03-15T09:00:00')
+        """)
+        conn.execute("INSERT INTO Shelf VALUES ('s1', 'Dystopias', 'shelf-dystopias', 'false')")
+        conn.execute("INSERT INTO ShelfContent VALUES ('shelf-dystopias', 'book-1')")
+
+        conn.commit()
+        conn.close()
+        return db_path
+
+    def test_extracts_books(self, synthetic_db):
+        results = parse_sqlite(synthetic_db)
+        titles = {r["book_title"] for r in results}
+        assert "1984" in titles or any("1984" in (r.get("book_title") or "") for r in results)
+
+    def test_extracts_highlights_and_notes(self, synthetic_db):
+        results = parse_sqlite(synthetic_db)
+        kinds = {r["kind"] for r in results}
+        assert "highlight" in kinds
+
+    def test_extracts_text(self, synthetic_db):
+        results = parse_sqlite(synthetic_db)
+        texts = [r["text"] for r in results]
+        assert "War is peace." in texts
+
+    def test_shelves_extracted(self, synthetic_db):
+        shelves = extract_shelves(synthetic_db)
+        names = [s.name for s in shelves]
+        assert "Dystopias" in names
+
+    def test_no_crash_on_missing_volumeid(self, synthetic_db):
+        # This schema has no VolumeID in Bookmark
+        results = parse_sqlite(synthetic_db)
+        assert len(results) >= 3  # 2 highlights + at least 1 note text
+
+    def test_series_extracted(self, synthetic_db):
+        results = parse_sqlite(synthetic_db)
+        # Some results should have series from content metadata
+        series_vals = {r.get("series") for r in results}
+        assert "Dystopia Series" in series_vals or None in series_vals

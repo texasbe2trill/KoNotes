@@ -7,7 +7,7 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Streamlit](https://img.shields.io/badge/built%20with-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-198%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-292%20passed-brightgreen.svg)]()
 
 [Getting Started](#getting-started) · [Features](#features) · [CLI](#cli-usage) · [Web UI](#web-ui) · [Supported Formats](#supported-inputs) · [Roadmap](#roadmap) · [Contributing](#contributing)
 
@@ -51,7 +51,15 @@ No cloud. No account. No tracking. Just your reading data, made useful.
 - **Annotations** -- cross-book annotation search and filtering
 - **Activity** -- reading sessions, progress distribution, annotation timeline, and progress snapshots
 - **Vocabulary** -- browse every word you looked up on your Kobo, filterable by book and searchable
-- **AI Insights** -- theme detection, highlight clustering, similarity search, and smart book summaries (local embeddings)
+- **AI Insights** -- structured Insight Feed with evidence-backed reading intelligence, theme detection, highlight clustering, similarity search, and smart book summaries (local embeddings)
+
+### Reading Intelligence (Insight Feed)
+- **Structured Insight Feed** -- ranked, evidence-backed insight cards across 10+ categories (reading patterns, highlight behavior, vocabulary activity, engagement, momentum, deep reading signals, and more)
+- **Top-level summary** -- scannable reading intelligence takeaways at the top of the page
+- **Collapsible detail** -- every insight expands with full body, supporting evidence, and actionable recommendations
+- **Filters and controls** -- filter by category, book, priority, or actionable-only
+- **Insight export** -- export all (or filtered) insights to Markdown or plain text
+- **AI analysis** -- theme detection, cross-book clustering, similarity search, and smart summaries via local embeddings
 
 ### Export
 - **Multi-format export** -- Markdown, JSON, and plain-text export per book
@@ -68,6 +76,14 @@ No cloud. No account. No tracking. Just your reading data, made useful.
 | Kobo HTML annotation export | `.html`, `.htm` | Kobo app / device | Secondary |
 | Kobo plain-text annotation export | `.txt` | Kobo app / device | Secondary |
 | Kobo Markdown annotation export | `.md` | Kobo app / device | Secondary |
+
+### Schema-Aware SQLite Parsing
+
+KoNotes uses adaptive, schema-aware SQLite parsing. Kobo database schemas
+can vary across firmware versions and device models. KoNotes reads only the
+columns and tables that exist in your particular database and gracefully
+handles missing metadata -- so it works whether your `.sqlite` file is from
+the latest firmware or an older Kobo device.
 
 ### How to get your data
 

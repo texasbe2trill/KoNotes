@@ -342,3 +342,78 @@ class TestOptimalK:
         embeddings = rng.randn(4, 16).astype(np.float32)
         k = _optimal_k(embeddings, k_min=2, k_max=8)
         assert 2 <= k <= 3  # capped at n-1
+
+
+# ---------------------------------------------------------------------------
+# Smart label generation
+# ---------------------------------------------------------------------------
+
+
+class TestGenerateLabel:
+    def test_generates_descriptive_label(self):
+        from services.insights import _generate_label
+
+        label = _generate_label([
+            "The importance of leadership in organizations",
+            "Leadership styles and their impact on teams",
+            "How great leaders inspire action",
+        ])
+        assert isinstance(label, str)
+        assert len(label) > 0
+        assert "&" in label  # Should combine top keywords
+
+    def test_empty_texts(self):
+        from services.insights import _generate_label
+
+        assert _generate_label([]) == "General"
+
+    def test_stopword_only_texts(self):
+        from services.insights import _generate_label
+
+        assert _generate_label(["is a the", "to of in"]) == "General"
+
+    def test_with_corpus_boosts_distinctive_words(self):
+        from services.insights import _generate_label
+
+        cluster = [
+            "Neural networks process information in layers",
+            "Deep neural architectures improve accuracy",
+        ]
+        corpus = [
+            "Neural networks process information in layers",
+            "Deep neural architectures improve accuracy",
+            "Financial markets react to global events",
+            "Historical trends shape modern policy",
+        ]
+        label = _generate_label(cluster, corpus)
+        assert isinstance(label, str)
+        assert len(label) > 0
+
+    def test_single_keyword(self):
+        from services.insights import _generate_label
+
+        label = _generate_label(["xyz xyz xyz"])
+        assert label == "Xyz"  # Only one unique word found
+
+    def test_detect_themes_uses_descriptive_labels(self):
+        """Ensure detect_themes produces labels that are not 'Theme N'."""
+        from services.insights import detect_themes
+
+        book = _make_book(n_highlights=12)
+        provider = FakeEmbeddingProvider()
+        clusters = detect_themes(book, provider)
+        for c in clusters:
+            assert not c.label.startswith("Theme ")
+
+    def test_cluster_across_books_uses_descriptive_labels(self):
+        """Ensure cluster_highlights_across_books produces labels that are not 'Idea N'."""
+        from services.insights import cluster_highlights_across_books
+
+        books = [
+            _make_book(title="Book A", n_highlights=8),
+            _make_book(title="Book B", n_highlights=8),
+        ]
+        provider = FakeEmbeddingProvider()
+        clusters = cluster_highlights_across_books(books, provider)
+        for c in clusters:
+            assert not c.label.startswith("Idea ")
