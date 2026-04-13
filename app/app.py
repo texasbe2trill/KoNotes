@@ -115,6 +115,7 @@ _DEFAULTS: dict = {
     "shelves": [],
     "word_lookups": [],
     "db_path": None,
+    "using_demo": False,
 }
 for key, default in _DEFAULTS.items():
     if key not in st.session_state:
@@ -326,6 +327,7 @@ with st.sidebar:
             errors: list[str] = []
 
             if uploaded_sqlite is not None:
+                st.session_state["using_demo"] = False
                 tmp_path: Path | None = None
                 try:
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".sqlite") as tmp:
@@ -345,6 +347,7 @@ with st.sidebar:
                             pass
 
             for f in uploaded_exports or []:
+                st.session_state["using_demo"] = False
                 ext = Path(f.name).suffix.lower()
                 parser = get_parser_for_extension(ext)
                 if parser is None:
@@ -478,6 +481,24 @@ view: str = st.session_state.get("view", "welcome")
 # Welcome view
 # ---------------------------------------------------------------------------
 if not books or view == "welcome":
+    # Auto-load the synthetic demo dataset so the dashboard is immediately
+    # populated.  User uploads and device loading always take priority.
+    from services.demo_loader import demo_db_available, load_demo_dataset
+
+    if not books and demo_db_available() and not st.session_state.get("using_demo"):
+        demo_books = load_demo_dataset()
+        if demo_books:
+            _go_to("overview")
+            st.rerun()
+
+    if st.session_state.get("using_demo"):
+        st.info(
+            "📚 **Loaded demo dataset** — you're viewing synthetic reading data.  \n"
+            "Upload your own KoboReader.sqlite or annotation exports in the sidebar "
+            "to explore your library.",
+            icon="ℹ️",
+        )
+
     st.markdown(
         '<div class="kn-hero">'
         '<h1>KoNotes</h1>'
