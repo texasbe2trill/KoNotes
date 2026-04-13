@@ -16,11 +16,9 @@ Turn your Kobo highlights and reading data into structured, readable insight.
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-KoNotes-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://konotes.streamlit.app)
 
-<br>
 
 [**Live Demo**](#live-demo) · [**Try It**](#try-it) · [**Features**](#features) · [**Example Insights**](#example-insights) · [**CLI**](#cli) · [**Web UI**](#web-ui) · [**Roadmap**](#roadmap)
 
-<br><br>
 
 > <em>No cloud required. No account. No tracking.<br><strong>Your reading data stays on your machine.</strong></em>
 
@@ -690,7 +688,6 @@ If KoNotes is useful to you, consider giving it a star or sponsoring the project
 
 [![Star on GitHub](https://img.shields.io/github/stars/texasbe2trill/konotes?style=social)](https://github.com/texasbe2trill/konotes)
 
-<br><br>
 
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-texasbe2trill-ea4aaa?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/texasbe2trill)
 
@@ -702,13 +699,33 @@ If KoNotes is useful to you, consider giving it a star or sponsoring the project
 
 ## Acknowledgements
 
-- [Streamlit](https://streamlit.io) -- the framework powering the KoNotes dashboard
-- [sentence-transformers](https://www.sbert.net) -- local embeddings for AI features
-- [Plotly](https://plotly.com/python/) -- interactive charts and visualizations
-- [Rich](https://rich.readthedocs.io) -- beautiful terminal output
-- [Pydantic](https://docs.pydantic.dev) -- data validation and modeling
-- [Kobo](https://www.kobo.com) -- for building e-readers that respect open data
-- Every reader who highlights, notes, and looks up words -- your curiosity is what makes this project meaningful
+KoNotes exists because of the tools, communities, and people who make building in public possible.
+
+### Built with
+
+- [Streamlit](https://streamlit.io) — powering the KoNotes dashboard
+- [sentence-transformers](https://www.sbert.net) — local embeddings for AI features
+- [Plotly](https://plotly.com/python/) — interactive charts and visualizations
+- [Rich](https://rich.readthedocs.io) — beautiful terminal output
+- [Pydantic](https://docs.pydantic.dev) — data validation and modeling
+- [Kobo](https://www.kobo.com) — for building e-readers that make this data possible
+
+### Community
+
+- The **#booksky** community on [Bluesky](https://bsky.app/profile/booksky.club) — for reminding me that reading is better when it’s shared
+- The open-source community — for making it normal to build, ship, and learn in public
+- Everyone exploring local-first tools — this project exists because privacy and ownership matter
+
+### Personal
+
+- Friends and family who listened to me talk about “Kobo SQLite databases” more than they probably wanted to
+- Anyone who tested, gave feedback, or starred the repo — early support means everything
+
+### Readers
+
+- Every reader who highlights, takes notes, and looks up words
+
+Your curiosity is what makes this project meaningful.
 
 <br>
 
