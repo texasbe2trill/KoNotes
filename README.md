@@ -14,13 +14,15 @@ Turn your Kobo highlights and reading data into structured, readable insight.
 ![Tests](https://img.shields.io/badge/tests-358_passed-22c55e?style=flat-square)
 ![Version](https://img.shields.io/badge/version-0.5.0-3b82f6?style=flat-square)
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-KoNotes-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://konotes.streamlit.app)
+
+<br>
+
+[**Live Demo**](#live-demo) · [**Try It**](#try-it) · [**Features**](#features) · [**Example Insights**](#example-insights) · [**CLI**](#cli) · [**Web UI**](#web-ui) · [**Roadmap**](#roadmap)
+
 <br><br>
 
-[**Try It**](#try-it) · [**Features**](#features) · [**Example Insights**](#example-insights) · [**CLI**](#cli) · [**Web UI**](#web-ui) · [**Roadmap**](#roadmap)
-
-<br><br>
-
-> <em>No cloud. No account. No tracking.<br><strong>Your reading data stays local.</strong></em>
+> <em>No cloud required. No account. No tracking.<br><strong>Your reading data stays on your machine.</strong></em>
 
 </div>
 
@@ -81,6 +83,34 @@ Most of this data already exists on your Kobo. KoNotes makes it visible.
 
 <br>
 
+## Live Demo
+
+<div align="center">
+
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://konotes.streamlit.app)
+
+</div>
+
+Explore KoNotes instantly in your browser -- no install, no setup. The hosted demo runs on [Streamlit Community Cloud](https://streamlit.io/cloud) with a preloaded synthetic library so you can browse every view, chart, and insight category.
+
+| | Hosted Demo | Local Install |
+|:--|:--|:--|
+| **Setup** | None -- runs in your browser | Clone, install, launch |
+| **Data** | Preloaded synthetic library | Your real Kobo database |
+| **Kobo USB detection** | Not available | Full support |
+| **AI features** | Not available | Full support with `pip install '.[ai]'` |
+| **Privacy** | Runs on Streamlit Cloud | Fully offline, nothing leaves your machine |
+| **Export** | View only | Markdown, JSON, HTML, text, static site |
+| **Best for** | Quick preview | Daily use with your own reading data |
+
+The demo uses entirely synthetic data. For the full experience -- especially Kobo device detection, AI insights, and export -- [install locally](#getting-started).
+
+<br>
+
+---
+
+<br>
+
 ## Try It
 
 <div align="center">
@@ -88,6 +118,8 @@ Most of this data already exists on your Kobo. KoNotes makes it visible.
 ![KoNotes CLI Demo](docs/demo/konotes-cli.gif)
 
 </div>
+
+**Want to explore first?** &nbsp;[Try the hosted demo](https://konotes.streamlit.app) -- no install needed.
 
 **With a Kobo connected via USB:**
 
@@ -637,6 +669,8 @@ KoNotes is a **local-first** tool. Your reading data never leaves your machine.
 **AI features and network access:**
 - The `all-MiniLM-L6-v2` embedding model (~80 MB) is downloaded once from [HuggingFace Hub](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) on first use, then cached locally at `~/.cache/huggingface/`. After that initial download, all AI processing is fully offline.
 - KoNotes never sends your reading data, highlights, or annotations to any external service.
+
+**Hosted demo:** The [live demo](https://konotes.streamlit.app) runs on Streamlit Community Cloud with synthetic data only. No real user data is uploaded or stored.
 
 </td>
 </tr>

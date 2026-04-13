@@ -87,6 +87,19 @@ if _CSS_FILE.exists():
     st.markdown(f"<style>{_CSS_FILE.read_text()}</style>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
+# Hosted demo banner (only shown on Streamlit Cloud)
+# ---------------------------------------------------------------------------
+
+if os.environ.get("IS_HOSTED_DEMO"):
+    st.info(
+        "👋 **You're viewing the KoNotes hosted demo** with synthetic data.  \n"
+        "For the full experience — Kobo USB detection, AI insights, and export — "
+        "[install locally](https://github.com/texasbe2trill/KoNotes#getting-started).  \n"
+        "No real reading data is uploaded or stored.",
+        icon="ℹ️",
+    )
+
+# ---------------------------------------------------------------------------
 # Session-state bootstrap
 # ---------------------------------------------------------------------------
 
