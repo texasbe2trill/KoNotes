@@ -955,7 +955,7 @@ def render_insights(books: list[Book]) -> None:
             "Install with:\n"
             "```\npip install '.[ai]'\n```\n"
             "All AI processing runs on your machine — no API keys, no cloud, no data sharing.",
-            icon="🧠",
+            
         )
     else:
         st.divider()
