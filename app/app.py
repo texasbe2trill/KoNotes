@@ -91,12 +91,15 @@ if _CSS_FILE.exists():
 # ---------------------------------------------------------------------------
 
 if os.environ.get("IS_HOSTED_DEMO"):
-    st.info(
-        "👋 **You're viewing the KoNotes hosted demo** with synthetic data.  \n"
-        "For the full experience — Kobo USB detection, AI insights, and export — "
-        "[install locally](https://github.com/texasbe2trill/KoNotes#getting-started).  \n"
-        "No real reading data is uploaded or stored.",
-        icon="ℹ️",
+    st.warning(
+        "**This app is running on Streamlit Community Cloud, not on your machine.**  \n\n"
+        "- Any files you upload are processed on Streamlit's servers, not locally  \n"
+        "- KoNotes does not store your data, but Streamlit's infrastructure handles the session  \n"
+        "- Kobo USB detection, AI insights, and export are not available in this mode  \n"
+        "- **If your reading data is sensitive, "
+        "[install KoNotes locally](https://github.com/texasbe2trill/KoNotes#getting-started) "
+        "for full privacy**",
+        icon="⚠️",
     )
 
 # ---------------------------------------------------------------------------
