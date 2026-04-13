@@ -78,7 +78,7 @@ class LocalEmbeddingProvider(EmbeddingProvider):
                 ) from exc
             raise ImportError(
                 "sentence-transformers is required for local embeddings. "
-                "Install with: pip install 'konotes[ai]'"
+                "Install with: pip install '.[ai]'"
             ) from exc
         try:
             with _quiet_model_load():

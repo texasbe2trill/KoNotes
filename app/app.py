@@ -92,13 +92,12 @@ if _CSS_FILE.exists():
 
 if os.environ.get("IS_HOSTED_DEMO"):
     st.warning(
-        "**This app is running on Streamlit Community Cloud, not on your machine.**  \n\n"
-        "- Any files you upload are processed on Streamlit's servers, not locally  \n"
-        "- KoNotes does not store your data, but Streamlit's infrastructure handles the session  \n"
-        "- Kobo USB detection, AI insights, and export are not available in this mode  \n"
-        "- **If your reading data is sensitive, "
-        "[install KoNotes locally](https://github.com/texasbe2trill/KoNotes#getting-started) "
-        "for full privacy**",
+        "**This is a hosted demo running on Streamlit Community Cloud.**  \n\n"
+        "- Files you upload are processed on remote servers, not your local machine  \n"
+        "- KoNotes does not persist or store your data, but it is processed in this session  \n"
+        "- Some features (like Kobo USB detection) are only available when running locally  \n\n"
+        "For full privacy and complete functionality, "
+        "[run KoNotes locally](https://github.com/texasbe2trill/KoNotes#getting-started).",
         icon="⚠️",
     )
 
@@ -378,7 +377,15 @@ with st.sidebar:
 
             if merged:
                 total_ann = sum(len(b.annotations) for b in merged.values())
-                st.toast(f"Loaded {len(merged)} book(s), {total_ann} annotations")
+                total_hl = sum(
+                    sum(1 for a in b.annotations if a.kind == "highlight")
+                    for b in merged.values()
+                )
+                st.toast(
+                    f"✅ Loaded {len(merged)} book(s) — "
+                    f"{total_hl} highlights, {total_ann - total_hl} notes",
+                    icon="📚",
+                )
                 _go_to("overview")
                 st.rerun()
             elif not errors:

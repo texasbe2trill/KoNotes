@@ -68,7 +68,7 @@ def render_insights(books: list[Book]) -> None:
     if not _ai_available():
         st.warning(
             "AI features require additional dependencies. "
-            "Install with: `pip install 'konotes[ai]'`"
+            "Install with: `pip install '.[ai]'`"
         )
         _render_reading_insights(books)
         return

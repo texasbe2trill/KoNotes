@@ -950,8 +950,12 @@ def render_insights(books: list[Book]) -> None:
     # ------------------------------------------------------------------
     if not _ai_available():
         st.info(
-            "AI-powered theme detection, clustering, and similarity search "
-            "require additional dependencies. Install with: `pip install 'konotes[ai]'`"
+            "**AI-powered theme detection, clustering, and similarity search** "
+            "are available when running KoNotes locally.  \n\n"
+            "Install with:\n"
+            "```\npip install '.[ai]'\n```\n"
+            "All AI processing runs on your machine — no API keys, no cloud, no data sharing.",
+            icon="🧠",
         )
     else:
         st.divider()
