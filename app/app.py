@@ -67,12 +67,15 @@ from parser.sqlite_parser import (
 )
 
 # ---------------------------------------------------------------------------
-# Page config (must be first Streamlit call)
+# Page config — must be the FIRST Streamlit command.
+# page_title controls the <title> tag used by link-preview crawlers
+# (OpenGraph / Twitter Cards), so changing it here fixes how the app
+# appears when shared on Bluesky, Slack, Discord, etc.
 # ---------------------------------------------------------------------------
 
 st.set_page_config(
     page_title="KoNotes",
-    page_icon="KN",
+    page_icon="📖",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -85,6 +88,11 @@ _ASSETS = Path(__file__).resolve().parent / "assets"
 _CSS_FILE = _ASSETS / "styles.css"
 if _CSS_FILE.exists():
     st.markdown(f"<style>{_CSS_FILE.read_text()}</style>", unsafe_allow_html=True)
+
+# Visible app header — reinforces branding and provides the description
+# that link-preview crawlers surface via the rendered HTML.
+st.title("📖 KoNotes")
+st.caption("Turn your Kobo reading data into structured insight")
 
 # ---------------------------------------------------------------------------
 # Hosted demo banner (only shown on Streamlit Cloud)
