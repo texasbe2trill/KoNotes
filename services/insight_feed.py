@@ -46,7 +46,7 @@ def _pct(value: float) -> str:
 
 
 def _library_overview(books: list[Book]) -> list[InsightCard]:
-    """Top-level library stats."""
+    """Top-level library stats — your reading story."""
     if not books:
         return []
     total_hl = sum(sum(1 for a in b.annotations if a.kind == "highlight") for b in books)
@@ -64,21 +64,39 @@ def _library_overview(books: list[Book]) -> list[InsightCard]:
     if total_time > 0:
         evidence.append(EvidenceItem(label="Total reading time", value=_fmt_time(total_time)))
 
-    body_parts = [
-        f"Your library contains {len(books)} books with {total_hl} highlights "
-        f"and {total_notes} notes across {len(annotated)} annotated titles.",
-    ]
+    # Build a warm, narrative body
+    body_parts = []
+    if len(books) == 1:
+        body_parts.append(
+            f"You've loaded one book so far — and already captured "
+            f"{total_hl} highlights and {total_notes} notes. Every reader starts somewhere."
+        )
+    else:
+        body_parts.append(
+            f"You've built a personal library of {len(books)} books, "
+            f"marking {total_hl} passages and writing {total_notes} notes along the way. "
+            f"That's {len(annotated)} books where something caught your attention."
+        )
     if avg_hl > 0:
-        body_parts.append(f"On average, you capture {avg_hl} highlights per book.")
+        body_parts.append(
+            f"On average, you save about {avg_hl} highlights per book — "
+            f"that's your natural annotation rhythm."
+        )
     if total_time > 0:
-        body_parts.append(f"You have spent {_fmt_time(total_time)} reading in total.")
+        body_parts.append(
+            f"You've invested {_fmt_time(total_time)} in reading. "
+            f"That's real time spent with ideas that matter to you."
+        )
 
     return [InsightCard(
         id=_card_id("library-overview"),
-        title="Library at a Glance",
+        title="Your Reading Story So Far",
         category="Library Overview",
-        summary=f"{len(annotated)} annotated books, {total_hl} highlights, {total_notes} notes",
-        body=" ".join(body_parts),
+        summary=(
+            f"You've annotated {len(annotated)} books with {total_hl} highlights "
+            f"and {total_notes} notes — here's what your reading says about you."
+        ),
+        body="\n\n".join(body_parts),
         evidence=evidence,
         priority_score=_score_overview(books),
         related_books=[b.title for b in annotated[:5]],
@@ -87,7 +105,7 @@ def _library_overview(books: list[Book]) -> list[InsightCard]:
 
 
 def _most_engaged_books(books: list[Book]) -> list[InsightCard]:
-    """Identify the books with the most engagement."""
+    """Identify the books that captivated you most."""
     scored: list[tuple[Book, float]] = []
     for b in books:
         hl = sum(1 for a in b.annotations if a.kind == "highlight")
@@ -119,17 +137,20 @@ def _most_engaged_books(books: list[Book]) -> list[InsightCard]:
     author_part = f" by {best.author}" if best.author else ""
     cards.append(InsightCard(
         id=_card_id("most-engaged", best.id),
-        title=f"Your Most Engaged Book: {best.title}",
+        title=f"The Book That Captivated You: {best.title}",
         category="Most Engaged Books",
-        summary=f"{best.title}{author_part} leads with {hl_count} highlights and {nt_count} notes.",
+        summary=(
+            f"\"{best.title}\"{author_part} resonated with you more than anything else in your library — "
+            f"{hl_count} highlights and {nt_count} notes say so."
+        ),
         body=(
-            f"Across your entire library, \"{best.title}\"{author_part} has the highest "
-            f"engagement score. You captured {hl_count} highlights and {nt_count} notes"
+            f"Something about \"{best.title}\"{author_part} kept pulling you in. "
+            f"You captured {hl_count} highlights and wrote {nt_count} notes"
             + (f", spending {_fmt_time(best.time_spent_reading)} reading" if best.time_spent_reading else "")
-            + "."
+            + ". That kind of engagement usually means a book challenged you, surprised you, or confirmed something you already believed."
         ),
         evidence=evidence,
-        recommendation=f"Export your notes from \"{best.title}\" for deeper reflection.",
+        recommendation=f"Revisit your notes from \"{best.title}\" — you might find ideas worth acting on.",
         priority_score=min(best_score / 10, 1.0),
         related_books=[best.title],
         source="computed",
@@ -145,12 +166,16 @@ def _most_engaged_books(books: list[Book]) -> list[InsightCard]:
             runner_titles.append(book.title)
         cards.append(InsightCard(
             id=_card_id("engaged-runners"),
-            title="Other Highly Engaged Books",
+            title="Other Books That Grabbed You",
             category="Most Engaged Books",
-            summary=f"{', '.join(runner_titles[:3])} also show strong engagement.",
+            summary=(
+                f"{', '.join(runner_titles[:3])} also left a mark — "
+                f"you kept coming back to highlight and annotate."
+            ),
             body=(
-                "These books round out your most-engaged titles. "
-                "Each has a substantial number of annotations relative to the rest of your library."
+                "These aren't your most-annotated book, but they still earned "
+                "serious attention. Each one has a substantial number of annotations "
+                "relative to your library."
             ),
             evidence=runner_evidence,
             priority_score=min(top[1][1] / 15, 0.8),
@@ -162,7 +187,7 @@ def _most_engaged_books(books: list[Book]) -> list[InsightCard]:
 
 
 def _highlight_behavior(books: list[Book]) -> list[InsightCard]:
-    """Analyze highlighting patterns."""
+    """Analyze highlighting patterns — how the reader annotates."""
     cards: list[InsightCard] = []
     all_books_hl: list[tuple[str, int]] = []
     chapter_counts: Counter[str] = Counter()
@@ -194,24 +219,30 @@ def _highlight_behavior(books: list[Book]) -> list[InsightCard]:
     if concentration > 0.5:
         summary = (
             f"Over half your highlights ({_pct(concentration * 100)}) "
-            f"come from \"{top_title}\". Your focus is concentrated."
+            f"come from \"{top_title}\". When a book clicks, you go all in."
         )
-        rec = "Try annotating other books to broaden your capture pattern."
+        rec = "Try spreading your annotations across more books — you might find unexpected connections."
     else:
         summary = (
-            f"Your highlights are spread across {len(all_books_hl)} books. "
-            f"\"{top_title}\" leads with {top_count}."
+            f"Your highlights are spread across {len(all_books_hl)} books — "
+            f"you're the kind of reader who finds something worth saving wherever you look."
         )
         rec = None
 
     cards.append(InsightCard(
         id=_card_id("hl-behavior-dist"),
-        title="Highlight Distribution",
+        title="How You Annotate",
         category="Highlight Behavior",
         summary=summary,
         body=(
-            f"You have {total_hl} highlights across {len(all_books_hl)} books. "
-            f"The top book accounts for {_pct(concentration * 100)} of all highlights."
+            f"You've saved {total_hl} highlights across {len(all_books_hl)} books. "
+            + (
+                f"\"{top_title}\" dominates with {_pct(concentration * 100)} of them — "
+                f"the rest of your library shares the remaining highlights."
+                if concentration > 0.5
+                else f"\"{top_title}\" leads with {top_count}, but no single book dominates — "
+                f"your curiosity is broad."
+            )
         ),
         evidence=evidence,
         recommendation=rec,
@@ -228,15 +259,15 @@ def _highlight_behavior(books: list[Book]) -> list[InsightCard]:
         ]
         cards.append(InsightCard(
             id=_card_id("hl-behavior-chapters"),
-            title="Your Most Annotated Chapters",
+            title="Chapters That Made You Stop and Think",
             category="Highlight Behavior",
-            summary=f"\"{top_chapters[0][0]}\" has the most highlights ({top_chapters[0][1]}).",
+            summary=f"\"{top_chapters[0][0]}\" stood out the most — you highlighted it {top_chapters[0][1]} times.",
             body=(
-                "These chapters captured the most of your attention. "
-                "Revisiting them may surface insights you marked but haven't returned to."
+                "These are the chapters where you paused most often to mark a passage. "
+                "That's usually a sign the content was challenging, surprising, or directly useful to you."
             ),
             evidence=ch_evidence,
-            recommendation=f"Revisit \"{top_chapters[0][0]}\" and review your annotations.",
+            recommendation=f"Go back to \"{top_chapters[0][0]}\" — your highlights might be waiting for a second look.",
             priority_score=0.5,
             related_books=[],
             source="computed",
@@ -265,19 +296,30 @@ def _reading_patterns(books: list[Book]) -> list[InsightCard]:
         total_tracked = len(completed) + len(in_progress) + len(not_started)
         completion_rate = len(completed) / total_tracked * 100 if total_tracked else 0
 
+        if completion_rate >= 80:
+            tone = "You finish what you start — that's rare."
+        elif completion_rate >= 50:
+            tone = "A solid finish rate — you see most books through."
+        elif len(in_progress) > 3:
+            tone = "You've got a lot of plates spinning. No judgment — some readers thrive that way."
+        else:
+            tone = "Every reader has their rhythm."
+
         cards.append(InsightCard(
             id=_card_id("reading-pattern-completion"),
-            title="Completion Rate",
+            title="Your Completion Rate",
             category="Reading Patterns",
-            summary=f"{_pct(completion_rate)} of your tracked books are completed ({len(completed)} of {total_tracked}).",
+            summary=f"{_pct(completion_rate)} of your books are finished ({len(completed)} of {total_tracked}). {tone}",
             body=(
-                f"You have finished {len(completed)} books, with {len(in_progress)} still in progress"
+                f"You have completed {len(completed)} books"
+                + (f", with {len(in_progress)} still in progress" if in_progress else "")
                 + (f" and {len(not_started)} not yet started" if not_started else "")
                 + "."
             ),
             evidence=evidence,
             recommendation=(
-                f"You have {len(in_progress)} books in progress. Consider finishing one before starting a new title."
+                f"You have {len(in_progress)} books mid-read. Finishing \"{in_progress[0].title}\" "
+                f"({_pct(in_progress[0].read_percent or 0)}) might feel more satisfying than starting something new."
                 if len(in_progress) > 2 else None
             ),
             priority_score=0.55 + (0.15 if len(in_progress) > 3 else 0),
@@ -293,20 +335,23 @@ def _reading_patterns(books: list[Book]) -> list[InsightCard]:
         total_time = sum(t for _, t in timed_books)
 
         evidence = [
-            EvidenceItem(label="Longest reading session", value=f"{longest.title} ({_fmt_time(longest_time)})"),
+            EvidenceItem(label="Longest read", value=f"{longest.title} ({_fmt_time(longest_time)})"),
             EvidenceItem(label="Total reading time", value=_fmt_time(total_time)),
             EvidenceItem(label="Books with time data", value=str(len(timed_books))),
         ]
 
         cards.append(InsightCard(
             id=_card_id("reading-pattern-time"),
-            title="Reading Time Breakdown",
+            title="Where Your Time Went",
             category="Reading Patterns",
-            summary=f"You spent the most time reading \"{longest.title}\" ({_fmt_time(longest_time)}).",
+            summary=(
+                f"You invested the most time in \"{longest.title}\" — "
+                f"{_fmt_time(longest_time)} of focused reading."
+            ),
             body=(
-                f"Across {len(timed_books)} books with time data, you have logged "
-                f"{_fmt_time(total_time)} of total reading. "
-                f"\"{longest.title}\" represents the largest investment at {_fmt_time(longest_time)}."
+                f"Across {len(timed_books)} books, you've logged {_fmt_time(total_time)} of reading. "
+                f"\"{longest.title}\" was your biggest time investment at {_fmt_time(longest_time)}. "
+                f"Time spent reading is time spent thinking."
             ),
             evidence=evidence,
             priority_score=0.6,
@@ -336,19 +381,32 @@ def _books_in_progress(books: list[Book]) -> list[InsightCard]:
     almost_done = [b for b in in_progress if (b.read_percent or 0) > 70]
     rec = None
     if almost_done:
-        rec = f"You are close to finishing \"{almost_done[0].title}\" ({_pct(almost_done[0].read_percent or 0)}). Consider completing it."
+        rec = (
+            f"You're {_pct(almost_done[0].read_percent or 0)} through "
+            f"\"{almost_done[0].title}\" — so close. That last stretch often has the best payoff."
+        )
+
+    if len(in_progress) == 1:
+        summary = (
+            f"You have one book in progress: \"{in_progress[0].title}\" "
+            f"at {_pct(in_progress[0].read_percent or 0)}."
+        )
+    else:
+        summary = (
+            f"{len(in_progress)} books are waiting for you to come back. "
+            f"\"{in_progress[0].title}\" is closest to the finish line at "
+            f"{_pct(in_progress[0].read_percent or 0)}."
+        )
 
     return [InsightCard(
         id=_card_id("books-in-progress"),
-        title=f"{len(in_progress)} Books in Progress",
+        title=f"Unfinished Stories ({len(in_progress)})",
         category="Books in Progress",
-        summary=(
-            f"You have {len(in_progress)} books partially read. "
-            f"\"{in_progress[0].title}\" is furthest along at {_pct(in_progress[0].read_percent or 0)}."
-        ),
+        summary=summary,
         body=(
-            "These books still have pages waiting for you. "
-            "Returning to a partially-read book can be more rewarding than starting a new one."
+            "Every book here has pages that still have something to offer. "
+            "Sometimes returning to a half-read book hits different — "
+            "you bring new perspective to old passages."
         ),
         evidence=evidence,
         recommendation=rec,
@@ -359,7 +417,7 @@ def _books_in_progress(books: list[Book]) -> list[InsightCard]:
 
 
 def _vocabulary_activity(books: list[Book], word_lookups: list | None = None) -> list[InsightCard]:
-    """Insights about vocabulary lookups if data exists."""
+    """Insights about vocabulary lookups — words that caught your eye."""
     if not word_lookups:
         return []
 
@@ -377,23 +435,35 @@ def _vocabulary_activity(books: list[Book], word_lookups: list | None = None) ->
     evidence = [EvidenceItem(label="Total lookups", value=str(total))]
     if book_counts:
         top_book, top_count = book_counts.most_common(1)[0]
-        evidence.append(EvidenceItem(label="Most looked-up book", value=f"{top_book} ({top_count})"))
+        evidence.append(EvidenceItem(label="Most curious book", value=f"{top_book} ({top_count})"))
     if word_counts:
         top_words = word_counts.most_common(5)
         for w, c in top_words:
             evidence.append(EvidenceItem(label=f'"{w}"', value=f"looked up {c} time{'s' if c != 1 else ''}"))
 
+    # Surface the actual top words in the summary for personality
+    if word_counts:
+        word_samples = [w for w, _ in word_counts.most_common(3)]
+        word_str = ", ".join(f'"{w}"' for w in word_samples)
+        summary = (
+            f"You looked up {total} words while reading — including {word_str}. "
+            f"Curiosity like that is a sign of an active mind."
+        )
+    else:
+        summary = f"You looked up {total} words across your reading sessions."
+
     return [InsightCard(
         id=_card_id("vocab-activity"),
-        title=f"Vocabulary Activity: {total} Lookups",
+        title=f"Words That Caught Your Eye",
         category="Vocabulary Activity",
-        summary=f"You looked up {total} words across your reading sessions.",
+        summary=summary,
         body=(
             f"Your vocabulary exploration spans {len(book_counts)} books. "
-            + (f"\"{book_counts.most_common(1)[0][0]}\" triggered the most lookups." if book_counts else "")
+            + (f"\"{book_counts.most_common(1)[0][0]}\" made you reach for the dictionary the most — "
+               f"probably because it pushed you into unfamiliar territory." if book_counts else "")
         ),
         evidence=evidence,
-        recommendation="Review your most-looked-up words to reinforce vocabulary retention.",
+        recommendation="Try using your most-looked-up words in conversation or writing — that's how they stick.",
         priority_score=min(total / 50, 0.8),
         related_books=[b for b, _ in book_counts.most_common(5)],
         source="computed",
@@ -401,7 +471,7 @@ def _vocabulary_activity(books: list[Book], word_lookups: list | None = None) ->
 
 
 def _reading_momentum(books: list[Book]) -> list[InsightCard]:
-    """Detect reading momentum -- recent activity vs. stale books."""
+    """Detect reading momentum — recent vs. forgotten books."""
     cards: list[InsightCard] = []
     now = datetime.now()
     recent_cutoff = now - timedelta(days=30)
@@ -421,14 +491,25 @@ def _reading_momentum(books: list[Book]) -> list[InsightCard]:
             EvidenceItem(label=b.title, value=b.date_last_read.strftime("%Y-%m-%d") if b.date_last_read else "")
             for b in sorted(recent_books, key=lambda b: b.date_last_read or datetime.min, reverse=True)[:5]
         ]
+        if len(recent_books) >= 3:
+            summary = (
+                f"You've been active with {len(recent_books)} books this month. "
+                f"You're in a great reading groove right now."
+            )
+        else:
+            summary = (
+                f"You touched {len(recent_books)} book{'s' if len(recent_books) != 1 else ''} "
+                f"in the last 30 days — keep the momentum going."
+            )
         cards.append(InsightCard(
             id=_card_id("momentum-recent"),
-            title=f"Active Reading: {len(recent_books)} Books This Month",
+            title=f"You're on a Roll",
             category="Reading Momentum",
-            summary=f"You have been active with {len(recent_books)} books in the last 30 days.",
+            summary=summary,
             body=(
-                "Strong recent reading momentum. "
-                f"You touched {len(recent_books)} titles in the past month."
+                f"Reading momentum matters. You've engaged with "
+                f"{len(recent_books)} title{'s' if len(recent_books) != 1 else ''} recently, "
+                f"which means ideas are flowing."
             ),
             evidence=evidence,
             priority_score=0.65,
@@ -447,18 +528,24 @@ def _reading_momentum(books: list[Book]) -> list[InsightCard]:
         ]
         cards.append(InsightCard(
             id=_card_id("momentum-stale"),
-            title=f"Forgotten Books: {len(stale_books)} Titles with Unreviewed Notes",
+            title=f"Hidden Gems: {len(stale_books)} Forgotten Books",
             category="Forgotten Insights",
             summary=(
-                f"{len(stale_books)} annotated books have not been opened in over 90 days. "
-                f"\"{stale_books[0].title}\" has {len(stale_books[0].annotations)} annotations waiting."
+                f"You have {len(stale_books)} annotated books you haven't opened in over 90 days. "
+                f"\"{stale_books[0].title}\" alone has {len(stale_books[0].annotations)} annotations "
+                f"collecting dust."
             ),
             body=(
-                "These books have annotations you captured but may have forgotten about. "
-                "Revisiting old highlights often surfaces ideas that feel fresh the second time around."
+                "These books have highlights and notes you invested time in — "
+                "but you might have forgotten what you captured. "
+                "Re-reading old annotations often surfaces ideas that feel brand new. "
+                "Your past self left you breadcrumbs."
             ),
             evidence=evidence,
-            recommendation=f"Start by revisiting \"{stale_books[0].title}\" -- it has the most unreviewed annotations.",
+            recommendation=(
+                f"Start with \"{stale_books[0].title}\" — it has the most unreviewed annotations. "
+                f"Even 5 minutes of review can spark something."
+            ),
             priority_score=0.7,
             related_books=[b.title for b in stale_books[:5]],
             source="computed",
@@ -468,7 +555,7 @@ def _reading_momentum(books: list[Book]) -> list[InsightCard]:
 
 
 def _deep_reading_signals(books: list[Book]) -> list[InsightCard]:
-    """Identify books with strong deep-reading signals: high highlight density, note-to-highlight ratio."""
+    """Identify books with strong deep-reading signals."""
     cards: list[InsightCard] = []
 
     deep_reads: list[tuple[Book, float, int, int]] = []
@@ -499,21 +586,33 @@ def _deep_reading_signals(books: list[Book]) -> list[InsightCard]:
         evidence.append(EvidenceItem(label="Time spent", value=_fmt_time(best.time_spent_reading)))
 
     author_part = f" by {best.author}" if best.author else ""
+    if note_ratio >= 0.3:
+        depth_desc = (
+            "With a note-to-highlight ratio of {ratio}, you weren't just reading — "
+            "you were thinking out loud on the page. "
+            "That's where your best ideas tend to live."
+        ).format(ratio=f"{note_ratio:.0%}")
+    else:
+        depth_desc = (
+            "You captured {hl} highlights across this book, "
+            "showing sustained, careful attention. "
+            "That kind of focus usually means the ideas resonated with you personally."
+        ).format(hl=best_hl)
+
     cards.append(InsightCard(
         id=_card_id("deep-reading", best.id),
-        title=f"Deepest Read: {best.title}",
+        title=f"Where Your Best Thinking Lives: {best.title}",
         category="Deep Reading Signals",
         summary=(
-            f"\"{best.title}\"{author_part} shows your strongest deep-reading engagement: "
-            f"{best_hl} highlights and {best_nt} notes."
+            f"\"{best.title}\"{author_part} shows your deepest intellectual engagement: "
+            f"{best_hl} highlights, {best_nt} notes, and a {note_ratio:.0%} note ratio."
         ),
-        body=(
-            f"This book has a note-to-highlight ratio of {note_ratio:.0%}, "
-            "suggesting you went beyond passive highlighting into active reflection. "
-            "Books with high note ratios are where your best thinking lives."
-        ),
+        body=depth_desc,
         evidence=evidence,
-        recommendation="Export and review your notes from this book for a personal knowledge summary.",
+        recommendation=(
+            f"Your notes from \"{best.title}\" are worth exporting — "
+            f"they're a personal knowledge summary in your own words."
+        ),
         priority_score=min(best_score / 8, 0.95),
         related_books=[best.title],
         source="computed",
@@ -545,15 +644,19 @@ def _author_insights(books: list[Book]) -> list[InsightCard]:
 
     return [InsightCard(
         id=_card_id("author-insight", top_author),
-        title=f"Favorite Author: {top_author}",
+        title=f"An Author Who Speaks to You: {top_author}",
         category="Reading Patterns",
-        summary=f"You have read {len(top_books)} books by {top_author} with {total_ann} total annotations.",
+        summary=(
+            f"You keep coming back to {top_author} — {len(top_books)} books, "
+            f"{total_ann} annotations. There's clearly something that resonates."
+        ),
         body=(
             f"{top_author} is your most annotated author across multiple titles. "
-            f"You captured {total_ann} annotations across {len(top_books)} books."
+            f"When an author shows up repeatedly in someone's library, it usually means "
+            f"their ideas align with how you see the world — or challenge it in the right way."
         ),
         evidence=evidence,
-        recommendation=f"Look for more titles by {top_author}, or compare themes across their books.",
+        recommendation=f"Compare your highlights across {top_author}'s books — you might find a thread that connects them.",
         priority_score=0.55 + min(len(top_books) * 0.05, 0.2),
         related_books=[b.title for b in top_books],
         source="computed",
@@ -576,17 +679,23 @@ def _rating_insights(books: list[Book]) -> list[InsightCard]:
         EvidenceItem(label="Top rated", value=f"{top_rated.title} ({rated[0][1]} / 5)"),
     ]
 
+    if avg_rating >= 4.0:
+        tone = "You have high standards — and your library meets them."
+    elif avg_rating >= 3.0:
+        tone = "You rate honestly — not every book earns a 5."
+    else:
+        tone = "You're a critical reader. That's a strength."
+
     return [InsightCard(
         id=_card_id("rating-insight"),
-        title=f"Your Average Rating: {avg_rating:.1f} / 5",
+        title=f"Your Taste in Books",
         category="Reading Patterns",
         summary=(
-            f"Across {len(rated)} rated books, your average is {avg_rating:.1f}/5. "
-            f"\"{top_rated.title}\" is your top-rated read."
+            f"Across {len(rated)} rated books, your average is {avg_rating:.1f}/5. {tone}"
         ),
         body=(
-            f"You have rated {len(rated)} books. "
-            f"Your top-rated book is \"{top_rated.title}\" at {rated[0][1]}/5."
+            f"\"{top_rated.title}\" earned your highest rating. "
+            f"Every rating is a data point about what kind of writing moves you."
         ),
         evidence=evidence,
         priority_score=0.4,

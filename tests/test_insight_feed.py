@@ -213,7 +213,7 @@ class TestReadingPatterns:
             _make_book(title="New", read_percent=5),
         ]
         cards = _reading_patterns(books)
-        assert any("Completion" in c.title for c in cards)
+        assert any("Completion" in c.title for c in cards) or any("Rate" in c.title for c in cards)
 
     def test_reading_time(self):
         from services.insight_feed import _reading_patterns
@@ -222,7 +222,7 @@ class TestReadingPatterns:
             _make_book(title="Short", time_spent=1800, n_highlights=3),
         ]
         cards = _reading_patterns(books)
-        assert any("Time" in c.title for c in cards)
+        assert any("Time" in c.title for c in cards) or any("Where" in c.title for c in cards)
 
 
 class TestBooksInProgress:
@@ -234,7 +234,7 @@ class TestBooksInProgress:
         ]
         cards = _books_in_progress(books)
         assert len(cards) == 1
-        assert "1 Book" in cards[0].title
+        assert "Unfinished" in cards[0].title
 
     def test_no_in_progress(self):
         from services.insight_feed import _books_in_progress
@@ -257,7 +257,7 @@ class TestHighlightBehavior:
             _make_book(title="Light", n_highlights=3),
         ]
         cards = _highlight_behavior(books)
-        assert any("Distribution" in c.title for c in cards)
+        assert any("Annotate" in c.title for c in cards)
 
     def test_too_few(self):
         from services.insight_feed import _highlight_behavior
@@ -270,7 +270,7 @@ class TestReadingMomentum:
         from services.insight_feed import _reading_momentum
         books = [_make_book(title="Recent", date_last_read=datetime.now() - timedelta(days=5), n_highlights=5)]
         cards = _reading_momentum(books)
-        assert any("Active" in c.title for c in cards)
+        assert any("Roll" in c.title for c in cards)
 
     def test_stale_books(self):
         from services.insight_feed import _reading_momentum
@@ -285,7 +285,7 @@ class TestDeepReadingSignals:
         books = [_make_book(title="Deep", n_highlights=10, n_notes=8)]
         cards = _deep_reading_signals(books)
         assert len(cards) == 1
-        assert "Deep" in cards[0].title
+        assert "Deep" in cards[0].title or "Thinking" in cards[0].title
 
     def test_not_enough_highlights(self):
         from services.insight_feed import _deep_reading_signals
