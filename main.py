@@ -143,6 +143,9 @@ def _cmd_parse(args: argparse.Namespace) -> int:
     print_stats(stats)
     console.print()
     print_books(books)
+
+    from services.star_prompt import maybe_show_cli_star_prompt
+    maybe_show_cli_star_prompt(item_count=stats.total_annotations)
     return 0
 
 
@@ -189,6 +192,8 @@ def _cmd_export(args: argparse.Namespace) -> int:
         out_path.write_text(fn(book), encoding="utf-8")
         print_success(f"Exported: {out_path}")
 
+    from services.star_prompt import maybe_show_cli_star_prompt
+    maybe_show_cli_star_prompt(item_count=len(books))
     return 0
 
 
@@ -243,6 +248,8 @@ def _cmd_summary(args: argparse.Namespace) -> int:
         sessions = extract_reading_sessions(path)
         print_recent_activity(sessions)
 
+    from services.star_prompt import maybe_show_cli_star_prompt
+    maybe_show_cli_star_prompt(item_count=stats.total_annotations)
     return 0
 
 
@@ -275,6 +282,8 @@ def _cmd_book(args: argparse.Namespace) -> int:
     for book in matches:
         print_book_detail(book)
 
+    from services.star_prompt import maybe_show_cli_star_prompt
+    maybe_show_cli_star_prompt(item_count=sum(len(b.annotations) for b in matches))
     return 0
 
 
@@ -331,6 +340,9 @@ def _cmd_export_html(args: argparse.Namespace) -> int:
     )
     print_success(f"Static site exported to: {out_dir}/")
     console.print(f"  Open {out_dir / 'index.html'} in a browser to view.")
+
+    from services.star_prompt import maybe_show_cli_star_prompt
+    maybe_show_cli_star_prompt(item_count=len(books))
     return 0
 
 

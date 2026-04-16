@@ -88,5 +88,7 @@ def export_book_markdown(book: Book) -> str:
 
     lines.append("---")
     lines.append("*Made with love for the Kobo community. [KoNotes](https://github.com/texasbe2trill/KoNotes)*")
+    lines.append("")
+    lines.append("*If this was useful, consider starring [KoNotes](https://github.com/texasbe2trill/KoNotes) on GitHub.*")
 
     return "\n".join(lines)

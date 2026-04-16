@@ -625,3 +625,10 @@ elif view == "vocabulary":
 elif view == "insights":
     from app.views.insights import render_insights
     render_insights(books)
+
+# ---------------------------------------------------------------------------
+# Star prompt — shown once per session after meaningful data is visible
+# ---------------------------------------------------------------------------
+if books and view not in ("welcome",):
+    from services.star_prompt import maybe_show_streamlit_star_prompt
+    maybe_show_streamlit_star_prompt()

@@ -5,7 +5,10 @@ from datetime import datetime
 
 from models.book import Book
 
-_FOOTER = "Made with love for the Kobo community. https://github.com/texasbe2trill/KoNotes"
+_FOOTER = (
+    "Made with love for the Kobo community. https://github.com/texasbe2trill/KoNotes\n"
+    "If this was useful, consider starring KoNotes: https://github.com/texasbe2trill/KoNotes"
+)
 
 
 def export_book_text(book: Book) -> str:

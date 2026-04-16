@@ -1468,6 +1468,19 @@ def render_insights(books: list[Book]) -> None:
     st.divider()
     _render_export(all_cards)
 
+    # Soft star nudge — only if insights were rendered
+    if all_cards:
+        st.markdown(
+            '<div style="text-align:center; font-size:0.78rem; color:#94a3b8; '
+            'margin:1.5rem 0 0.5rem;">'
+            "If these insights surprised you, consider "
+            '<a href="https://github.com/texasbe2trill/KoNotes" '
+            'style="color:#94a3b8; text-decoration:underline;">'
+            "starring KoNotes</a> — it helps others find it."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
     # Footer
     st.markdown(
         '<div class="kn-footer">'

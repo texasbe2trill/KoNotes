@@ -11,7 +11,7 @@ Turn your Kobo highlights and reading data into structured, readable insight.
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Streamlit](https://img.shields.io/badge/streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
-![Tests](https://img.shields.io/badge/tests-358_passed-22c55e?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-372_passed-22c55e?style=flat-square)
 ![Version](https://img.shields.io/badge/version-0.5.0-3b82f6?style=flat-square)
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-KoNotes-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://konotes.streamlit.app)
@@ -25,6 +25,8 @@ Turn your Kobo highlights and reading data into structured, readable insight.
 </div>
 
 ---
+
+> ⭐ If KoNotes helps you get more out of your reading, consider [starring the repo](https://github.com/texasbe2trill/KoNotes).
 
 <br>
 
