@@ -15,8 +15,7 @@ from pathlib import Path
 # Prevent Streamlit's file watcher from triggering torchvision-dependent
 # lazy imports inside the ``transformers`` library (e.g. zoedepth).
 # KoNotes only uses text models and never needs torchvision.
-# Instead of monkey-patching Streamlit internals (fragile across reloads),
-# we inject dummy modules into sys.modules so the lazy imports succeed
+# We inject dummy modules into sys.modules so the lazy imports succeed
 # harmlessly and never raise ImportError.
 # ---------------------------------------------------------------------------
 for _mod_name in ("torchvision", "torchvision.transforms",
@@ -25,6 +24,21 @@ for _mod_name in ("torchvision", "torchvision.transforms",
         _dummy = types.ModuleType(_mod_name)
         _dummy.__path__ = []  # type: ignore[attr-defined]
         sys.modules[_mod_name] = _dummy
+
+# ---------------------------------------------------------------------------
+# Undo any previous monkey-patch of Streamlit's get_module_paths that may
+# still be lingering in the running process from an earlier deploy.
+# ---------------------------------------------------------------------------
+try:
+    from streamlit.watcher import local_sources_watcher as _lsw
+
+    _cur = getattr(_lsw, "get_module_paths", None)
+    if _cur is not None and getattr(_cur, "__name__", "") == "_safe_get_module_paths":
+        # Reload the module to get the real original back
+        import importlib as _il
+        _il.reload(_lsw)
+except Exception:
+    pass
 
 # ---------------------------------------------------------------------------
 # Ensure the project root is on sys.path so sibling-package imports work
