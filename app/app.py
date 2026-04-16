@@ -27,25 +27,23 @@ def _patch_streamlit_watcher() -> None:
     except ImportError:
         return
 
-    _orig_get_module_paths = getattr(_lsw, "get_module_paths", None)
-    if _orig_get_module_paths is None:
-        return
+    # Stash the TRUE original on the _lsw module itself so it survives
+    # across app.py re-executions (Streamlit Cloud hot-reloads).
+    if not hasattr(_lsw, "_konotes_orig_get_module_paths"):
+        orig = getattr(_lsw, "get_module_paths", None)
+        if orig is None:
+            return
+        _lsw._konotes_orig_get_module_paths = orig  # type: ignore[attr-defined]
 
-    # Guard against double-patching (e.g. module reloads on hosted demo)
-    if getattr(_orig_get_module_paths, "_konotes_patched", False):
-        return
+    # Always bind the stashed original — never the current (possibly patched) one
+    _orig = _lsw._konotes_orig_get_module_paths  # type: ignore[attr-defined]
 
-    # Bind the original via default arg to avoid closure over the replaced name
-    def _safe_get_module_paths(
-        module: types.ModuleType,
-        _orig: object = _orig_get_module_paths,
-    ) -> set[str]:
+    def _safe_get_module_paths(module: types.ModuleType) -> set[str]:
         name = getattr(module, "__name__", "") or ""
         if name.startswith("transformers.models.") or name.startswith("torchvision"):
             return set()
-        return _orig(module)  # type: ignore[operator]
+        return _orig(module)
 
-    _safe_get_module_paths._konotes_patched = True  # type: ignore[attr-defined]
     _lsw.get_module_paths = _safe_get_module_paths  # type: ignore[attr-defined]
 
 _patch_streamlit_watcher()
