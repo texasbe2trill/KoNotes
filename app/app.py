@@ -15,38 +15,16 @@ from pathlib import Path
 # Prevent Streamlit's file watcher from triggering torchvision-dependent
 # lazy imports inside the ``transformers`` library (e.g. zoedepth).
 # KoNotes only uses text models and never needs torchvision.
-# We monkey-patch Streamlit's module path extraction to skip transformers
-# submodules, which avoids triggering their lazy __getattr__ imports.
+# Instead of monkey-patching Streamlit internals (fragile across reloads),
+# we inject dummy modules into sys.modules so the lazy imports succeed
+# harmlessly and never raise ImportError.
 # ---------------------------------------------------------------------------
-import importlib as _il
-
-def _patch_streamlit_watcher() -> None:
-    """Patch Streamlit's local_sources_watcher to skip transformers submodules."""
-    try:
-        from streamlit.watcher import local_sources_watcher as _lsw
-    except ImportError:
-        return
-
-    # Stash the TRUE original on the _lsw module itself so it survives
-    # across app.py re-executions (Streamlit Cloud hot-reloads).
-    if not hasattr(_lsw, "_konotes_orig_get_module_paths"):
-        orig = getattr(_lsw, "get_module_paths", None)
-        if orig is None:
-            return
-        _lsw._konotes_orig_get_module_paths = orig  # type: ignore[attr-defined]
-
-    # Always bind the stashed original — never the current (possibly patched) one
-    _orig = _lsw._konotes_orig_get_module_paths  # type: ignore[attr-defined]
-
-    def _safe_get_module_paths(module: types.ModuleType) -> set[str]:
-        name = getattr(module, "__name__", "") or ""
-        if name.startswith("transformers.models.") or name.startswith("torchvision"):
-            return set()
-        return _orig(module)
-
-    _lsw.get_module_paths = _safe_get_module_paths  # type: ignore[attr-defined]
-
-_patch_streamlit_watcher()
+for _mod_name in ("torchvision", "torchvision.transforms",
+                  "torchvision.transforms.functional"):
+    if _mod_name not in sys.modules:
+        _dummy = types.ModuleType(_mod_name)
+        _dummy.__path__ = []  # type: ignore[attr-defined]
+        sys.modules[_mod_name] = _dummy
 
 # ---------------------------------------------------------------------------
 # Ensure the project root is on sys.path so sibling-package imports work
