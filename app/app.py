@@ -31,12 +31,21 @@ def _patch_streamlit_watcher() -> None:
     if _orig_get_module_paths is None:
         return
 
-    def _safe_get_module_paths(module: types.ModuleType) -> set[str]:
+    # Guard against double-patching (e.g. module reloads on hosted demo)
+    if getattr(_orig_get_module_paths, "_konotes_patched", False):
+        return
+
+    # Bind the original via default arg to avoid closure over the replaced name
+    def _safe_get_module_paths(
+        module: types.ModuleType,
+        _orig: object = _orig_get_module_paths,
+    ) -> set[str]:
         name = getattr(module, "__name__", "") or ""
         if name.startswith("transformers.models.") or name.startswith("torchvision"):
             return set()
-        return _orig_get_module_paths(module)
+        return _orig(module)  # type: ignore[operator]
 
+    _safe_get_module_paths._konotes_patched = True  # type: ignore[attr-defined]
     _lsw.get_module_paths = _safe_get_module_paths  # type: ignore[attr-defined]
 
 _patch_streamlit_watcher()
