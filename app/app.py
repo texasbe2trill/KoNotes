@@ -26,21 +26,6 @@ for _mod_name in ("torchvision", "torchvision.transforms",
         sys.modules[_mod_name] = _dummy
 
 # ---------------------------------------------------------------------------
-# Undo any previous monkey-patch of Streamlit's get_module_paths that may
-# still be lingering in the running process from an earlier deploy.
-# ---------------------------------------------------------------------------
-try:
-    from streamlit.watcher import local_sources_watcher as _lsw
-
-    _cur = getattr(_lsw, "get_module_paths", None)
-    if _cur is not None and getattr(_cur, "__name__", "") == "_safe_get_module_paths":
-        # Reload the module to get the real original back
-        import importlib as _il
-        _il.reload(_lsw)
-except Exception:
-    pass
-
-# ---------------------------------------------------------------------------
 # Ensure the project root is on sys.path so sibling-package imports work
 # regardless of how Streamlit is launched.
 # ---------------------------------------------------------------------------
