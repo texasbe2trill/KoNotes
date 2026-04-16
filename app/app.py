@@ -8,22 +8,13 @@ import os
 import sqlite3
 import sys
 import tempfile
-import types
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Prevent Streamlit's file watcher from triggering torchvision-dependent
-# lazy imports inside the ``transformers`` library (e.g. zoedepth).
-# KoNotes only uses text models and never needs torchvision.
-# We inject dummy modules into sys.modules so the lazy imports succeed
-# harmlessly and never raise ImportError.
+# Suppress noisy deprecation warnings from the ``transformers`` library's
+# lazy import system (hundreds of "Accessing __path__" lines).
 # ---------------------------------------------------------------------------
-for _mod_name in ("torchvision", "torchvision.transforms",
-                  "torchvision.transforms.functional"):
-    if _mod_name not in sys.modules:
-        _dummy = types.ModuleType(_mod_name)
-        _dummy.__path__ = []  # type: ignore[attr-defined]
-        sys.modules[_mod_name] = _dummy
+os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
 
 # ---------------------------------------------------------------------------
 # Ensure the project root is on sys.path so sibling-package imports work
