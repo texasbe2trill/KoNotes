@@ -29,7 +29,6 @@ import streamlit as st
 from models.activity import ProgressSnapshot, ReadingSession
 from models.book import Book
 from parser.device_detection import detect_devices
-from parser.export_parsers import get_parser_for_extension
 from parser.normalizer import normalize
 from parser.sqlite_parser import (
     extract_page_turns,
@@ -283,64 +282,41 @@ with st.sidebar:
         st.divider()
 
     # --- Manual upload ---
-    with st.expander("Upload files", expanded=not bool(devices) and not st.session_state["books"]):
+    with st.expander("Upload file", expanded=not bool(devices) and not st.session_state["books"]):
         uploaded_sqlite = st.file_uploader(
             "KoboReader.sqlite",
             type=["sqlite", "sqlite3", "db"],
             help="Found on your Kobo at .kobo/KoboReader.sqlite",
         )
-        uploaded_exports = st.file_uploader(
-            "Annotation exports",
-            type=["html", "htm", "txt", "md", "markdown"],
-            accept_multiple_files=True,
-            help="HTML, TXT, or Markdown annotation exports.",
-        )
-        has_files = bool(uploaded_exports) or uploaded_sqlite is not None
         process_btn = st.button(
             "Load annotations",
             type="primary",
             width="stretch",
-            disabled=not has_files,
+            disabled=uploaded_sqlite is None,
         )
 
-        if process_btn and has_files:
+        if process_btn and uploaded_sqlite is not None:
             all_books: list[Book] = []
             errors: list[str] = []
 
-            if uploaded_sqlite is not None:
-                st.session_state["using_demo"] = False
-                tmp_path: Path | None = None
-                try:
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".sqlite") as tmp:
-                        tmp.write(uploaded_sqlite.read())
-                        tmp_path = Path(tmp.name)
-                    raw = parse_sqlite(tmp_path)
-                    books = normalize(raw, source="kobo_sqlite")
-                    all_books.extend(books)
-                    _load_telemetry(tmp_path)
-                except Exception as exc:
-                    errors.append(f"Error parsing KoboReader.sqlite: {exc}")
-                finally:
-                    if tmp_path is not None:
-                        try:
-                            os.unlink(tmp_path)
-                        except OSError:
-                            pass
-
-            for f in uploaded_exports or []:
-                st.session_state["using_demo"] = False
-                ext = Path(f.name).suffix.lower()
-                parser = get_parser_for_extension(ext)
-                if parser is None:
-                    errors.append(f"Unsupported file type: {f.name}")
-                    continue
-                try:
-                    content = f.read().decode("utf-8", errors="replace")
-                    raw = parser.parse(content)
-                    books = normalize(raw, source=parser.source_name)
-                    all_books.extend(books)
-                except Exception as exc:
-                    errors.append(f"Error parsing {f.name}: {exc}")
+            st.session_state["using_demo"] = False
+            tmp_path: Path | None = None
+            try:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".sqlite") as tmp:
+                    tmp.write(uploaded_sqlite.read())
+                    tmp_path = Path(tmp.name)
+                raw = parse_sqlite(tmp_path)
+                books = normalize(raw, source="kobo_sqlite")
+                all_books.extend(books)
+                _load_telemetry(tmp_path)
+            except Exception as exc:
+                errors.append(f"Error parsing KoboReader.sqlite: {exc}")
+            finally:
+                if tmp_path is not None:
+                    try:
+                        os.unlink(tmp_path)
+                    except OSError:
+                        pass
 
             merged: dict[str, Book] = {}
             for book in all_books:

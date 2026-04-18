@@ -57,11 +57,11 @@ def render_activity(
     c3.metric("Annotations", f"{total_annotations:,}")
     c4.metric("Active Days", active_days)
 
-    # ── Insight ──────────────────────────────────────────────────
-    _render_activity_insight(books, stats, active_days)
-
     # ── Reading streaks ──────────────────────────────────────────
     _render_streaks(books, sessions)
+
+    # ── Insight ──────────────────────────────────────────────────
+    _render_activity_insight(books, stats, active_days)
 
     st.markdown("")
 
