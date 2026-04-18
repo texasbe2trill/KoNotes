@@ -81,7 +81,7 @@ def render_overview(
     col_c, col_d = st.columns(2, gap="large")
 
     with col_c:
-        _render_progress_overview(stats)
+        _render_progress_overview(stats, books)
 
     with col_d:
         _render_reading_time_chart(stats)
@@ -295,7 +295,7 @@ def _render_top_authors(stats: LibraryStats) -> None:
     st.markdown(items_html, unsafe_allow_html=True)
 
 
-def _render_progress_overview(stats: LibraryStats) -> None:
+def _render_progress_overview(stats: LibraryStats, books: list[Book]) -> None:
     """Donut chart: reading progress distribution."""
     st.markdown('<div class="kn-section-header">Reading Progress</div>', unsafe_allow_html=True)
 
@@ -304,8 +304,39 @@ def _render_progress_overview(stats: LibraryStats) -> None:
         st.caption("No reading progress data available.")
         return
 
+    # Build per-bucket book title lists
+    buckets: dict[str, list[str]] = {k: [] for k in dist}
+    for book in books:
+        pct = book.read_percent
+        if pct is None:
+            continue
+        if pct <= 0:
+            key = "0%"
+        elif pct <= 25:
+            key = "1-25%"
+        elif pct <= 50:
+            key = "26-50%"
+        elif pct <= 75:
+            key = "51-75%"
+        elif pct < 100:
+            key = "76-99%"
+        else:
+            key = "100%"
+        if key in buckets:
+            buckets[key].append(book.title)
+
     labels = list(dist.keys())
     values = list(dist.values())
+
+    # Build custom hover text showing book titles per bucket
+    custom_hover: list[str] = []
+    for label in labels:
+        titles = buckets.get(label, [])
+        if len(titles) <= 5:
+            title_list = "<br>".join(titles)
+        else:
+            title_list = "<br>".join(titles[:5]) + f"<br>+{len(titles) - 5} more"
+        custom_hover.append(f"<b>{label}</b>: {len(titles)} books<br>{title_list}")
 
     _prog_colors = {
         "0%": "#475569",
@@ -326,7 +357,8 @@ def _render_progress_overview(stats: LibraryStats) -> None:
                 marker=dict(colors=colors, line=dict(color="#0f172a", width=2)),
                 textinfo="label+value",
                 textfont=dict(size=11, color="#e2e8f0"),
-                hovertemplate="%{label}: %{value} books<extra></extra>",
+                hovertext=custom_hover,
+                hoverinfo="text",
                 sort=False,
             )
         ],
