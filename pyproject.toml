@@ -20,6 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.2.0"]
 ai = ["sentence-transformers>=2.7.0", "scikit-learn>=1.5.0", "numpy>=1.26.0"]
+chat = ["openai>=1.0.0"]
 
 [project.scripts]
 konotes = "main:main"

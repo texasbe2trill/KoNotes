@@ -99,3 +99,41 @@ class TestCLIBook:
     def test_book_partial_match(self):
         result = main(["book", str(FIXTURES / "sample_export.html"), "dun"])
         assert result == 0
+
+
+class TestCLIChat:
+    def test_chat_missing_file(self):
+        result = main(["chat", "/nonexistent/file.sqlite"])
+        assert result == 1
+
+    def test_chat_no_openai_package(self, monkeypatch, tmp_path):
+        """When openai is not installed, chat should exit with error."""
+        import builtins
+        real_import = builtins.__import__
+
+        def mock_import(name, *args, **kwargs):
+            if name == "openai":
+                raise ImportError("No module named 'openai'")
+            return real_import(name, *args, **kwargs)
+
+        f = tmp_path / "test.html"
+        f.write_text((FIXTURES / "sample_export.html").read_text())
+        monkeypatch.setattr(builtins, "__import__", mock_import)
+        result = main(["chat", str(f)])
+        assert result == 1
+
+    def test_chat_subparser_registered(self):
+        """The chat subcommand should appear in the parser."""
+        from main import _build_parser
+        parser = _build_parser()
+        # Check that 'chat' is a recognized subcommand
+        args = parser.parse_args(["chat", "/tmp/test.sqlite"])
+        assert hasattr(args, "func")
+        assert args.command == "chat"
+
+    def test_chat_model_flag(self):
+        """The --model flag should be accepted."""
+        from main import _build_parser
+        parser = _build_parser()
+        args = parser.parse_args(["chat", "/tmp/test.sqlite", "--model", "gpt-4o-mini"])
+        assert args.model == "gpt-4o-mini"

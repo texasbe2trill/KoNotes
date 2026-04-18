@@ -11,13 +11,13 @@ Turn your Kobo highlights and reading data into structured, readable insight.
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Streamlit](https://img.shields.io/badge/streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
-![Tests](https://img.shields.io/badge/tests-395_passed-22c55e?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-413_passed-22c55e?style=flat-square)
 ![Version](https://img.shields.io/badge/version-0.5.0-3b82f6?style=flat-square)
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-KoNotes-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://konotes.streamlit.app)
 
 
-[**Live Demo**](#live-demo) · [**Try It**](#try-it) · [**Features**](#features) · [**Example Insights**](#example-insights) · [**CLI**](#cli) · [**Web UI**](#web-ui) · [**Roadmap**](#roadmap)
+[**Live Demo**](#live-demo) · [**Features**](#features) · [**Getting Started**](#getting-started) · [**CLI**](#cli) · [**Web UI**](#web-ui) · [**Roadmap**](#roadmap)
 
 
 > <em>No cloud required. No account. No tracking.<br><strong>Your reading data stays on your machine.</strong></em>
@@ -64,6 +64,62 @@ Kobo e-readers create rich annotation data -- highlights, notes, bookmarks, dict
 
 <br>
 
+## See It in Action
+
+<div align="center">
+
+![KoNotes CLI Demo](docs/demo/konotes-cli.gif)
+
+*Parse, browse, and export your Kobo library from the command line*
+
+</div>
+
+<div align="center">
+
+![KoNotes Chat CLI Demo](docs/demo/konotes-chat-cli.gif)
+
+*Chat with your reading data using your own OpenAI API key*
+
+</div>
+
+<br>
+
+---
+
+<br>
+
+## Screenshots
+
+<div align="center">
+
+| Overview | Library |
+|:---:|:---:|
+| ![Overview](docs/screenshots/overview.png) | ![Library](docs/screenshots/library.png) |
+| *Library-wide metrics, top authors, reading time* | *Browse books with progress bars and shelf badges* |
+
+| AI Insights | Activity |
+|:---:|:---:|
+| ![Insights](docs/screenshots/insights.png) | ![Activity](docs/screenshots/activity.png) |
+| *Evidence-backed reading intelligence feed* | *Sessions, progress curves, annotation timelines* |
+
+| Book Detail | Vocabulary |
+|:---:|:---:|
+| ![Book Detail](docs/screenshots/book-detail.png) | ![Vocabulary](docs/screenshots/vocabulary.png) |
+| *Per-book annotations grouped by chapter* | *Every word you looked up, searchable by book* |
+
+| Chat | Chat Conversation |
+|:---:|:---:|
+| ![Chat](docs/screenshots/chat.png) | ![Chat Conversation](docs/screenshots/chat2.png) |
+| *Connect with your own OpenAI key* | *Ask questions about your reading habits and get recommendations* |
+
+</div>
+
+<br>
+
+---
+
+<br>
+
 ## What KoNotes Reveals
 
 KoNotes isn't just a parser -- it turns raw reading data into personal intelligence about how you read.
@@ -98,84 +154,13 @@ Explore KoNotes instantly in your browser -- no install, no setup. The hosted de
 | **Setup** | None -- runs in your browser | Clone, install, launch |
 | **Data** | Preloaded synthetic library | Your real Kobo database |
 | **Kobo USB detection** | Not available | Full support |
-| **AI features** | Not available | Full support with `pip install '.[ai]'` |
-| **Privacy** | Runs on Streamlit Cloud | Fully offline, nothing leaves your machine |
-| **Export** | View only | Markdown, JSON, HTML, text, static site |
+| **Insights** | Rule-based Insight Feed | Full Insight Feed + AI themes, clustering, summaries with `pip install '.[ai]'` |
+| **Chat** | Bring your own OpenAI key | Bring your own OpenAI key with `pip install '.[chat]'` |
+| **Privacy** | Runs on Streamlit Cloud; Chat sends data to OpenAI if used | Fully local unless Chat is used |
+| **Export** | HTML site and CSV download | HTML site, CSV, Markdown, JSON, text via CLI |
 | **Best for** | Quick preview | Daily use with your own reading data |
 
 The demo uses entirely synthetic data. For the full experience -- especially Kobo device detection, AI insights, and export -- [install locally](#getting-started).
-
-<br>
-
----
-
-<br>
-
-## Try It
-
-<div align="center">
-
-![KoNotes CLI Demo](docs/demo/konotes-cli.gif)
-
-</div>
-
-**Want to explore first?** &nbsp;[Try the hosted demo](https://konotes.streamlit.app) -- no install needed.
-
-**With a Kobo connected via USB:**
-
-```bash
-git clone https://github.com/texasbe2trill/KoNotes.git && cd KoNotes
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-konotes detect-device          # find your Kobo
-konotes parse <path>           # parse the database
-streamlit run app/app.py       # launch the dashboard
-```
-
-**With an exported annotation file:**
-
-```bash
-konotes parse my-annotations.html
-konotes export my-annotations.html -f markdown -o ./output
-```
-
-**No Kobo on hand?** A synthetic test database is included so you can try KoNotes immediately:
-
-```bash
-konotes parse docs/KoNotes_synthetic.sqlite
-streamlit run app/app.py
-# then upload docs/KoNotes_synthetic.sqlite in the browser
-```
-
-KoNotes also works with any `.html`, `.txt`, or `.md` annotation export. See [Supported Inputs](#supported-inputs).
-
-<br>
-
----
-
-<br>
-
-## Screenshots
-
-<div align="center">
-
-| Overview | Library |
-|:---:|:---:|
-| ![Overview](docs/screenshots/overview.png) | ![Library](docs/screenshots/library.png) |
-| *Library-wide metrics, top authors, reading time* | *Browse books with progress bars and shelf badges* |
-
-| AI Insights | Activity |
-|:---:|:---:|
-| ![Insights](docs/screenshots/insights.png) | ![Activity](docs/screenshots/activity.png) |
-| *Evidence-backed reading intelligence feed* | *Sessions, progress curves, annotation timelines* |
-
-| Book Detail | Vocabulary |
-|:---:|:---:|
-| ![Book Detail](docs/screenshots/book-detail.png) | ![Vocabulary](docs/screenshots/vocabulary.png) |
-| *Per-book annotations grouped by chapter* | *Every word you looked up, searchable by book* |
-
-</div>
 
 <br>
 
@@ -208,6 +193,7 @@ KoNotes also works with any `.html`, `.txt`, or `.md` annotation export. See [Su
 - **Activity** -- sessions, progress, timelines
 - **Vocabulary** -- dictionary lookup explorer
 - **AI Insights** -- reading intelligence feed
+- **Chat** -- ask questions about your reading data
 
 </td>
 <td width="33%" valign="top">
@@ -298,6 +284,21 @@ This installs `sentence-transformers`, `scikit-learn`, and `numpy`. All AI proce
 
 </details>
 
+<details>
+<summary><b>Optional: Install Chat features</b></summary>
+
+<br>
+
+To chat with your reading data using an OpenAI API key:
+
+```bash
+pip install '.[chat]'
+```
+
+This installs the `openai` Python package. You provide your own API key in the browser -- it is never stored or transmitted by KoNotes.
+
+</details>
+
 ### Launch
 
 ```bash
@@ -308,6 +309,26 @@ streamlit run app/app.py
 konotes --help
 ```
 
+### Quick Start
+
+**With a Kobo connected via USB:**
+
+```bash
+konotes detect-device          # find your Kobo
+konotes parse <path>           # parse the database
+streamlit run app/app.py       # launch the dashboard
+```
+
+**No Kobo on hand?** A synthetic test database is included:
+
+```bash
+konotes parse docs/KoNotes_synthetic.sqlite
+streamlit run app/app.py
+# then upload docs/KoNotes_synthetic.sqlite in the browser
+```
+
+KoNotes also works with `.html`, `.txt`, or `.md` annotation exports. See [Supported Inputs](#supported-inputs).
+
 <br>
 
 ---
@@ -316,12 +337,12 @@ konotes --help
 
 ## Supported Inputs
 
-| Format | Extensions | Source | Priority |
-|:-------|:----------|:-------|:---------|
-| KoboReader SQLite | `.sqlite`, `.db` | Kobo device `.kobo/` folder | **Primary** |
-| Kobo HTML export | `.html`, `.htm` | Kobo app / device | Secondary |
-| Kobo plain-text export | `.txt` | Kobo app / device | Secondary |
-| Kobo Markdown export | `.md` | Kobo app / device | Secondary |
+| Format | Extensions | Interface | Source | Priority |
+|:-------|:----------|:----------|:-------|:---------|
+| KoboReader SQLite | `.sqlite`, `.sqlite3`, `.db` | Web UI + CLI | Kobo device `.kobo/` folder | **Primary** |
+| Kobo HTML export | `.html`, `.htm` | CLI only | Kobo app / device | Secondary |
+| Kobo plain-text export | `.txt` | CLI only | Kobo app / device | Secondary |
+| Kobo Markdown export | `.md`, `.markdown` | CLI only | Kobo app / device | Secondary |
 
 <details>
 <summary><b>How to get your data</b></summary>
@@ -346,7 +367,7 @@ KoNotes uses adaptive, schema-aware SQLite parsing -- it reads only the columns 
 
 ## CLI
 
-KoNotes ships with six CLI subcommands. Every command works with any supported file format.
+KoNotes ships with seven CLI subcommands. Every command works with any supported file format.
 
 ### `detect-device`
 
@@ -392,6 +413,7 @@ Parsed: KoboReader.sqlite
 konotes export KoboReader.sqlite -f markdown -o ./output
 konotes export KoboReader.sqlite -f json -o ./output
 konotes export KoboReader.sqlite -f text -o ./output
+konotes export KoboReader.sqlite -f csv -o ./output
 ```
 
 > **Tip:** The Markdown export renders beautifully in Markdown editors like [Bear](https://bear.app), [Obsidian](https://obsidian.md), and [Typora](https://typora.io). KoNotes is not affiliated with or endorsed by any of these apps.
@@ -453,6 +475,43 @@ Static site exported to: ./my-site/
 
 Generates a single self-contained `index.html` with your full library, annotations, charts, and reading intelligence. Dark-themed. No dependencies. Works offline.
 
+### `chat`
+
+<div align="center">
+
+![KoNotes Chat CLI Demo](docs/demo/konotes-chat-cli.gif)
+
+</div>
+
+```bash
+konotes chat KoboReader.sqlite
+```
+```
+OpenAI API key: sk-...
+
+Fetching available models...
+
+Available models:
+  1. gpt-4o
+  2. gpt-4o-mini
+  3. gpt-4.1-mini
+  4. gpt-4.1-nano
+
+Select a model [1-4] (default: 1): 2
+
+Model: gpt-4o-mini
+Library: 24 books
+Type 'exit' or 'quit' to end the conversation.
+
+You: Which book did I highlight the most?
+KoNotes: Dune has the most highlights with 42 passages marked...
+
+You: exit
+Goodbye.
+```
+
+Start an interactive conversation about your reading data. Requires `pip install 'konotes[chat]'` and an OpenAI API key. You can also pass `--model gpt-4o-mini` to skip model selection, or set the `OPENAI_API_KEY` environment variable to skip the key prompt.
+
 <br>
 
 ---
@@ -472,6 +531,7 @@ Launch with `streamlit run app/app.py` and open [localhost:8501](http://localhos
 | **Activity** | Reading sessions, progress distribution, annotation timeline, progress snapshots over time |
 | **Vocabulary** | Every dictionary lookup from your Kobo, searchable and filterable by book, with frequency data |
 | **AI Insights** | Insight Feed with 10+ categories, theme detection, clustering, similarity search, summaries |
+| **Chat** | Ask questions about your reading data in a conversational interface, powered by your own OpenAI API key |
 
 Plug in your Kobo via USB and the app detects it. Or drag-and-drop any supported file.
 
@@ -489,10 +549,10 @@ pytest tests/ -v
 ```
 
 ```
-358 passed
+413 passed
 ```
 
-Tests cover every parser, normalizer, model, CLI subcommand, export format, SQLite telemetry extractor, AI insight pipeline, insight feed, and static HTML exporter.
+Tests cover every parser, normalizer, model, CLI subcommand, export format, SQLite telemetry extractor, AI insight pipeline, insight feed, chat context builder, and static HTML exporter.
 
 <br>
 
@@ -508,12 +568,12 @@ KoNotes/
 │   ├── app.py                  # Streamlit entry point
 │   ├── charts.py               # Shared Plotly chart helpers
 │   ├── assets/                 # Logo, CSS
-│   └── views/                  # Overview, Library, Activity, Vocabulary, Insights, ...
+│   └── views/                  # Overview, Library, Activity, Vocabulary, Insights, Chat
 ├── models/                     # Pydantic models (Book, Annotation, Session, Insight, ...)
 ├── parser/                     # SQLite, HTML, TXT, Markdown parsers + device detection
-├── services/                   # Stats, exports, AI, embeddings, insight feed
+├── services/                   # Stats, exports, AI, embeddings, insight feed, chat
 ├── utils/                      # Text utilities, schema helpers
-├── tests/                      # 358 tests across 13 modules
+├── tests/                      # 413 tests across 17 modules
 ├── main.py                     # CLI entry point
 ├── pyproject.toml              # Project metadata & build config
 └── requirements.txt            # Runtime dependencies
@@ -603,7 +663,7 @@ Phases 1 through 4 are complete. Phase 5 is next.
 - [x] Structured Insight Feed with evidence-backed cards
 - [x] Insight export (Markdown and plain text)
 - [x] Activity charts (timeline, snapshots, sessions)
-- [x] 358 tests
+- [x] 413 tests
 
 </details>
 
@@ -612,6 +672,7 @@ Phases 1 through 4 are complete. Phase 5 is next.
 
 - [x] CSV export format
 - [x] Reading goals and streaks
+- [x] Chat with your reading data (OpenAI)
 - [ ] Annotation tagging and categorization
 - [ ] Spaced repetition integration
 - [ ] Reading statistics export (PDF report)
@@ -643,7 +704,7 @@ pytest tests/ -v
 4. Make sure all tests pass
 5. Open a pull request
 
-**Good first contributions:** new export formats (CSV, EPUB), UI improvements, reading goals, enhanced classification heuristics.
+**Good first contributions:** new export formats (EPUB, PDF), UI improvements, annotation tagging, enhanced classification heuristics.
 
 <br>
 
@@ -670,6 +731,8 @@ KoNotes is a **local-first** tool. Your reading data never leaves your machine.
 - The `all-MiniLM-L6-v2` embedding model (~80 MB) is downloaded once from [HuggingFace Hub](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) on first use, then cached locally at `~/.cache/huggingface/`. After that initial download, all AI processing is fully offline.
 - KoNotes never sends your reading data, highlights, or annotations to any external service.
 
+**Chat feature:** The optional Chat view lets you ask questions about your reading data using your own OpenAI API key. When you use Chat, your reading context (library stats, highlights, notes) is sent to the OpenAI API to generate responses. Your API key is only held in your browser session and is never saved. Chat is entirely opt-in -- it requires installing the `[chat]` extra and manually entering your key.
+
 **Hosted demo:** The [live demo](https://konotes.streamlit.app) runs on Streamlit Community Cloud with synthetic data only. No real user data is uploaded or stored.
 
 </td>
@@ -689,9 +752,6 @@ If KoNotes is useful to you, consider giving it a star or sponsoring the project
 <div align="center">
 
 [![Star on GitHub](https://img.shields.io/github/stars/texasbe2trill/konotes?style=social)](https://github.com/texasbe2trill/konotes)
-
-
-[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-texasbe2trill-ea4aaa?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/texasbe2trill)
 
 </div>
 

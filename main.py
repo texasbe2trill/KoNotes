@@ -5,6 +5,7 @@ Subcommands:
     export         Export annotations to Markdown, JSON, or plain text
     summary        Show library statistics
     detect-device  Scan for connected Kobo devices
+    chat           Chat about your reading data with an OpenAI model
 
 For the web UI, run:
     streamlit run app/app.py
@@ -89,6 +90,16 @@ def _build_parser() -> argparse.ArgumentParser:
     # detect-device
     p_detect = sub.add_parser("detect-device", help="Scan for connected Kobo devices")
     p_detect.set_defaults(func=_cmd_detect_device)
+
+    # chat
+    p_chat = sub.add_parser("chat", help="Chat about your reading data using OpenAI")
+    p_chat.add_argument("file", type=Path, help="Path to annotation file or KoboReader.sqlite")
+    p_chat.add_argument(
+        "--model",
+        default=None,
+        help="OpenAI model to use (default: choose interactively)",
+    )
+    p_chat.set_defaults(func=_cmd_chat)
 
     return parser
 
@@ -372,6 +383,130 @@ def _cmd_detect_device(args: argparse.Namespace) -> int:
         console.print(f"  Mount: {dev.mount_point}")
         console.print(f"  Database: {dev.db_path}")
         console.print()
+
+    return 0
+
+
+def _cmd_chat(args: argparse.Namespace) -> int:
+    from services.cli_output import console, print_banner, print_error
+
+    print_banner()
+
+    path: Path = args.file
+    if not path.exists():
+        print_error(f"File not found: {path}")
+        return 1
+
+    if not _confirm_device_access(path):
+        console.print("Aborted.")
+        return 0
+
+    try:
+        from openai import OpenAI
+    except ImportError:
+        print_error("Chat requires the openai package. Install it with: pip install 'konotes[chat]'")
+        return 1
+
+    books, err = _load_books(path)
+    if err:
+        print_error(err)
+        return 1
+
+    if not books:
+        print_error("No annotations found.")
+        return 1
+
+    # Load sessions for richer context
+    sessions: list = []
+    if path.suffix.lower() in (".sqlite", ".sqlite3", ".db"):
+        from parser.sqlite_parser import extract_reading_sessions
+        try:
+            sessions = extract_reading_sessions(path)
+        except Exception:
+            sessions = []
+
+    # Get API key
+    import os
+    api_key = os.environ.get("OPENAI_API_KEY") or ""
+    if not api_key:
+        api_key = console.input("\n[bold]OpenAI API key:[/bold] ").strip()
+    if not api_key:
+        print_error("No API key provided.")
+        return 1
+
+    client = OpenAI(api_key=api_key)
+
+    # Pick model
+    model = args.model
+    if not model:
+        console.print("\n[dim]Fetching available models...[/dim]")
+        try:
+            from app.views.chat import _CHAT_PREFIXES, _EXCLUDE
+            all_models = client.models.list()
+            chat_models: list[str] = []
+            for m in all_models:
+                mid = m.id.lower()
+                if not any(mid.startswith(p) for p in _CHAT_PREFIXES):
+                    continue
+                if any(x in mid for x in _EXCLUDE):
+                    continue
+                chat_models.append(m.id)
+            chat_models.sort()
+        except Exception as exc:
+            print_error(f"Could not fetch models: {exc}")
+            return 1
+
+        if not chat_models:
+            print_error("No chat-capable models available for this key.")
+            return 1
+
+        console.print("\n[bold]Available models:[/bold]")
+        for i, name in enumerate(chat_models, 1):
+            console.print(f"  {i}. {name}")
+
+        choice = console.input(f"\nSelect a model [1-{len(chat_models)}] (default: 1): ").strip()
+        idx = int(choice) - 1 if choice.isdigit() and 1 <= int(choice) <= len(chat_models) else 0
+        model = chat_models[idx]
+
+    console.print(f"\n[bold]Model:[/bold] {model}")
+    console.print(f"[bold]Library:[/bold] {len(books)} books")
+    console.print("[dim]Type 'exit' or 'quit' to end the conversation.[/dim]\n")
+
+    # Build context
+    from services.chat import build_context
+    system_prompt = build_context(books, sessions=sessions or None)
+
+    messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt}]
+
+    while True:
+        try:
+            user_input = console.input("[bold blue]You:[/bold blue] ").strip()
+        except (EOFError, KeyboardInterrupt):
+            console.print("\n[dim]Goodbye.[/dim]")
+            break
+
+        if not user_input:
+            continue
+        if user_input.lower() in ("exit", "quit"):
+            console.print("[dim]Goodbye.[/dim]")
+            break
+
+        messages.append({"role": "user", "content": user_input})
+
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,  # type: ignore[arg-type]
+                max_tokens=1024,
+            )
+            reply = response.choices[0].message.content or ""
+        except Exception as exc:
+            console.print(f"\n[red]Error: {exc}[/red]\n")
+            messages.pop()
+            continue
+
+        messages.append({"role": "assistant", "content": reply})
+        console.print(f"\n[bold green]KoNotes:[/bold green] {reply}\n")
 
     return 0
 

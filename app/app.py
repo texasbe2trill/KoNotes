@@ -105,7 +105,7 @@ for key, default in _DEFAULTS.items():
 # Navigation helpers
 # ---------------------------------------------------------------------------
 
-_NAV_ITEMS = ["Overview", "Library", "Annotations", "Activity", "Vocabulary", "Insights"]
+_NAV_ITEMS = ["Overview", "Library", "Annotations", "Activity", "Vocabulary", "Insights", "Chat"]
 
 
 def _go_to(view: str, book_id: str | None = None) -> None:
@@ -362,6 +362,7 @@ with st.sidebar:
             "activity": "Activity",
             "vocabulary": "Vocabulary",
             "insights": "Insights",
+            "chat": "Chat",
         }
         current_nav = _view_to_nav.get(current_view, "Overview")
         current_idx = _NAV_ITEMS.index(current_nav) if current_nav in _NAV_ITEMS else 0
@@ -382,6 +383,7 @@ with st.sidebar:
             "Activity": "activity",
             "Vocabulary": "vocabulary",
             "Insights": "insights",
+            "Chat": "chat",
         }
         new_view = _nav_to_view.get(selected_nav, "overview")
         if new_view != current_view and current_view != "book_detail":
@@ -622,6 +624,15 @@ elif view == "vocabulary":
 elif view == "insights":
     from app.views.insights import render_insights
     render_insights(books)
+
+# ---------------------------------------------------------------------------
+# Chat view
+# ---------------------------------------------------------------------------
+elif view == "chat":
+    from app.views.chat import render_chat
+
+    sessions_chat: list[ReadingSession] = st.session_state.get("sessions", [])
+    render_chat(books, sessions=sessions_chat)
 
 # ---------------------------------------------------------------------------
 # Star prompt — shown once per session after meaningful data is visible
