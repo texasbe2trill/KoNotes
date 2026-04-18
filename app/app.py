@@ -74,14 +74,13 @@ st.caption("Turn your Kobo reading data into structured insight")
 # ---------------------------------------------------------------------------
 
 if os.environ.get("IS_HOSTED_DEMO"):
-    st.warning(
-        "**This is a hosted demo running on Streamlit Community Cloud.**  \n\n"
-        "- Files you upload are processed on remote servers, not your local machine  \n"
-        "- KoNotes does not persist or store your data, but it is processed in this session  \n"
-        "- Some features (like Kobo USB detection) are only available when running locally  \n\n"
-        "For full privacy and complete functionality, "
-        "[run KoNotes locally](https://github.com/texasbe2trill/KoNotes#getting-started).",
-        icon="⚠️",
+    st.info(
+        "**You're exploring a live demo with sample data.**  \n\n"
+        "You can also upload your own Kobo exports to try them out. "
+        "Nothing is stored — data only lives in your browser session.  \n\n"
+        "For the full experience (USB device detection, local AI insights), "
+        "[install KoNotes locally](https://github.com/texasbe2trill/KoNotes#getting-started).",
+        icon="📖",
     )
 
 # ---------------------------------------------------------------------------
