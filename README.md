@@ -120,25 +120,6 @@ Kobo e-readers create rich annotation data -- highlights, notes, bookmarks, dict
 
 <br>
 
-## What KoNotes Reveals
-
-KoNotes isn't just a parser -- it turns raw reading data into personal intelligence about how you read.
-
-- **Reading patterns** -- when you read, how long your sessions last, and how your pace changes over time
-- **Highlight behavior** -- which books made you stop and mark something, and what themes keep resurfacing
-- **Vocabulary growth** -- every word you looked up, how often, and in which books
-- **Cross-book connections** -- ideas that echo across different authors, surfaced automatically
-- **Engagement signals** -- which books held your attention, which ones stalled, and where your deepest reading happens
-- **Progress momentum** -- streaks, slowdowns, and completion curves across your entire library
-
-Most of this data already exists on your Kobo. KoNotes makes it visible.
-
-<br>
-
----
-
-<br>
-
 ## Live Demo
 
 <div align="center">
@@ -161,6 +142,25 @@ Explore KoNotes instantly in your browser -- no install, no setup. The hosted de
 | **Best for** | Quick preview | Daily use with your own reading data |
 
 The demo uses entirely synthetic data. For the full experience -- especially Kobo device detection, AI insights, and export -- [install locally](#getting-started).
+
+<br>
+
+---
+
+<br>
+
+## What KoNotes Reveals
+
+KoNotes isn't just a parser -- it turns raw reading data into personal intelligence about how you read.
+
+- **Reading patterns** -- when you read, how long your sessions last, and how your pace changes over time
+- **Highlight behavior** -- which books made you stop and mark something, and what themes keep resurfacing
+- **Vocabulary growth** -- every word you looked up, how often, and in which books
+- **Cross-book connections** -- ideas that echo across different authors, surfaced automatically
+- **Engagement signals** -- which books held your attention, which ones stalled, and where your deepest reading happens
+- **Progress momentum** -- streaks, slowdowns, and completion curves across your entire library
+
+Most of this data already exists on your Kobo. KoNotes makes it visible.
 
 <br>
 
