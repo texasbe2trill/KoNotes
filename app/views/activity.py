@@ -25,6 +25,7 @@ from app.charts import (
 )
 from models.activity import ProgressSnapshot, ReadingSession
 from models.book import Book
+from services.streaks import compute_streaks
 from services.stats import compute_stats
 
 
@@ -58,6 +59,9 @@ def render_activity(
 
     # ── Insight ──────────────────────────────────────────────────
     _render_activity_insight(books, stats, active_days)
+
+    # ── Reading streaks ──────────────────────────────────────────
+    _render_streaks(books, sessions)
 
     st.markdown("")
 
@@ -163,6 +167,63 @@ def _render_activity_insight(
             + "</div>",
             unsafe_allow_html=True,
         )
+
+
+def _render_streaks(
+    books: list[Book],
+    sessions: list[ReadingSession],
+) -> None:
+    """Display reading streak metrics."""
+    streaks = compute_streaks(books, sessions)
+
+    if streaks.active_days < 2:
+        return
+
+    st.markdown("")
+    s1, s2, s3, s4 = st.columns(4)
+
+    streak_icon = "🔥" if streaks.current_streak >= 3 else "📅"
+    s1.metric(f"{streak_icon} Current Streak", f"{streaks.current_streak} day{'s' if streaks.current_streak != 1 else ''}")
+    s2.metric("🏆 Longest Streak", f"{streaks.longest_streak} day{'s' if streaks.longest_streak != 1 else ''}")
+    s3.metric("📆 This Week", f"{streaks.this_week_days} day{'s' if streaks.this_week_days != 1 else ''}")
+    s4.metric("📊 Weekly Consistency", f"{streaks.weekly_consistency:.0f}%")
+
+    # Reading goal tracker (session-scoped)
+    _render_goals(streaks)
+
+
+def _render_goals(streaks) -> None:
+    """Render a collapsible reading goal tracker."""
+    with st.expander("Reading Goals", expanded=False):
+        if "reading_goal_days" not in st.session_state:
+            st.session_state["reading_goal_days"] = 5
+
+        goal = st.slider(
+            "Weekly reading goal (days per week)",
+            min_value=1,
+            max_value=7,
+            value=st.session_state["reading_goal_days"],
+            key="goal_slider",
+        )
+        st.session_state["reading_goal_days"] = goal
+
+        progress = min(streaks.this_week_days / goal, 1.0)
+        pct = int(progress * 100)
+        bar_color = "#10b981" if progress >= 1.0 else "#3b82f6"
+        status = "Goal reached! 🎉" if progress >= 1.0 else f"{streaks.this_week_days}/{goal} days this week"
+
+        st.markdown(
+            f'<div style="margin:0.5rem 0;">'
+            f'<div style="font-size:0.85rem; color:#94a3b8; margin-bottom:4px;">{status}</div>'
+            f'<div style="background:#1e293b; border-radius:6px; height:8px; overflow:hidden;">'
+            f'<div style="background:{bar_color}; width:{pct}%; height:100%; '
+            f'border-radius:6px; transition:width 0.3s;"></div>'
+            f'</div></div>',
+            unsafe_allow_html=True,
+        )
+
+        if streaks.most_active_day:
+            st.caption(f"You read most often on **{streaks.most_active_day}s** ({streaks.most_active_day_count} days).")
 
 
 def _render_annotation_calendar(stats) -> None:

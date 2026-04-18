@@ -426,7 +426,7 @@ with st.sidebar:
             unsafe_allow_html=True,
         )
 
-        # HTML export button
+        # Export buttons
         with st.expander("Export"):
             if st.button("Export static HTML site", width="stretch", key="export_html"):
                 from services.export_html import export_static_site
@@ -452,6 +452,28 @@ with st.sidebar:
                         mime="text/html",
                         key="dl_html",
                     )
+
+            if st.button("Export CSV", width="stretch", key="export_csv"):
+                from services.export_csv import export_book_csv
+
+                export_books = st.session_state["books"]
+                csv_parts = [export_book_csv(b) for b in export_books]
+                # Merge: keep header from first file, strip headers from rest
+                merged_lines: list[str] = []
+                for i, part in enumerate(csv_parts):
+                    lines = part.splitlines(keepends=True)
+                    if i == 0:
+                        merged_lines.extend(lines)
+                    else:
+                        merged_lines.extend(lines[1:])  # skip header row
+                csv_data = "".join(merged_lines)
+                st.download_button(
+                    "Download annotations (.csv)",
+                    data=csv_data,
+                    file_name="konotes_annotations.csv",
+                    mime="text/csv",
+                    key="dl_csv",
+                )
 
     st.divider()
     st.markdown(

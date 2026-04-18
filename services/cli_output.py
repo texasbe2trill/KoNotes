@@ -9,6 +9,7 @@ from models.activity import ReadingSession
 from models.book import Book
 from models.shelf import Shelf
 from services.stats import LibraryStats
+from services.streaks import ReadingStreaks
 
 console = Console()
 
@@ -124,6 +125,23 @@ def print_recent_activity(sessions: list[ReadingSession]) -> None:
             f"  {s.book_title} -- {s.start_time.strftime('%Y-%m-%d')} "
             f"({s.duration_minutes:.0f} min)"
         )
+
+
+def print_streaks(streaks: ReadingStreaks) -> None:
+    if streaks.active_days < 2:
+        return
+    console.print()
+    table = Table(show_header=False, box=None, padding=(0, 2))
+    table.add_column(style="bold")
+    table.add_column(justify="right")
+    fire = "🔥 " if streaks.current_streak >= 3 else ""
+    table.add_row(f"{fire}Current Streak", f"{streaks.current_streak} day(s)")
+    table.add_row("Longest Streak", f"{streaks.longest_streak} day(s)")
+    table.add_row("Active Days", str(streaks.active_days))
+    table.add_row("Weekly Consistency", f"{streaks.weekly_consistency:.0f}%")
+    if streaks.most_active_day:
+        table.add_row("Most Active Day", streaks.most_active_day)
+    console.print(Panel(table, title="[bold]Reading Streaks[/bold]", border_style="cyan", expand=False))
 
 
 def print_success(message: str) -> None:

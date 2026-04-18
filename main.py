@@ -52,7 +52,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p_export.add_argument("file", type=Path, help="Path to annotation file or KoboReader.sqlite")
     p_export.add_argument(
         "-f", "--format",
-        choices=["markdown", "json", "text"],
+        choices=["markdown", "json", "text", "csv"],
         default="markdown",
         help="Output format (default: markdown)",
     )
@@ -97,7 +97,7 @@ def _build_parser() -> argparse.ArgumentParser:
 # Subcommand handlers
 # ---------------------------------------------------------------------------
 
-def _load_books(path: Path):
+def _load_books(path: Path) -> tuple[list, str | None]:
     from parser.export_parsers import get_parser_for_extension
     from parser.normalizer import normalize
 
@@ -108,7 +108,7 @@ def _load_books(path: Path):
     else:
         parser = get_parser_for_extension(path.suffix)
         if parser is None:
-            return None, f"Unsupported file type: {path.suffix}"
+            return [], f"Unsupported file type: {path.suffix}"
         content = path.read_text(encoding="utf-8", errors="replace")
         raw = parser.parse(content)
         source = parser.source_name
@@ -172,6 +172,7 @@ def _cmd_export(args: argparse.Namespace) -> int:
         print_error("No annotations found.")
         return 1
 
+    from services.export_csv import export_book_csv
     from services.export_json import export_book_json
     from services.export_markdown import export_book_markdown
     from services.export_text import export_book_text
@@ -180,6 +181,7 @@ def _cmd_export(args: argparse.Namespace) -> int:
         "markdown": (export_book_markdown, ".md"),
         "json": (export_book_json, ".json"),
         "text": (export_book_text, ".txt"),
+        "csv": (export_book_csv, ".csv"),
     }
     fn, ext = export_fn[args.format]
     out_dir: Path = args.output or Path(".")
@@ -205,6 +207,7 @@ def _cmd_summary(args: argparse.Namespace) -> int:
         print_recent_activity,
         print_shelves,
         print_stats,
+        print_streaks,
         print_top_authors,
     )
 
@@ -239,6 +242,7 @@ def _cmd_summary(args: argparse.Namespace) -> int:
                 console.print(f"  {title} -- {count} highlight(s)")
 
     # Shelf summary (SQLite only)
+    sessions: list = []
     if path.suffix.lower() in (".sqlite", ".sqlite3", ".db"):
         from parser.sqlite_parser import extract_reading_sessions, extract_shelves
 
@@ -247,6 +251,11 @@ def _cmd_summary(args: argparse.Namespace) -> int:
 
         sessions = extract_reading_sessions(path)
         print_recent_activity(sessions)
+
+    # Reading streaks
+    from services.streaks import compute_streaks
+    streaks = compute_streaks(books, sessions)
+    print_streaks(streaks)
 
     from services.star_prompt import maybe_show_cli_star_prompt
     maybe_show_cli_star_prompt(item_count=stats.total_annotations)
