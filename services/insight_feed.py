@@ -93,8 +93,8 @@ def _library_overview(books: list[Book]) -> list[InsightCard]:
         title="Your Reading Story So Far",
         category="Library Overview",
         summary=(
-            f"You've annotated {len(annotated)} books with {total_hl} highlights "
-            f"and {total_notes} notes — here's what your reading says about you."
+            f"{len(annotated)} books carry your marginalia — "
+            f"that's a personal library of ideas you've been building."
         ),
         body="\n\n".join(body_parts),
         evidence=evidence,
@@ -140,8 +140,8 @@ def _most_engaged_books(books: list[Book]) -> list[InsightCard]:
         title=f"The Book That Captivated You: {best.title}",
         category="Most Engaged Books",
         summary=(
-            f"\"{best.title}\"{author_part} resonated with you more than anything else in your library — "
-            f"{hl_count} highlights and {nt_count} notes say so."
+            f"\"{best.title}\"{author_part} kept pulling you in — "
+            f"it left a bigger mark on you than any other book in your library."
         ),
         body=(
             f"Something about \"{best.title}\"{author_part} kept pulling you in. "
@@ -190,7 +190,7 @@ def _highlight_behavior(books: list[Book]) -> list[InsightCard]:
     """Analyze highlighting patterns — how the reader annotates."""
     cards: list[InsightCard] = []
     all_books_hl: list[tuple[str, int]] = []
-    chapter_counts: Counter[str] = Counter()
+    chapter_counts: Counter[tuple[str, str]] = Counter()
     total_hl = 0
 
     for b in books:
@@ -201,7 +201,7 @@ def _highlight_behavior(books: list[Book]) -> list[InsightCard]:
             all_books_hl.append((b.title, hl_count))
         for a in hl_list:
             if a.chapter:
-                chapter_counts[a.chapter] += 1
+                chapter_counts[(b.title, a.chapter)] += 1
 
     if total_hl < 3:
         return []
@@ -255,21 +255,24 @@ def _highlight_behavior(books: list[Book]) -> list[InsightCard]:
     if chapter_counts:
         top_chapters = chapter_counts.most_common(5)
         ch_evidence = [
-            EvidenceItem(label=ch, value=f"{cnt} highlights") for ch, cnt in top_chapters
+            EvidenceItem(label=f"{book}: {ch}", value=f"{cnt} highlights")
+            for (book, ch), cnt in top_chapters
         ]
+        top_book, top_ch = top_chapters[0][0]
+        top_ch_label = f"{top_ch}" if len({b for (b, _), _ in top_chapters[:1]}) == 1 else f"{top_ch} ({top_book})"
         cards.append(InsightCard(
             id=_card_id("hl-behavior-chapters"),
             title="Chapters That Made You Stop and Think",
             category="Highlight Behavior",
-            summary=f"\"{top_chapters[0][0]}\" stood out the most — you highlighted it {top_chapters[0][1]} times.",
+            summary=f"\"{top_ch}\" kept stopping you in your tracks — something in that chapter demanded attention.",
             body=(
                 "These are the chapters where you paused most often to mark a passage. "
                 "That's usually a sign the content was challenging, surprising, or directly useful to you."
             ),
             evidence=ch_evidence,
-            recommendation=f"Go back to \"{top_chapters[0][0]}\" — your highlights might be waiting for a second look.",
+            recommendation=f"Go back to \"{top_ch}\" in \"{top_book}\" — your highlights might be waiting for a second look.",
             priority_score=0.5,
-            related_books=[],
+            related_books=[top_book],
             source="computed",
         ))
 
@@ -309,7 +312,7 @@ def _reading_patterns(books: list[Book]) -> list[InsightCard]:
             id=_card_id("reading-pattern-completion"),
             title="Your Completion Rate",
             category="Reading Patterns",
-            summary=f"{_pct(completion_rate)} of your books are finished ({len(completed)} of {total_tracked}). {tone}",
+            summary=tone,
             body=(
                 f"You have completed {len(completed)} books"
                 + (f", with {len(in_progress)} still in progress" if in_progress else "")
@@ -345,8 +348,8 @@ def _reading_patterns(books: list[Book]) -> list[InsightCard]:
             title="Where Your Time Went",
             category="Reading Patterns",
             summary=(
-                f"You invested the most time in \"{longest.title}\" — "
-                f"{_fmt_time(longest_time)} of focused reading."
+                f"\"{longest.title}\" is where you spent the most time — "
+                f"that kind of sustained attention usually means a book got under your skin."
             ),
             body=(
                 f"Across {len(timed_books)} books, you've logged {_fmt_time(total_time)} of reading. "
@@ -442,15 +445,16 @@ def _vocabulary_activity(books: list[Book], word_lookups: list | None = None) ->
             evidence.append(EvidenceItem(label=f'"{w}"', value=f"looked up {c} time{'s' if c != 1 else ''}"))
 
     # Surface the actual top words in the summary for personality
+    unique = len(word_counts)
     if word_counts:
         word_samples = [w for w, _ in word_counts.most_common(3)]
         word_str = ", ".join(f'"{w}"' for w in word_samples)
         summary = (
-            f"You looked up {total} words while reading — including {word_str}. "
+            f"You looked up {unique} unique words while reading — including {word_str}. "
             f"Curiosity like that is a sign of an active mind."
         )
     else:
-        summary = f"You looked up {total} words across your reading sessions."
+        summary = f"You looked up {unique} words across your reading sessions."
 
     return [InsightCard(
         id=_card_id("vocab-activity"),
@@ -498,8 +502,7 @@ def _reading_momentum(books: list[Book]) -> list[InsightCard]:
             )
         else:
             summary = (
-                f"You touched {len(recent_books)} book{'s' if len(recent_books) != 1 else ''} "
-                f"in the last 30 days — keep the momentum going."
+                f"You picked up a book in the last 30 days — keep that momentum going."
             )
         cards.append(InsightCard(
             id=_card_id("momentum-recent"),
@@ -531,9 +534,9 @@ def _reading_momentum(books: list[Book]) -> list[InsightCard]:
             title=f"Hidden Gems: {len(stale_books)} Forgotten Books",
             category="Forgotten Insights",
             summary=(
-                f"You have {len(stale_books)} annotated books you haven't opened in over 90 days. "
-                f"\"{stale_books[0].title}\" alone has {len(stale_books[0].annotations)} annotations "
-                f"collecting dust."
+                f"You have annotated books gathering dust — "
+                f"\"{stale_books[0].title}\" has ideas you invested time in "
+                f"but haven't revisited in months."
             ),
             body=(
                 "These books have highlights and notes you invested time in — "
@@ -566,7 +569,7 @@ def _deep_reading_signals(books: list[Book]) -> list[InsightCard]:
             continue
         note_ratio = nt / hl if hl else 0
         chapters = len({a.chapter for a in b.annotations if a.chapter})
-        density = hl / max(chapters, 1)
+        density = min(hl / max(chapters, 1), 10)
         score = note_ratio * 3 + density * 0.5 + (1.0 if hl >= 10 else 0)
         deep_reads.append((b, score, hl, nt))
 
@@ -604,8 +607,8 @@ def _deep_reading_signals(books: list[Book]) -> list[InsightCard]:
         title=f"Where Your Best Thinking Lives: {best.title}",
         category="Deep Reading Signals",
         summary=(
-            f"\"{best.title}\"{author_part} shows your deepest intellectual engagement: "
-            f"{best_hl} highlights, {best_nt} notes, and a {note_ratio:.0%} note ratio."
+            f"\"{best.title}\"{author_part} is where you did your deepest thinking — "
+            f"not just reading, but genuinely wrestling with the ideas."
         ),
         body=depth_desc,
         evidence=evidence,
@@ -647,8 +650,8 @@ def _author_insights(books: list[Book]) -> list[InsightCard]:
         title=f"An Author Who Speaks to You: {top_author}",
         category="Reading Patterns",
         summary=(
-            f"You keep coming back to {top_author} — {len(top_books)} books, "
-            f"{total_ann} annotations. There's clearly something that resonates."
+            f"You keep coming back to {top_author} — "
+            f"{len(top_books)} books deep. There's clearly something that resonates."
         ),
         body=(
             f"{top_author} is your most annotated author across multiple titles. "
@@ -704,6 +707,197 @@ def _rating_insights(books: list[Book]) -> list[InsightCard]:
     )]
 
 
+def _vocabulary_friction(books: list[Book], word_lookups: list | None = None) -> list[InsightCard]:
+    """Identify books where vocabulary lookups spiked — cognitive friction zones."""
+    if not word_lookups:
+        return []
+
+    book_lookup_counts: Counter[str] = Counter()
+    for wl in word_lookups:
+        book_title = getattr(wl, "book_title", None) or "Unknown"
+        book_lookup_counts[book_title] += 1
+
+    if len(book_lookup_counts) < 2:
+        return []
+
+    avg = sum(book_lookup_counts.values()) / len(book_lookup_counts)
+    friction_books = [
+        (title, count) for title, count in book_lookup_counts.most_common()
+        if count >= avg * 1.5 and count >= 5
+    ]
+    if not friction_books:
+        return []
+
+    top_title, top_count = friction_books[0]
+    evidence = [
+        EvidenceItem(label=t, value=f"{c} lookups") for t, c in friction_books[:5]
+    ]
+    evidence.append(EvidenceItem(label="Average per book", value=f"{avg:.1f}"))
+
+    return [InsightCard(
+        id=_card_id("vocab-friction"),
+        title=f"Where Reading Got Harder: {top_title}",
+        category="Vocabulary Activity",
+        summary=(
+            f"\"{top_title}\" pushed your vocabulary harder than any other book — "
+            f"that's a sign it stretched how you think, not just what you read."
+        ),
+        body=(
+            "Books that force you to slow down and look up words are often the ones "
+            "that expand how you think. Vocabulary friction is a signal of intellectual "
+            "growth, not confusion."
+        ),
+        evidence=evidence,
+        recommendation=(
+            f"Your vocabulary lookups in \"{top_title}\" suggest it stretched your "
+            f"language — revisit those passages with fresh eyes."
+        ),
+        priority_score=0.65,
+        related_books=[t for t, _ in friction_books[:5]],
+        source="computed",
+    )]
+
+
+def _passive_vs_active(books: list[Book]) -> list[InsightCard]:
+    """Differentiate passive highlighting from active note-taking."""
+    cards: list[InsightCard] = []
+
+    active_books: list[tuple[Book, float, int, int]] = []
+    passive_books: list[tuple[Book, int]] = []
+
+    for b in books:
+        hl = sum(1 for a in b.annotations if a.kind == "highlight")
+        nt = sum(1 for a in b.annotations if a.kind == "note")
+        if hl < 3:
+            continue
+        ratio = nt / hl if hl else 0
+        if ratio >= 0.2 and nt >= 2:
+            active_books.append((b, ratio, hl, nt))
+        elif nt == 0 and hl >= 5:
+            passive_books.append((b, hl))
+
+    if not active_books and not passive_books:
+        return []
+
+    if active_books:
+        active_books.sort(key=lambda x: x[1], reverse=True)
+        best, best_ratio, best_hl, best_nt = active_books[0]
+        evidence = [
+            EvidenceItem(label=b.title, value=f"{nt} notes / {hl} highlights ({r:.0%})")
+            for b, r, hl, nt in active_books[:5]
+        ]
+        cards.append(InsightCard(
+            id=_card_id("active-reading"),
+            title="Books Where You Thought Out Loud",
+            category="Deep Reading Signals",
+            summary=(
+                f"In \"{best.title}\", {best_ratio:.0%} of your annotations are notes — "
+                f"you weren't just saving quotes, you were building on the ideas."
+            ),
+            body=(
+                "Active reading — writing notes alongside highlights — is where "
+                "understanding deepens. These books drew genuine reflection from you, "
+                "not just passive marking."
+            ),
+            evidence=evidence,
+            recommendation=(
+                f"Your notes in \"{best.title}\" are personal commentary worth "
+                f"revisiting — they capture how you processed the ideas."
+            ),
+            priority_score=0.7,
+            related_books=[b.title for b, *_ in active_books[:5]],
+            source="computed",
+        ))
+
+    if passive_books and len(passive_books) >= 2:
+        passive_books.sort(key=lambda x: x[1], reverse=True)
+        evidence = [
+            EvidenceItem(label=b.title, value=f"{hl} highlights, 0 notes")
+            for b, hl in passive_books[:5]
+        ]
+        cards.append(InsightCard(
+            id=_card_id("passive-reading"),
+            title="Books You Highlighted But Didn't Reflect On",
+            category="Highlight Behavior",
+            summary=(
+                f"Some of your books are full of highlights but no notes — "
+                f"you saved the words but didn't capture why they mattered."
+            ),
+            body=(
+                "Highlighting without notes isn't bad — but adding even one sentence "
+                "about why a passage stood out turns a bookmark into a thinking tool. "
+                "These books might benefit from a second pass with a note-taking mindset."
+            ),
+            evidence=evidence,
+            recommendation=(
+                f"Pick \"{passive_books[0][0].title}\" and add one note per highlight. "
+                f"Future-you will thank present-you."
+            ),
+            priority_score=0.55,
+            related_books=[b.title for b, _ in passive_books[:5]],
+            source="computed",
+        ))
+
+    return cards
+
+
+def _export_worthy(books: list[Book]) -> list[InsightCard]:
+    """Recommend books whose annotations are most worth exporting and reviewing."""
+    candidates: list[tuple[Book, float]] = []
+
+    for b in books:
+        hl = sum(1 for a in b.annotations if a.kind == "highlight")
+        nt = sum(1 for a in b.annotations if a.kind == "note")
+        if hl < 3:
+            continue
+        chapters = len({a.chapter for a in b.annotations if a.chapter})
+        # Score: annotation density, note ratio, chapter spread
+        score = (
+            hl * 0.5
+            + nt * 2.0
+            + chapters * 1.5
+            + (1.0 if (b.read_percent or 0) >= 90 else 0)
+        )
+        candidates.append((b, score))
+
+    candidates.sort(key=lambda x: x[1], reverse=True)
+    if not candidates:
+        return []
+
+    top = candidates[:5]
+    best = top[0][0]
+    hl_count = sum(1 for a in best.annotations if a.kind == "highlight")
+    nt_count = sum(1 for a in best.annotations if a.kind == "note")
+    ch_count = len({a.chapter for a in best.annotations if a.chapter})
+
+    evidence = [
+        EvidenceItem(label=b.title, value=f"{len(b.annotations)} annotations across {len({a.chapter for a in b.annotations if a.chapter})} chapters")
+        for b, _ in top
+    ]
+
+    return [InsightCard(
+        id=_card_id("export-worthy"),
+        title="Books Worth Exporting Next",
+        category="Most Engaged Books",
+        summary=(
+            f"You left the most thoughtful trail through \"{best.title}\" — "
+            f"{ch_count} chapters of highlights and notes worth keeping."
+        ),
+        body=(
+            "The best books to export are the ones where you invested the most thought "
+            "across the widest range of chapters. These annotations form a personal "
+            "knowledge summary that's worth keeping outside your Kobo."
+        ),
+        evidence=evidence,
+        recommendation=(
+            f"Export \"{best.title}\" — your annotations already read like a personal reference guide."
+        ),
+        priority_score=0.6,
+        related_books=[b.title for b, _ in top],
+        source="computed",
+    )]
+
+
 # ---------------------------------------------------------------------------
 # Deduplication
 # ---------------------------------------------------------------------------
@@ -753,9 +947,10 @@ def rank_cards(cards: list[InsightCard]) -> list[InsightCard]:
     - Number of related books
     - Presence of a recommendation
     - Category importance
+    - Share-worthiness (interpretation > raw stats)
 
-    This function applies a small boost based on evidence count and
-    recommendation presence, then sorts.
+    This function applies boosts based on evidence count, actionability,
+    multi-book relevance, and content depth, then sorts.
     """
     for card in cards:
         # Boost for evidence richness
@@ -766,6 +961,9 @@ def rank_cards(cards: list[InsightCard]) -> list[InsightCard]:
         # Boost for multi-book relevance
         if len(card.related_books) >= 3:
             card.priority_score += 0.05
+        # Boost for substantial body (interpretation, not just stats)
+        if len(card.body) > 100:
+            card.priority_score += 0.03
 
     cards.sort(key=lambda c: c.priority_score, reverse=True)
     return cards
@@ -829,6 +1027,8 @@ def build_feed(
         _books_in_progress,
         _reading_momentum,
         _deep_reading_signals,
+        _passive_vs_active,
+        _export_worthy,
         _author_insights,
         _rating_insights,
     ]
@@ -839,11 +1039,12 @@ def build_feed(
         except Exception:
             logger.warning("Insight generator %s failed", gen.__name__, exc_info=True)
 
-    # Vocabulary needs extra data
-    try:
-        all_cards.extend(_vocabulary_activity(books, word_lookups))
-    except Exception:
-        logger.warning("Vocabulary insight generator failed", exc_info=True)
+    # Vocabulary generators need extra data
+    for vocab_gen in [_vocabulary_activity, _vocabulary_friction]:
+        try:
+            all_cards.extend(vocab_gen(books, word_lookups))
+        except Exception:
+            logger.warning("Vocabulary insight generator failed", exc_info=True)
 
     # Deduplicate, rank, filter
     all_cards = deduplicate(all_cards)

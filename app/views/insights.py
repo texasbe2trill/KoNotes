@@ -17,6 +17,8 @@ import streamlit as st
 from models.book import Book
 from models.insight import INSIGHT_CATEGORIES, EvidenceItem, InsightCard
 
+from app.views.insight_actions import render_share_actions
+
 if TYPE_CHECKING:
     from models.annotation import Annotation
     from models.insight import BookSummary, HighlightSimilarity, ThemeCluster
@@ -222,6 +224,61 @@ def _category_pill(category: str) -> str:
         f'font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">'
         f"{html_mod.escape(category)}</span>"
     )
+
+
+# ---------------------------------------------------------------------------
+# Bluesky share helpers
+# ---------------------------------------------------------------------------
+
+_APP_URL = "https://konotes.streamlit.app/"
+_FOOTER = f"Discover your reading insights with #KoNotes #booksky {_APP_URL}"
+
+
+def _build_bsky_url(text: str) -> str:
+    from services.share_links import build_bluesky_share_url
+    return build_bluesky_share_url(text)
+
+
+def _bluesky_theme_text(theme: "ThemeCluster", book_title: str, book_author: str = "") -> str:
+    """Build a Bluesky post from a theme cluster."""
+    rep = theme.representative_text
+    if len(rep) > 150:
+        rep = rep[:147].rsplit(" ", 1)[0] + "\u2026"
+    source = f"'{book_title}'"
+    if book_author:
+        source += f" -- {book_author}"
+    body = f"A theme from {source}: {theme.label}\n\n\u201c{rep}\u201d"
+    text = f"{body}\n\n{_FOOTER}"
+    if len(text) > 300:
+        text = text[:299].rstrip() + "\u2026"
+    return text
+
+
+def _bluesky_summary_text(s: "BookSummary", book_author: str = "") -> str:
+    """Build a Bluesky post from a book summary."""
+    source = f"\u201c{s.book_title}\u201d"
+    if book_author:
+        source += f" by {book_author}"
+
+    if s.themes:
+        # Lead with the top theme as a personal reflection
+        theme = s.themes[0]
+        body = (
+            f"Been diving into {source} and the ideas around {theme} "
+            f"really stood out. {s.highlight_count} passages worth saving so far."
+        )
+    elif s.highlight_count:
+        body = (
+            f"Been diving into {source} \u2014 "
+            f"{s.highlight_count} passages worth saving so far."
+        )
+    else:
+        body = f"Been diving into {source}."
+
+    text = f"{body}\n\n{_FOOTER}"
+    if len(text) > 300:
+        text = text[:299].rstrip() + "\u2026"
+    return text
 
 
 # ---------------------------------------------------------------------------
@@ -704,6 +761,32 @@ def _render_hero(card: InsightCard) -> None:
     )
 
 
+def _render_hero_bluesky(card: InsightCard) -> None:
+    """Bluesky share button for the hero insight."""
+    from services.share_formatter import format_insight_for_bluesky
+    post = format_insight_for_bluesky(card)
+    url = _build_bsky_url(post)
+    st.link_button(
+        "🦋 Share on Bluesky",
+        url=url,
+        help="Share this insight on Bluesky",
+        key="bsky_hero",
+    )
+
+
+def _render_takeaway_bluesky(card: InsightCard) -> None:
+    """Bluesky share button for the key findings section."""
+    from services.share_formatter import format_insight_for_bluesky
+    post = format_insight_for_bluesky(card)
+    url = _build_bsky_url(post)
+    st.link_button(
+        "🦋 Share on Bluesky",
+        url=url,
+        help="Share this insight on Bluesky",
+        key="bsky_takeaway",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Reader profile strip
 # ---------------------------------------------------------------------------
@@ -872,6 +955,8 @@ def _render_card(card: InsightCard) -> None:
                     unsafe_allow_html=True,
                 )
 
+    render_share_actions(card)
+
 
 # ---------------------------------------------------------------------------
 # AI Analysis — opt-in, user-triggered
@@ -917,6 +1002,8 @@ def _render_themes(themes: list[ThemeCluster], books: list[Book]) -> None:
     if not themes:
         return
 
+    author_map = {b.title: b.author or "" for b in books}
+
     book_themes: dict[str, list[ThemeCluster]] = {}
     for theme in themes:
         book_title = theme.book_titles[0] if theme.book_titles else "Unknown"
@@ -952,6 +1039,14 @@ def _render_themes(themes: list[ThemeCluster], books: list[Book]) -> None:
                     f'<div class="kn-theme-quote">&ldquo;{rep}&rdquo;</div>'
                     f"</div>",
                     unsafe_allow_html=True,
+                )
+                post = _bluesky_theme_text(theme, book_title, author_map.get(book_title, ""))
+                url = _build_bsky_url(post)
+                st.link_button(
+                    "🦋 Share on Bluesky",
+                    url=url,
+                    help="Share this theme on Bluesky",
+                    key=f"bsky_theme_{book_title}_{i}",
                 )
 
 
@@ -1085,6 +1180,14 @@ def _render_summaries(summaries: list[BookSummary], books: list[Book]) -> None:
             f"{themes_block}"
             f"</div>",
             unsafe_allow_html=True,
+        )
+        post = _bluesky_summary_text(s, book.author if book and book.author else "")
+        url = _build_bsky_url(post)
+        st.link_button(
+            "🦋 Share on Bluesky",
+            url=url,
+            help="Share this summary on Bluesky",
+            key=f"bsky_summary_{i}",
         )
 
 
@@ -1236,12 +1339,15 @@ def render_insights(books: list[Book]) -> None:
     hero = _pick_hero(all_cards)
     if hero:
         _render_hero(hero)
+        _render_hero_bluesky(hero)
 
     # ------------------------------------------------------------------
     # 5. Key Findings
     # ------------------------------------------------------------------
     takeaways = extract_takeaways(all_cards)
     _render_takeaway_bar(takeaways)
+    if all_cards:
+        _render_takeaway_bluesky(all_cards[0])
 
     # ------------------------------------------------------------------
     # 6. Insight Sections (computed cards)

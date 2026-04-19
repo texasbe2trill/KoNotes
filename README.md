@@ -11,7 +11,7 @@ Turn your Kobo highlights and reading data into structured, readable insight.
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Streamlit](https://img.shields.io/badge/streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
-![Tests](https://img.shields.io/badge/tests-413_passed-22c55e?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-461_passed-22c55e?style=flat-square)
 ![Version](https://img.shields.io/badge/version-0.5.0-3b82f6?style=flat-square)
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-KoNotes-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://konotes.streamlit.app)
@@ -199,13 +199,14 @@ Most of this data already exists on your Kobo. KoNotes makes it visible.
 <td width="33%" valign="top">
 
 ### Intelligence
-- Evidence-backed Insight Feed (10+ categories)
+- Evidence-backed Insight Feed (15+ categories)
 - Theme detection via semantic clustering
 - Cross-book idea discovery
 - Smart book summaries
 - Highlight similarity search
 - Local embeddings (no API keys)
 - Export insights to Markdown or text
+- Bluesky sharing (#booksky) from insights, annotations, themes, and summaries
 
 </td>
 </tr>
@@ -530,8 +531,8 @@ Launch with `streamlit run app/app.py` and open [localhost:8501](http://localhos
 | **Annotations** | Cross-book annotation search -- find any highlight by keyword |
 | **Activity** | Reading sessions, progress distribution, annotation timeline, progress snapshots over time |
 | **Vocabulary** | Every dictionary lookup from your Kobo, searchable and filterable by book, with frequency data |
-| **AI Insights** | Insight Feed with 10+ categories, theme detection, clustering, similarity search, summaries |
-| **Chat** | Ask questions about your reading data in a conversational interface, powered by your own OpenAI API key |
+| **AI Insights** | Insight Feed with 15+ categories, theme detection, clustering, similarity search, summaries, Bluesky sharing |
+| **Chat** | Ask questions about your reading data, generate Bluesky posts, powered by your own OpenAI API key |
 
 Plug in your Kobo via USB and the app detects it. Or drag-and-drop any supported file.
 
@@ -549,10 +550,10 @@ pytest tests/ -v
 ```
 
 ```
-413 passed
+461 passed
 ```
 
-Tests cover every parser, normalizer, model, CLI subcommand, export format, SQLite telemetry extractor, AI insight pipeline, insight feed, chat context builder, and static HTML exporter.
+Tests cover every parser, normalizer, model, CLI subcommand, export format, SQLite telemetry extractor, AI insight pipeline, insight feed, chat context builder, share formatters, and static HTML exporter.
 
 <br>
 
@@ -573,7 +574,7 @@ KoNotes/
 ├── parser/                     # SQLite, HTML, TXT, Markdown parsers + device detection
 ├── services/                   # Stats, exports, AI, embeddings, insight feed, chat
 ├── utils/                      # Text utilities, schema helpers
-├── tests/                      # 413 tests across 17 modules
+├── tests/                      # 461 tests across 18+ modules
 ├── main.py                     # CLI entry point
 ├── pyproject.toml              # Project metadata & build config
 └── requirements.txt            # Runtime dependencies
@@ -605,7 +606,7 @@ KoNotes/
 
 ## Roadmap
 
-Phases 1 through 4 are complete. Phase 5 is next.
+Phases 1 through 5 are complete. Phase 6 is next.
 
 <details>
 <summary><b>Phase 1 -- MVP</b> &nbsp; ✅</summary>
@@ -663,16 +664,29 @@ Phases 1 through 4 are complete. Phase 5 is next.
 - [x] Structured Insight Feed with evidence-backed cards
 - [x] Insight export (Markdown and plain text)
 - [x] Activity charts (timeline, snapshots, sessions)
-- [x] 413 tests
+- [x] 461 tests
 
 </details>
 
 <details>
-<summary><b>Phase 5 -- Future</b></summary>
+<summary><b>Phase 5 -- Social & Sharing</b> &nbsp; ✅</summary>
 
 - [x] CSV export format
 - [x] Reading goals and streaks
 - [x] Chat with your reading data (OpenAI)
+- [x] Bluesky sharing from annotations, insights, themes, and summaries
+- [x] First-person post composition for social sharing
+- [x] Chat-generated #booksky posts with reading context
+- [x] New insight generators (active vs passive reading, export-worthy, vocabulary friction)
+- [x] Conversational insight summaries (less stat-heavy)
+- [x] Author attribution on shared posts
+- [x] 461 tests
+
+</details>
+
+<details>
+<summary><b>Phase 6 -- Future</b></summary>
+
 - [ ] Annotation tagging and categorization
 - [ ] Spaced repetition integration
 - [ ] Reading statistics export (PDF report)

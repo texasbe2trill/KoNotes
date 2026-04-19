@@ -8,6 +8,9 @@ import pytest
 from models.annotation import Annotation
 from models.book import Book
 from models.insight import EvidenceItem, InsightCard, INSIGHT_CATEGORIES
+from services.chat import build_context, build_system_prompt
+from services.stats import compute_stats
+from services.streaks import ReadingStreaks
 
 
 # ---------------------------------------------------------------------------
@@ -559,3 +562,216 @@ class TestInsightExport:
         from services.insight_export import export_insights_text
         txt = export_insights_text(self._sample_cards())
         assert "https://github.com/texasbe2trill/KoNotes" in txt
+
+
+# ---------------------------------------------------------------------------
+# New generators: vocabulary friction, passive vs active, export-worthy
+# ---------------------------------------------------------------------------
+
+
+class _FakeWordLookup:
+    """Minimal word lookup object for testing."""
+    def __init__(self, book_title: str, word: str):
+        self.book_title = book_title
+        self.word = word
+
+
+class TestVocabularyFriction:
+    def test_detects_friction_spike(self):
+        from services.insight_feed import _vocabulary_friction
+        lookups = (
+            [_FakeWordLookup("Hard Book", f"word{i}") for i in range(20)]
+            + [_FakeWordLookup("Easy Book", f"word{i}") for i in range(3)]
+        )
+        books = [
+            _make_book(title="Hard Book", n_highlights=5),
+            _make_book(title="Easy Book", n_highlights=5),
+        ]
+        cards = _vocabulary_friction(books, lookups)
+        assert len(cards) == 1
+        assert "Hard Book" in cards[0].title
+        assert cards[0].category == "Vocabulary Activity"
+
+    def test_no_friction_with_even_distribution(self):
+        from services.insight_feed import _vocabulary_friction
+        lookups = (
+            [_FakeWordLookup("A", f"w{i}") for i in range(5)]
+            + [_FakeWordLookup("B", f"w{i}") for i in range(5)]
+        )
+        books = [_make_book(title="A"), _make_book(title="B")]
+        cards = _vocabulary_friction(books, lookups)
+        assert cards == []
+
+    def test_no_lookups(self):
+        from services.insight_feed import _vocabulary_friction
+        assert _vocabulary_friction([], None) == []
+
+    def test_single_book_not_enough(self):
+        from services.insight_feed import _vocabulary_friction
+        lookups = [_FakeWordLookup("Solo", f"w{i}") for i in range(10)]
+        cards = _vocabulary_friction([], lookups)
+        assert cards == []
+
+
+class TestPassiveVsActive:
+    def test_detects_active_reading(self):
+        from services.insight_feed import _passive_vs_active
+        books = [_make_book(title="Active", n_highlights=10, n_notes=5)]
+        cards = _passive_vs_active(books)
+        assert any("Thought Out Loud" in c.title for c in cards)
+
+    def test_detects_passive_reading(self):
+        from services.insight_feed import _passive_vs_active
+        books = [
+            _make_book(title="Passive1", n_highlights=10, n_notes=0),
+            _make_book(title="Passive2", n_highlights=8, n_notes=0),
+        ]
+        cards = _passive_vs_active(books)
+        assert any("Didn't Reflect" in c.title for c in cards)
+
+    def test_too_few_highlights(self):
+        from services.insight_feed import _passive_vs_active
+        books = [_make_book(title="Tiny", n_highlights=2, n_notes=0)]
+        assert _passive_vs_active(books) == []
+
+    def test_both_active_and_passive(self):
+        from services.insight_feed import _passive_vs_active
+        books = [
+            _make_book(title="Active", n_highlights=10, n_notes=5),
+            _make_book(title="Passive1", n_highlights=10, n_notes=0),
+            _make_book(title="Passive2", n_highlights=8, n_notes=0),
+        ]
+        cards = _passive_vs_active(books)
+        assert len(cards) == 2
+
+
+class TestExportWorthy:
+    def test_recommends_best_export(self):
+        from services.insight_feed import _export_worthy
+        books = [
+            _make_book(title="Rich", n_highlights=15, n_notes=5, read_percent=100),
+            _make_book(title="Sparse", n_highlights=3, n_notes=0),
+        ]
+        cards = _export_worthy(books)
+        assert len(cards) == 1
+        assert "Rich" in cards[0].summary
+        assert cards[0].recommendation is not None
+        assert "Export" in cards[0].recommendation
+
+    def test_empty_library(self):
+        from services.insight_feed import _export_worthy
+        assert _export_worthy([]) == []
+
+    def test_too_few_highlights(self):
+        from services.insight_feed import _export_worthy
+        books = [_make_book(title="Tiny", n_highlights=2)]
+        assert _export_worthy(books) == []
+
+
+# ---------------------------------------------------------------------------
+# Ranking: body length boost
+# ---------------------------------------------------------------------------
+
+
+class TestRankingBodyBoost:
+    def test_body_length_boost(self):
+        from services.insight_feed import rank_cards
+        short_body = InsightCard(
+            id="short", title="Short", category="C", summary="s",
+            body="Brief.", priority_score=0.5,
+        )
+        long_body = InsightCard(
+            id="long", title="Long", category="C", summary="s",
+            body="A" * 150, priority_score=0.5,
+        )
+        ranked = rank_cards([short_body, long_body])
+        assert ranked[0].id == "long"
+
+
+# ---------------------------------------------------------------------------
+# Chat insight integration
+# ---------------------------------------------------------------------------
+
+
+class TestChatInsightIntegration:
+    def test_system_prompt_includes_insights(self):
+        cards = [
+            InsightCard(
+                id="i1", title="Deep Reader", category="Deep Reading Signals",
+                summary="You read deeply.", recommendation="Export your notes.",
+                priority_score=0.8,
+            ),
+        ]
+        books = _make_books()
+        stats = compute_stats(books)
+        streaks = ReadingStreaks()
+        prompt = build_system_prompt(books, stats, streaks, insights=cards)
+        assert "Key Insights" in prompt
+        assert "Deep Reader" in prompt
+        assert "Export your notes" in prompt
+
+    def test_system_prompt_without_insights(self):
+        books = _make_books()
+        stats = compute_stats(books)
+        streaks = ReadingStreaks()
+        prompt = build_system_prompt(books, stats, streaks)
+        assert "Key Insights" not in prompt
+
+    def test_system_prompt_share_instructions(self):
+        books = _make_books()
+        stats = compute_stats(books)
+        streaks = ReadingStreaks()
+        prompt = build_system_prompt(books, stats, streaks)
+        assert "#booksky" in prompt
+        assert "konotes.streamlit.app" in prompt
+
+    def test_build_context_with_insights(self):
+        cards = [
+            InsightCard(
+                id="i1", title="Test Insight", category="Reading Patterns",
+                summary="Insight summary.", priority_score=0.5,
+            ),
+        ]
+        books = _make_books()
+        context = build_context(books, insights=cards)
+        assert "Test Insight" in context
+
+    def test_format_insight_for_chat(self):
+        from services.chat import format_insight_for_chat
+        card = InsightCard(
+            id="i1", title="My Insight", category="C",
+            summary="Summary here.", body="Body here.",
+            recommendation="Do this.",
+            evidence=[EvidenceItem(label="Books", value="5")],
+        )
+        result = format_insight_for_chat(card)
+        assert "My Insight" in result
+        assert "Summary here" in result
+        assert "Body here" in result
+        assert "Do this" in result
+        assert "Books: 5" in result
+
+    def test_generate_share_post(self):
+        from services.chat import generate_share_post
+        card = InsightCard(
+            id="i1", title="Share Me", category="Reading Patterns",
+            summary="A great summary.", body="Detailed body.",
+        )
+        post = generate_share_post(card)
+        assert len(post) > 0
+        assert "#booksky" in post
+
+
+def _make_books():
+    """Helper for chat integration tests."""
+    return [
+        Book(
+            id="b1", title="Test Book", author="Author",
+            source="test", annotations=[
+                Annotation(
+                    id="a1", book_id="b1", kind="highlight",
+                    text="Sample highlight.", source="test",
+                ),
+            ],
+        ),
+    ]

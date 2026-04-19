@@ -7,6 +7,8 @@ import streamlit as st
 
 from models.annotation import Annotation
 from models.book import Book
+from services.share_formatter import APP_PUBLIC_URL
+from services.share_links import build_bluesky_share_url
 
 _PAGE_SIZE = 25
 
@@ -14,13 +16,13 @@ _PAGE_SIZE = 25
 def render_annotations(books: list[Book]) -> None:
     # Flatten and sort by timestamp
     _sentinel = datetime(1970, 1, 1)
-    all_annotations: list[tuple[Annotation, str]] = sorted(
-        [(ann, book.title) for book in books for ann in book.annotations],
+    all_annotations: list[tuple[Annotation, str, str]] = sorted(
+        [(ann, book.title, book.author or "") for book in books for ann in book.annotations],
         key=lambda pair: pair[0].created_at or _sentinel,
     )
 
-    total_hl = sum(1 for a, _ in all_annotations if a.kind == "highlight")
-    total_notes = sum(1 for a, _ in all_annotations if a.kind == "note")
+    total_hl = sum(1 for a, _, _a in all_annotations if a.kind == "highlight")
+    total_notes = sum(1 for a, _, _a in all_annotations if a.kind == "note")
 
     st.markdown("## Annotations")
     st.caption(
@@ -72,7 +74,7 @@ def render_annotations(books: list[Book]) -> None:
     page_items = filtered[page * _PAGE_SIZE : (page + 1) * _PAGE_SIZE]
 
     # ── Annotation cards ─────────────────────────────────────────
-    for ann, book_title in page_items:
+    for ann, book_title, book_author in page_items:
         with st.container(border=True):
             badge_class = {
                 "highlight": "kn-badge-highlight",
@@ -93,8 +95,18 @@ def render_annotations(books: list[Book]) -> None:
             else:
                 st.markdown(ann.text)
 
-            if ann.created_at:
-                st.caption(ann.created_at.strftime("%b %d, %Y"))
+            date_col, share_col = st.columns([4, 1])
+            with date_col:
+                if ann.created_at:
+                    st.caption(ann.created_at.strftime("%b %d, %Y"))
+            with share_col:
+                post = _bluesky_annotation_text(ann, book_title, book_author)
+                url = build_bluesky_share_url(post)
+                st.link_button(
+                    "🦋",
+                    url=url,
+                    help="Share on Bluesky",
+                )
 
     # ── Pagination controls ──────────────────────────────────────
     if total_pages > 1:
@@ -127,19 +139,33 @@ def render_annotations(books: list[Book]) -> None:
 
 
 def _apply_filters(
-    items: list[tuple[Annotation, str]],
+    items: list[tuple[Annotation, str, str]],
     query: str,
     kind_filter: str,
     book_filter: str,
-) -> list[tuple[Annotation, str]]:
+) -> list[tuple[Annotation, str, str]]:
     result = items
     if book_filter != "All books":
-        result = [(a, t) for a, t in result if t == book_filter]
+        result = [(a, t, au) for a, t, au in result if t == book_filter]
     if kind_filter == "Highlights":
-        result = [(a, t) for a, t in result if a.kind == "highlight"]
+        result = [(a, t, au) for a, t, au in result if a.kind == "highlight"]
     elif kind_filter == "Notes":
-        result = [(a, t) for a, t in result if a.kind == "note"]
+        result = [(a, t, au) for a, t, au in result if a.kind == "note"]
     if query.strip():
         q = query.lower()
-        result = [(a, t) for a, t in result if q in a.text.lower()]
+        result = [(a, t, au) for a, t, au in result if q in a.text.lower()]
     return result
+
+
+def _bluesky_annotation_text(ann: Annotation, book_title: str, book_author: str) -> str:
+    """Build a Bluesky post from an annotation."""
+    quote = ann.text
+    if ann.kind == "highlight":
+        line1 = f"\u201c{quote}\u201d"
+    else:
+        line1 = quote
+    source = f"Annotation from: \u201c{book_title}\u201d"
+    if book_author:
+        source += f" -- {book_author}"
+    footer = f"Discover your reading insights with #KoNotes #booksky {APP_PUBLIC_URL}"
+    return f"{line1}\n\n{source}\n\n{footer}"

@@ -3,6 +3,12 @@ from __future__ import annotations
 
 from models.activity import ReadingSession
 from models.book import Book
+from models.insight import InsightCard
+from services.share_formatter import (
+    APP_PUBLIC_URL,
+    format_insight_for_bluesky,
+    is_shareworthy,
+)
 from services.stats import LibraryStats, compute_stats
 from services.streaks import ReadingStreaks, compute_streaks
 
@@ -12,6 +18,7 @@ def build_system_prompt(
     stats: LibraryStats,
     streaks: ReadingStreaks,
     sessions: list[ReadingSession] | None = None,
+    insights: list[InsightCard] | None = None,
 ) -> str:
     """Build a system prompt that gives the LLM full reading-data context."""
     lines: list[str] = []
@@ -20,7 +27,12 @@ def build_system_prompt(
         "You are a reading assistant for KoNotes, a tool that helps Kobo e-reader "
         "users understand their reading data. Answer questions about the user's "
         "library, annotations, reading habits, and books. Be concise and helpful. "
-        "Use the data below to ground your answers."
+        "Use the data below to ground your answers.\n\n"
+        "When the user asks for a shareable post, Bluesky post, or #booksky post, "
+        "generate a concise, personal, non-spammy post using their actual insight "
+        "data. End the post with: Discover your reading insights with #KoNotes #booksky "
+        f"{APP_PUBLIC_URL} — keep the total under 300 characters. "
+        "Focus on the feeling or meaning behind the reading, not raw stats."
     )
     lines.append("")
 
@@ -93,6 +105,18 @@ def build_system_prompt(
 
     lines.append("")
 
+    # Key insights (if available)
+    if insights:
+        lines.append("## Key Insights About Your Reading")
+        for card in insights[:10]:
+            lines.append(f"- **{card.title}** ({card.category}): {card.summary}")
+            if card.recommendation:
+                lines.append(f"  - Recommendation: {card.recommendation}")
+        shareworthy = [c for c in insights if is_shareworthy(c)]
+        if shareworthy:
+            lines.append(f"\n{len(shareworthy)} of these insights are share-worthy.")
+        lines.append("")
+
     # Sample highlights (up to 3 per book, 30 books max)
     sample_books = [b for b in books if b.annotations][:30]
     if sample_books:
@@ -117,8 +141,28 @@ def build_system_prompt(
 def build_context(
     books: list[Book],
     sessions: list[ReadingSession] | None = None,
+    insights: list[InsightCard] | None = None,
 ) -> str:
     """Convenience wrapper: compute stats/streaks then build the system prompt."""
     stats = compute_stats(books)
     streaks = compute_streaks(books, sessions)
-    return build_system_prompt(books, stats, streaks, sessions)
+    return build_system_prompt(books, stats, streaks, sessions, insights)
+
+
+def format_insight_for_chat(card: InsightCard) -> str:
+    """Format a single insight card for use in a chat response."""
+    parts = [f"**{card.title}**", card.summary]
+    if card.body:
+        parts.append(card.body)
+    if card.recommendation:
+        parts.append(f"*Recommendation:* {card.recommendation}")
+    if card.evidence:
+        parts.append("Evidence:")
+        for e in card.evidence[:5]:
+            parts.append(f"  - {e.label}: {e.value}")
+    return "\n".join(parts)
+
+
+def generate_share_post(card: InsightCard) -> str:
+    """Generate a Bluesky-ready post from an insight card."""
+    return format_insight_for_bluesky(card)

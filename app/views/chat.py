@@ -33,6 +33,35 @@ def _fetch_chat_models(api_key: str) -> list[str]:
     return chat_models
 
 
+def _render_bluesky_button(content: str) -> None:
+    """Show a 'Share on Bluesky' button for messages that look like posts."""
+    import re
+    from services.share_links import build_bluesky_share_url
+
+    # Extract the post text: everything from first non-empty line to end,
+    # skipping any LLM preamble before the actual post content.
+    lines = content.strip().split("\n")
+    # Find the actual post: look for lines with #booksky or the URL
+    post_lines: list[str] = []
+    capture = False
+    for line in lines:
+        stripped = line.strip()
+        # Start capturing at the first line that isn't generic LLM intro
+        if not capture and stripped and not stripped.startswith("Here"):
+            capture = True
+        if capture:
+            post_lines.append(line)
+
+    post_text = "\n".join(post_lines).strip() if post_lines else content.strip()
+
+    # Trim to 300 chars for Bluesky
+    if len(post_text) > 300:
+        post_text = post_text[:299].rstrip() + "\u2026"
+
+    url = build_bluesky_share_url(post_text)
+    st.link_button("🦋 Share on Bluesky", url=url, help="Open Bluesky with this post pre-filled")
+
+
 def render_chat(
     books: list[Book],
     sessions: list[ReadingSession] | None = None,
@@ -126,7 +155,9 @@ def render_chat(
     # ── Build reading context (once per data load) ───────────────
     if "chat_context" not in st.session_state or st.session_state.get("_chat_book_count") != len(books):
         from services.chat import build_context
-        st.session_state["chat_context"] = build_context(books, sessions)
+        from services.insight_feed import build_feed
+        insight_cards = build_feed(books)
+        st.session_state["chat_context"] = build_context(books, sessions, insights=insight_cards)
         st.session_state["_chat_book_count"] = len(books)
 
     system_prompt = st.session_state["chat_context"]
@@ -139,6 +170,9 @@ def render_chat(
     for msg in st.session_state["chat_messages"]:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
+            # Show Bluesky share button for assistant messages that look like posts
+            if msg["role"] == "assistant" and "#booksky" in msg["content"]:
+                _render_bluesky_button(msg["content"])
 
     # ── Starter suggestions ──────────────────────────────────────
     if not st.session_state["chat_messages"]:
@@ -147,10 +181,10 @@ def render_chat(
             unsafe_allow_html=True,
         )
         suggestions = [
-            "What are my reading habits like?",
-            "Which book did I highlight the most?",
-            "Summarize my reading activity",
-            "What themes appear across my highlights?",
+            "What are my most interesting reading insights?",
+            "Which book did I engage with most deeply?",
+            "Write me a Bluesky post about my reading",
+            "What should I re-read or export next?",
         ]
         cols = st.columns(2)
         for i, suggestion in enumerate(suggestions):

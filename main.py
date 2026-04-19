@@ -474,7 +474,9 @@ def _cmd_chat(args: argparse.Namespace) -> int:
 
     # Build context
     from services.chat import build_context
-    system_prompt = build_context(books, sessions=sessions or None)
+    from services.insight_feed import build_feed
+    insight_cards = build_feed(books)
+    system_prompt = build_context(books, sessions=sessions or None, insights=insight_cards)
 
     messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt}]
 
