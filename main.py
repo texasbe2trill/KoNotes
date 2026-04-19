@@ -497,7 +497,7 @@ def _cmd_chat(args: argparse.Namespace) -> int:
             response = client.chat.completions.create(
                 model=model,
                 messages=messages,  # type: ignore[arg-type]
-                max_tokens=1024,
+                max_completion_tokens=1024,
             )
             reply = response.choices[0].message.content or ""
         except Exception as exc:

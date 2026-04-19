@@ -187,8 +187,8 @@ def _handle_user_message(
 
         response = client.chat.completions.create(
             model=model,
-            messages=messages,
-            max_tokens=1024,
+            messages=messages,  # type: ignore[arg-type]
+            max_completion_tokens=1024,
         )
         content = response.choices[0].message.content or ""
 
