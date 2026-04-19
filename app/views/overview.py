@@ -93,7 +93,7 @@ def render_overview(
         _render_vocabulary(word_lookups, books)
 
     with col_f:
-        _render_shelves_and_recent(stats, books)
+        _render_shelves_and_recent(stats, books, sessions)
 
     # ── Footer ───────────────────────────────────────────────────
     st.markdown(
@@ -368,7 +368,11 @@ def _render_progress_overview(stats: LibraryStats, books: list[Book]) -> None:
     st.plotly_chart(fig, config={"displayModeBar": False}, theme=None)
 
 
-def _render_shelves_and_recent(stats: LibraryStats, books: list[Book]) -> None:
+def _render_shelves_and_recent(
+    stats: LibraryStats,
+    books: list[Book],
+    sessions: list[ReadingSession] | None = None,
+) -> None:
     """Shelves badges + recently read list."""
     # Shelves
     if stats.shelf_counts:
@@ -380,19 +384,45 @@ def _render_shelves_and_recent(stats: LibraryStats, books: list[Book]) -> None:
         st.markdown(shelf_html, unsafe_allow_html=True)
         st.markdown("")
 
+    # Build a map of the most recent session end-time per book
+    session_dates: dict[str, datetime] = {}
+    for s in sessions or []:
+        prev = session_dates.get(s.book_id)
+        if prev is None or s.end_time > prev:
+            session_dates[s.book_id] = s.end_time
+
+    # Determine the best "last activity" date for each book:
+    #   1. date_last_read (from Kobo metadata)
+    #   2. latest reading session end-time
+    #   3. latest annotation created_at / modified_at timestamp
+    def _best_date(b: Book) -> datetime | None:
+        candidates: list[datetime] = []
+        if b.date_last_read:
+            candidates.append(b.date_last_read)
+        session_dt = session_dates.get(b.id)
+        if session_dt:
+            candidates.append(session_dt)
+        for ann in b.annotations:
+            if ann.modified_at:
+                candidates.append(ann.modified_at)
+            elif ann.created_at:
+                candidates.append(ann.created_at)
+        return max(candidates) if candidates else None
+
     # Recently read
     st.markdown('<div class="kn-section-header">Recently Read</div>', unsafe_allow_html=True)
+    book_dates = [(b, _best_date(b)) for b in books]
     recently_read = sorted(
-        [b for b in books if b.date_last_read is not None],
-        key=lambda b: b.date_last_read or datetime.min,
+        [(b, d) for b, d in book_dates if d is not None],
+        key=lambda pair: pair[1],  # type: ignore[arg-type]
         reverse=True,
     )[:6]
 
     if recently_read:
         items_html = ""
-        for b in recently_read:
-            assert b.date_last_read is not None
-            date_str = b.date_last_read.strftime("%b %d, %Y")
+        for b, d in recently_read:
+            assert d is not None
+            date_str = d.strftime("%b %d, %Y")
             items_html += (
                 f'<div class="kn-list-item">'
                 f'<div style="font-weight:500;">{b.title}</div>'
