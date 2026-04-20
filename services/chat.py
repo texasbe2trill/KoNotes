@@ -4,6 +4,7 @@ from __future__ import annotations
 from models.activity import ReadingSession
 from models.book import Book
 from models.insight import InsightCard
+from services.hero_insight_engine import HeroInsight, generate_hero_insight
 from services.share_formatter import (
     APP_PUBLIC_URL,
     format_insight_for_bluesky,
@@ -19,6 +20,7 @@ def build_system_prompt(
     streaks: ReadingStreaks,
     sessions: list[ReadingSession] | None = None,
     insights: list[InsightCard] | None = None,
+    hero_insight: HeroInsight | None = None,
 ) -> str:
     """Build a system prompt that gives the LLM full reading-data context."""
     lines: list[str] = []
@@ -35,6 +37,17 @@ def build_system_prompt(
         "Focus on the feeling or meaning behind the reading, not raw stats."
     )
     lines.append("")
+
+    # Hero reading pattern (deterministic top insight from overview)
+    if hero_insight is not None:
+        lines.append("## Hero Reading Pattern")
+        lines.append(f"- Pattern: {hero_insight.title}")
+        lines.append(f"- Summary: {hero_insight.summary}")
+        for item in hero_insight.evidence[:4]:
+            lines.append(f"- Evidence: {item}")
+        if hero_insight.recommendation:
+            lines.append(f"- Recommendation: {hero_insight.recommendation}")
+        lines.append("")
 
     # Library overview
     lines.append("## Library Overview")
@@ -146,7 +159,20 @@ def build_context(
     """Convenience wrapper: compute stats/streaks then build the system prompt."""
     stats = compute_stats(books)
     streaks = compute_streaks(books, sessions)
-    return build_system_prompt(books, stats, streaks, sessions, insights)
+    hero_insight = generate_hero_insight(
+        stats,
+        books,
+        longest_streak=streaks.longest_streak,
+        total_reading_time_sec=stats.total_reading_time_sec,
+    )
+    return build_system_prompt(
+        books,
+        stats,
+        streaks,
+        sessions,
+        insights,
+        hero_insight=hero_insight,
+    )
 
 
 def format_insight_for_chat(card: InsightCard) -> str:

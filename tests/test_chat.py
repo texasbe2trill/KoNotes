@@ -8,6 +8,7 @@ import pytest
 from models.annotation import Annotation
 from models.activity import ReadingSession
 from models.book import Book
+from services.hero_insight_engine import generate_hero_insight
 from services.chat import build_context, build_system_prompt
 from services.stats import compute_stats
 from services.streaks import ReadingStreaks, compute_streaks
@@ -157,6 +158,21 @@ class TestBuildSystemPrompt:
         assert "100% read" in prompt
         assert "65% read" in prompt
 
+    def test_includes_hero_reading_pattern_when_provided(self):
+        books = _make_books()
+        stats = compute_stats(books)
+        streaks = ReadingStreaks(longest_streak=4)
+        hero = generate_hero_insight(
+            stats,
+            books,
+            longest_streak=streaks.longest_streak,
+            total_reading_time_sec=stats.total_reading_time_sec,
+        )
+        prompt = build_system_prompt(books, stats, streaks, hero_insight=hero)
+        assert "Hero Reading Pattern" in prompt
+        assert hero.title in prompt
+        assert hero.summary in prompt
+
 
 class TestBuildContext:
     def test_convenience_wrapper(self):
@@ -180,3 +196,8 @@ class TestBuildContext:
     def test_empty_library(self):
         context = build_context([])
         assert "Total books: 0" in context
+
+    def test_context_includes_hero_reading_pattern(self):
+        books = _make_books()
+        context = build_context(books)
+        assert "Hero Reading Pattern" in context

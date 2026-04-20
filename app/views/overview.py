@@ -25,9 +25,11 @@ from app.charts import (
     figure,
     styled_axis,
 )
+from app.components.hero_insight import render_hero_insight
 from models.activity import ProgressSnapshot, ReadingSession
 from models.book import Book
 from models.vocabulary import WordLookup
+from services.hero_insight_engine import generate_hero_insight
 from services.stats import LibraryStats, compute_stats
 
 
@@ -46,6 +48,18 @@ def render_overview(
     st.markdown("## Overview")
     st.caption(f"{stats.total_books} books  /  {stats.total_annotations} annotations  /  {stats.total_highlights} highlights  /  {stats.total_notes} notes")
 
+    # Hero insight — the "instant view" at the top of the page.
+    if books:
+        longest_streak = _compute_streak(stats.reading_activity_by_day) if stats.reading_activity_by_day else 0
+        hero = generate_hero_insight(
+            stats,
+            books,
+            word_lookups=word_lookups,
+            longest_streak=longest_streak,
+            total_reading_time_sec=stats.total_reading_time_sec,
+        )
+        render_hero_insight(hero)
+
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.metric("Books", stats.total_books)
     c2.metric("Highlights", stats.total_highlights)
@@ -58,8 +72,6 @@ def render_overview(
         c4.metric("Reading Time", _format_reading_time(stats.total_reading_time_sec))
         c5.metric("Words Looked Up", len(word_lookups))
         c6.metric("Avg HL / Book", stats.avg_highlights_per_book)
-
-    _render_insight(stats, books, sessions)
 
     st.markdown("")
 
