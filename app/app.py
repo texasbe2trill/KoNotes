@@ -549,27 +549,21 @@ books: list[Book] = st.session_state.get("books", [])
 view: str = st.session_state.get("view", "welcome")
 
 # ---------------------------------------------------------------------------
-# Welcome view
+# Demo switcher — shown on any view when viewing demo data
 # ---------------------------------------------------------------------------
-if not books or view == "welcome":
-    # Auto-load the synthetic demo dataset so the dashboard is immediately
-    # populated.  User uploads and device loading always take priority.
-    from services.demo_loader import demo_db_available, load_demo_dataset, kindle_demo_available, load_kindle_demo_dataset
+if st.session_state.get("using_demo") and books:
+    from services.demo_loader import demo_db_available, kindle_demo_available, load_demo_dataset, load_kindle_demo_dataset
 
-    if not books and demo_db_available() and not st.session_state.get("using_demo"):
-        demo_books = load_demo_dataset()
-        if demo_books:
-            _go_to("overview")
-            st.rerun()
-
-    if st.session_state.get("using_demo"):
-        _demo_source = "Kindle" if st.session_state.get("data_source") == "kindle" else "Kobo"
+    _demo_source = "Kindle" if st.session_state.get("data_source") == "kindle" else "Kobo"
+    _col_info, _col_btn = st.columns([4, 1])
+    with _col_info:
         st.info(
             f"📚 **Loaded {_demo_source} demo dataset** — you're viewing synthetic reading data.  \n"
             "Upload your own KoboReader.sqlite or Kindle My Clippings.txt in the sidebar "
             "to explore your library.",
             icon="ℹ️",
         )
+    with _col_btn:
         if _demo_source == "Kobo" and kindle_demo_available():
             if st.button("🔄 Switch to Kindle demo", key="switch_kindle_demo"):
                 load_kindle_demo_dataset()
@@ -581,6 +575,20 @@ if not books or view == "welcome":
                 st.session_state["data_source"] = "kobo"
                 _go_to("overview")
                 st.rerun()
+
+# ---------------------------------------------------------------------------
+# Welcome view
+# ---------------------------------------------------------------------------
+if not books or view == "welcome":
+    # Auto-load the synthetic demo dataset so the dashboard is immediately
+    # populated.  User uploads and device loading always take priority.
+    from services.demo_loader import demo_db_available, load_demo_dataset
+
+    if not books and demo_db_available() and not st.session_state.get("using_demo"):
+        demo_books = load_demo_dataset()
+        if demo_books:
+            _go_to("overview")
+            st.rerun()
 
     st.markdown(
         '<div class="kn-hero">'
