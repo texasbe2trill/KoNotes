@@ -48,9 +48,14 @@ def test_deep_reader_triggered_by_high_note_ratio() -> None:
     stats = compute_stats(books)
     insight = generate_hero_insight(stats, books)
     assert insight.pattern == "deep_reader"
-    assert "note" in insight.title.lower() or "understand" in insight.title.lower()
+    assert "understand" in insight.title.lower()
+    # Refined summary should reference difficulty and thinking, not generic phrasing.
+    assert "difficult" in insight.summary.lower()
+    assert "thinking" in insight.summary.lower()
+    assert "isn't passive" not in insight.summary.lower()
     assert insight.evidence
-    assert insight.recommendation
+    # Recommendation must include emotional framing tied to behavior.
+    assert "pushed past" in insight.recommendation.lower()
 
 
 def test_pattern_seeker_triggered_by_breadth() -> None:
@@ -82,6 +87,8 @@ def test_focused_deep_dive_triggered_by_dominant_book() -> None:
     insight = generate_hero_insight(stats, books)
     assert insight.pattern == "focused_deep_dive"
     assert "The One Book" in insight.summary
+    # Recommendation should reference the actual book.
+    assert "The One Book" in insight.recommendation
 
 
 def test_priority_picks_strongest_match() -> None:

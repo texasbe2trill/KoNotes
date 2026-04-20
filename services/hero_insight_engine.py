@@ -102,15 +102,15 @@ def _deep_reader(
 
     top_note_book = _book_with_most_notes(books)
     rec = (
-        f'Revisit your notes on "{top_note_book}" — that\'s where your best thinking lives.'
+        f'Revisit your notes on "{top_note_book}" — that\'s where you pushed past surface-level reading.'
         if top_note_book
-        else "Revisit your most-noted book — that's where your best thinking lives."
+        else "Revisit your most-noted book — that's where you pushed past surface-level reading."
     )
 
     return HeroInsight(
         pattern="deep_reader",
         title="You read to understand, not just highlight.",
-        summary="You consistently take notes when ideas get complex — your reading isn't passive.",
+        summary="You consistently take notes when ideas get difficult — that's where your thinking actually happens.",
         evidence=evidence[:4],
         recommendation=rec,
         priority=round(priority, 3),
@@ -141,9 +141,9 @@ def _pattern_seeker(
     return HeroInsight(
         pattern="pattern_seeker",
         title="You're tracking ideas across books.",
-        summary="Your highlights show recurring attention to similar concepts — you read like a researcher, not a tourist.",
+        summary="The same kinds of passages keep catching your eye across different books — you're following an idea, not just finishing titles.",
         evidence=evidence[:4],
-        recommendation="Export these highlights and look for the threads that repeat.",
+        recommendation="Export these highlights and look for the thread you keep returning to.",
         priority=round(priority, 3),
     )
 
@@ -172,9 +172,9 @@ def _selective_thinker(
     return HeroInsight(
         pattern="selective_thinker",
         title="You highlight broadly, reflect selectively.",
-        summary="You mark a lot, but only write when something really stands out — your notes carry weight.",
+        summary="You mark a lot in passing, but only write a note when something genuinely stops you — those few notes are the ones that earned the page.",
         evidence=evidence[:4],
-        recommendation="Pull your handful of notes into one place — they're the signal in the noise.",
+        recommendation="Pull your handful of notes into one place — that's the shortlist of ideas that actually moved you.",
         priority=round(priority, 3),
     )
 
@@ -204,9 +204,9 @@ def _friction_reader(
     return HeroInsight(
         pattern="friction_reader",
         title="You lean into difficulty.",
-        summary="You slow down and look things up when the material gets dense — that's how vocabulary actually grows.",
+        summary="You stop and look things up instead of skimming past — that small act of friction is where the vocabulary actually sticks.",
         evidence=evidence[:4],
-        recommendation="Open your vocabulary view and turn the words you've looked up into a study list.",
+        recommendation="Turn the words you've looked up into a personal study list — they map exactly where you stretched.",
         priority=round(priority, 3),
     )
 
@@ -243,9 +243,9 @@ def _focused_deep_dive(
     return HeroInsight(
         pattern="focused_deep_dive",
         title="One book captured your attention.",
-        summary=f'"{top_title}" pulled in most of your energy — that kind of focus is rare.',
+        summary=f'You spent most of your highlighting and thinking inside "{top_title}" — that kind of single-book focus is rare and worth honoring.',
         evidence=evidence[:4],
-        recommendation="This is a strong candidate for a personal summary — your future self will thank you.",
+        recommendation=f'Write a short personal summary of "{top_title}" while it\'s still fresh — that\'s how this reading turns into yours.',
         priority=round(priority, 3),
     )
 
@@ -316,7 +316,7 @@ def _fallback_insight(stats: LibraryStats) -> HeroInsight:
     return HeroInsight(
         pattern="getting_started",
         title="Read a bit more to unlock deeper insights.",
-        summary="There's not quite enough data yet to spot a clear pattern — keep highlighting and noting, and KoNotes will start to read the shape of your reading.",
+        summary="There isn't quite enough yet to spot your reading pattern — a few more highlights and notes and the shape of how you read will start to show.",
         evidence=evidence,
         recommendation="Come back after a few more reading sessions to see your pattern emerge.",
         priority=0.1,

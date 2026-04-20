@@ -415,6 +415,7 @@ button[data-testid="stDownloadButton"] {
     border: 1px solid rgba(139, 92, 246, 0.25);
     margin: 0.25rem 0 1.1rem 0;
     box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset;
+    text-align: center;
 }
 .kn-hero--fallback {
     background: rgba(148, 163, 184, 0.06);
@@ -438,6 +439,13 @@ button[data-testid="stDownloadButton"] {
     line-height: 1.25;
     margin-bottom: 0.5rem;
 }
+.kn-hero-identity {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: -0.25rem 0 0.55rem 0;
+}
 .kn-hero-summary {
     font-size: 0.95rem;
     color: #cbd5e1;
@@ -450,6 +458,7 @@ button[data-testid="stDownloadButton"] {
     margin: 0 0 0.85rem 0;
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 0.4rem 0.6rem;
 }
 .kn-hero-evidence li {
@@ -464,13 +473,38 @@ button[data-testid="stDownloadButton"] {
     font-size: 0.88rem;
     color: #f8fafc;
     font-style: italic;
-    border-left: 3px solid rgba(139, 92, 246, 0.55);
-    padding: 0.15rem 0 0.15rem 0.7rem;
-    margin-top: 0.25rem;
+    border-top: 1px solid rgba(139, 92, 246, 0.35);
+    padding: 0.6rem 0 0.1rem 0;
+    margin: 0.25rem auto 0;
+    max-width: 980px;
+    line-height: 1.45;
 }
 .kn-hero-footnote {
     font-size: 0.75rem;
     color: #94a3b8;
-    margin: 0.4rem 0 1rem 0.1rem;
+    text-align: center;
+    margin: 0.4rem 0 0.6rem 0;
     font-style: italic;
+}
+.kn-hero-hook {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    text-align: center;
+    margin: 0 0 1rem 0;
+}
+
+@media (max-width: 900px) {
+    .kn-hero {
+        padding: 1.05rem 0.95rem 1.1rem 0.95rem;
+    }
+    .kn-hero-title {
+        font-size: 1.15rem;
+    }
+    .kn-hero-summary {
+        font-size: 0.9rem;
+    }
+    .kn-hero-evidence li {
+        font-size: 0.76rem;
+        padding: 0.2rem 0.58rem;
+    }
 }

@@ -8,6 +8,7 @@ Provides three share styles:
 from __future__ import annotations
 
 from models.insight import InsightCard
+from services.hero_insight_engine import HeroInsight
 
 APP_PUBLIC_URL = "https://konotes.streamlit.app/"
 
@@ -108,6 +109,60 @@ def _evidence_val(card: InsightCard, label: str) -> str | None:
         if e.label.lower().startswith(label.lower()):
             return e.value
     return None
+
+
+# ---------------------------------------------------------------------------
+# Hero insight Bluesky formatter
+# ---------------------------------------------------------------------------
+
+
+# Introspective, first-person bodies for each hero pattern.  Kept short so the
+# total post (body + URL + hashtag) fits inside Bluesky's 300-char limit.
+_HERO_BODIES: dict[str, str] = {
+    "deep_reader": (
+        "I realized I don't read just to highlight \u2014 I read to understand.\n\n"
+        "My notes show where things got difficult\u2026 and where I actually slowed down to think.\n\n"
+        "That's where my best thinking happens."
+    ),
+    "pattern_seeker": (
+        "Looking back at my highlights, I'm not really finishing books \u2014 I'm chasing an idea across them.\n\n"
+        "The same kinds of passages keep catching my eye.\n\n"
+        "Turns out I read like I'm following a thread."
+    ),
+    "selective_thinker": (
+        "I highlight a lot in passing, but I only write a note when something genuinely stops me.\n\n"
+        "Those few notes are the ones that earned the page.\n\n"
+        "That's the shortlist I should actually revisit."
+    ),
+    "friction_reader": (
+        "I noticed I don't skim past hard words \u2014 I stop and look them up.\n\n"
+        "That small bit of friction is where the vocabulary actually sticks.\n\n"
+        "Slowing down has been the real upgrade."
+    ),
+    "focused_deep_dive": (
+        "Most of my reading energy went into one book.\n\n"
+        "That kind of single-book focus is rare \u2014 and apparently it's how I read when something really lands.\n\n"
+        "Worth writing down what I took from it."
+    ),
+}
+
+
+def format_hero_for_bluesky(
+    insight: HeroInsight,
+    app_url: str = APP_PUBLIC_URL,
+) -> str:
+    """Compose an introspective, first-person Bluesky post from a HeroInsight.
+
+    Falls back to the insight's own summary if the pattern isn't recognized
+    (e.g. the sparse-data fallback or a future pattern).  Always ends with the
+    app URL and a single ``#booksky`` tag \u2014 no marketing copy.
+    """
+    body = _HERO_BODIES.get(insight.pattern)
+    if body is None:
+        body = insight.summary.strip()
+
+    text = f"{body}\n\n{app_url}\n\n#booksky"
+    return _truncate(text, _BLUESKY_TARGET)
 
 
 def format_insight_for_copy(
