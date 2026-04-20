@@ -508,3 +508,76 @@ button[data-testid="stDownloadButton"] {
         padding: 0.2rem 0.58rem;
     }
 }
+
+/* ============================================================
+   17. LANDING HEADER (Overview top)
+   ============================================================ */
+
+.kn-landing-title {
+    font-size: clamp(1.8rem, 3.2vw, 2.35rem);
+    font-weight: 800;
+    color: #f8fafc;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin: 0.1rem 0 0.35rem 0;
+}
+
+.kn-landing-subtitle {
+    font-size: 1rem;
+    color: #cbd5e1;
+    line-height: 1.45;
+    margin-bottom: 0.75rem;
+}
+
+.kn-landing-body {
+    font-size: 0.95rem;
+    color: #dbe7f5;
+    line-height: 1.5;
+    margin-bottom: 0.25rem;
+}
+
+.kn-landing-body ul {
+    margin: 0.35rem 0 0.1rem 1rem;
+    padding: 0;
+}
+
+.kn-landing-body li {
+    margin: 0.14rem 0;
+}
+
+.kn-landing-footer {
+    font-size: 0.76rem;
+    color: #94a3b8;
+    margin-top: 0.2rem;
+}
+
+@media (max-width: 900px) {
+    .kn-landing-title {
+        font-size: clamp(1.5rem, 6.8vw, 1.95rem);
+        margin-bottom: 0.28rem;
+    }
+    .kn-landing-subtitle {
+        font-size: 0.92rem;
+        line-height: 1.4;
+        margin-bottom: 0.58rem;
+    }
+    .kn-landing-body {
+        font-size: 0.88rem;
+        line-height: 1.45;
+    }
+    .kn-landing-body ul {
+        margin-left: 0.85rem;
+    }
+    .kn-landing-footer {
+        font-size: 0.72rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .kn-landing-title {
+        letter-spacing: -0.015em;
+    }
+    .kn-landing-subtitle {
+        max-width: 34ch;
+    }
+}

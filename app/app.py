@@ -70,18 +70,10 @@ st.title("📖 KoNotes")
 st.caption("Turn your Kobo & Kindle reading data into structured insight")
 
 # ---------------------------------------------------------------------------
-# Hosted demo banner (only shown on Streamlit Cloud)
+# Hosted demo mode flag (used for behavior only; no top-page banner)
 # ---------------------------------------------------------------------------
 
-if os.environ.get("IS_HOSTED_DEMO"):
-    st.info(
-        "**You're exploring a live demo with sample data.**  \n\n"
-        "You can also upload your own Kobo exports to try them out. "
-        "Nothing is stored — data only lives in your browser session.  \n\n"
-        "For the full experience (USB device detection, local AI insights), "
-        "[install KoNotes locally](https://github.com/texasbe2trill/KoNotes#getting-started).",
-        icon="📖",
-    )
+_IS_HOSTED_DEMO = bool(os.environ.get("IS_HOSTED_DEMO"))
 
 # ---------------------------------------------------------------------------
 # Session-state bootstrap
@@ -670,7 +662,15 @@ elif view == "overview":
     sessions: list[ReadingSession] = st.session_state.get("sessions", [])
     snapshots: list[ProgressSnapshot] = st.session_state.get("snapshots", [])
     word_lookups = st.session_state.get("word_lookups", [])
-    render_overview(books, sessions, snapshots, navigate=_go_to, word_lookups=word_lookups, data_source=st.session_state.get("data_source", "kobo"))
+    render_overview(
+        books,
+        sessions,
+        snapshots,
+        navigate=_go_to,
+        word_lookups=word_lookups,
+        data_source=st.session_state.get("data_source", "kobo"),
+        using_demo=st.session_state.get("using_demo", False),
+    )
 
 # ---------------------------------------------------------------------------
 # Library view

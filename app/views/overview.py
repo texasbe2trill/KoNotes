@@ -40,13 +40,22 @@ def render_overview(
     navigate: Callable[..., None],
     word_lookups: list[WordLookup] | None = None,
     data_source: str = "kobo",
+    using_demo: bool = False,
 ) -> None:
     stats = compute_stats(books)
     word_lookups = word_lookups or []
     is_kindle = data_source == "kindle"
 
-    st.markdown("## Overview")
-    st.caption(f"{stats.total_books} books  /  {stats.total_annotations} annotations  /  {stats.total_highlights} highlights  /  {stats.total_notes} notes")
+    render_landing_header(using_demo=using_demo, has_data=bool(books))
+
+    if not books:
+        st.caption("Upload your KoboReader.sqlite or Kindle My Clippings.txt from the sidebar to get started.")
+        return
+
+    st.caption(
+        f"{stats.total_books} books  /  {stats.total_annotations} annotations  /  "
+        f"{stats.total_highlights} highlights  /  {stats.total_notes} notes"
+    )
 
     # Hero insight — the "instant view" at the top of the page.
     if books:
@@ -121,6 +130,46 @@ def render_overview(
         f'<div class="kn-footer">Made with love for the {_community} community.</div>',
         unsafe_allow_html=True,
     )
+
+
+def render_landing_header(using_demo: bool, has_data: bool) -> None:
+    """Product-style landing context shown before hero insight on Overview."""
+    st.markdown("<div class='kn-landing-wrap'>", unsafe_allow_html=True)
+    st.markdown("<div class='kn-landing-title'>KoNotes</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='kn-landing-subtitle'>"
+        "Your reading already says something about you.<br>"
+        "KoNotes helps you see it."
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        "<div class='kn-landing-body'>"
+        "Upload your Kobo or Kindle data to uncover:"
+        "<ul>"
+        "<li>what you return to</li>"
+        "<li>where you slow down</li>"
+        "<li>what's worth revisiting</li>"
+        "</ul>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    if using_demo:
+        st.markdown(
+            "<div class='kn-landing-footer'>Using sample data — upload your own to personalize.</div>",
+            unsafe_allow_html=True,
+        )
+    elif has_data:
+        st.markdown(
+            "<div class='kn-landing-footer'>Showing your reading data.</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("##")
 
 
 # ═════════════════════════════════════════════════════════════════
