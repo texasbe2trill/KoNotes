@@ -340,6 +340,18 @@ EXTENSION_TO_PARSER: dict[str, BaseParser] = {
 }
 
 
-def get_parser_for_extension(extension: str) -> BaseParser | None:
-    """Return the appropriate parser for a file extension, or None."""
-    return EXTENSION_TO_PARSER.get(extension.lower())
+def get_parser_for_extension(
+    extension: str,
+    content: str | None = None,
+) -> BaseParser | None:
+    """Return the appropriate parser for a file extension, or None.
+
+    For ``.txt`` files, if *content* is provided, auto-detects Kindle
+    ``My Clippings.txt`` format and returns the Kindle parser instead.
+    """
+    from parser.kindle_parser import KindleClippingsParser, is_kindle_clippings
+
+    ext = extension.lower()
+    if ext == ".txt" and content is not None and is_kindle_clippings(content):
+        return KindleClippingsParser()
+    return EXTENSION_TO_PARSER.get(ext)

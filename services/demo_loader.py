@@ -18,6 +18,7 @@ from parser.sqlite_parser import (
 )
 
 _DEMO_DB = Path(__file__).resolve().parent.parent / "docs" / "KoNotes_synthetic.sqlite"
+_DEMO_KINDLE = Path(__file__).resolve().parent.parent / "docs" / "My_Clippings_synthetic.txt"
 
 
 def demo_db_available() -> bool:
@@ -79,6 +80,37 @@ def load_demo_dataset() -> list[Book]:
 
     # Enrich books with ratings and page turns (mirrors _load_telemetry)
     _enrich_books(books, data["ratings"], data["page_turns"], data["db_path"])
+
+    return books
+
+
+def kindle_demo_available() -> bool:
+    """Return True if the synthetic Kindle clippings file exists on disk."""
+    return _DEMO_KINDLE.is_file()
+
+
+@st.cache_data(show_spinner="Loading Kindle demo dataset…")
+def _parse_kindle_demo() -> list[Book]:
+    from parser.kindle_parser import KindleClippingsParser
+
+    content = _DEMO_KINDLE.read_text(encoding="utf-8", errors="replace")
+    parser = KindleClippingsParser()
+    raw = parser.parse(content)
+    return normalize(raw, source="kindle")
+
+
+def load_kindle_demo_dataset() -> list[Book]:
+    """Populate session state with the synthetic Kindle demo data."""
+    books = _parse_kindle_demo()
+
+    st.session_state["books"] = books
+    st.session_state["sessions"] = []
+    st.session_state["snapshots"] = []
+    st.session_state["shelves"] = []
+    st.session_state["word_lookups"] = []
+    st.session_state["db_path"] = None
+    st.session_state["data_source"] = "kindle"
+    st.session_state["using_demo"] = True
 
     return books
 

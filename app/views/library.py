@@ -9,22 +9,35 @@ from models.book import Book
 from services.stats import compute_stats
 
 
-def render_library(books: list[Book], navigate: Callable[..., None]) -> None:
+def render_library(books: list[Book], navigate: Callable[..., None], data_source: str = "kobo") -> None:
     stats = compute_stats(books)
+    is_kindle = data_source == "kindle"
 
     st.markdown("## Library")
-    st.caption(
-        f"{stats.total_books} books  /  "
-        f"{stats.total_highlights} highlights  /  "
-        f"{stats.total_notes} notes  /  "
-        f"{stats.books_in_progress} in progress  /  "
-        f"{stats.books_completed} completed"
-    )
+
+    caption_parts = [
+        f"{stats.total_books} books",
+        f"{stats.total_highlights} highlights",
+        f"{stats.total_notes} notes",
+    ]
+    if not is_kindle:
+        caption_parts += [
+            f"{stats.books_in_progress} in progress",
+            f"{stats.books_completed} completed",
+        ]
+    st.caption("  /  ".join(caption_parts))
 
     # ── Filters + sort bar ───────────────────────────────────────
     all_authors = sorted({b.author for b in books if b.author})
 
-    fc1, fc2, fc3, fc4 = st.columns([3, 1.2, 1.2, 1.2])
+    if is_kindle:
+        fc1, fc2, fc3 = st.columns([3, 1.2, 1.2])
+        status_filter = "All"  # no progress data for Kindle
+        sort_options = ["Most Highlights", "Most Recent Annotation", "Title A-Z", "Author A-Z"]
+    else:
+        fc1, fc2, fc3, fc4 = st.columns([3, 1.2, 1.2, 1.2])
+        sort_options = ["Most Highlights", "Recently Read", "Title A-Z", "Author A-Z"]
+
     with fc1:
         query = st.text_input(
             "Search",
@@ -39,17 +52,22 @@ def render_library(books: list[Book], navigate: Callable[..., None]) -> None:
             key="lib_author",
             label_visibility="collapsed",
         )
-    with fc3:
-        status_filter = st.selectbox(
-            "Status",
-            options=["All", "In Progress", "Completed", "Not Started"],
-            key="lib_status",
-            label_visibility="collapsed",
-        )
-    with fc4:
+    if not is_kindle:
+        with fc3:
+            status_filter = st.selectbox(
+                "Status",
+                options=["All", "In Progress", "Completed", "Not Started"],
+                key="lib_status",
+                label_visibility="collapsed",
+            )
+        sort_col = fc4
+    else:
+        sort_col = fc3
+
+    with sort_col:
         sort_by = st.selectbox(
             "Sort",
-            options=["Most Highlights", "Recently Read", "Title A-Z", "Author A-Z"],
+            options=sort_options,
             key="lib_sort",
             label_visibility="collapsed",
         )
@@ -122,8 +140,9 @@ def render_library(books: list[Book], navigate: Callable[..., None]) -> None:
                     st.rerun()
 
     # ── Footer ───────────────────────────────────────────────────
+    _community = "Kindle & Kobo" if is_kindle else "Kobo"
     st.markdown(
-        '<div class="kn-footer">Made with love for the Kobo community.</div>',
+        f'<div class="kn-footer">Made with love for the {_community} community.</div>',
         unsafe_allow_html=True,
     )
 
@@ -171,6 +190,18 @@ def _sort_books(books: list[Book], sort_by: str) -> list[Book]:
         return sorted(
             books,
             key=lambda b: b.date_last_read or _min,
+            reverse=True,
+        )
+    if sort_by == "Most Recent Annotation":
+        from datetime import datetime
+
+        _min = datetime.min
+        return sorted(
+            books,
+            key=lambda b: max(
+                (a.created_at for a in b.annotations if a.created_at),
+                default=_min,
+            ),
             reverse=True,
         )
     if sort_by == "Title A-Z":

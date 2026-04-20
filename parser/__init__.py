@@ -7,6 +7,7 @@ from parser.export_parsers import (
     TXTExportParser,
     get_parser_for_extension,
 )
+from parser.kindle_parser import KindleClippingsParser, is_kindle_clippings
 from parser.normalizer import normalize
 from parser.sqlite_parser import (
     extract_progress_snapshots,
@@ -18,6 +19,7 @@ from parser.sqlite_parser import (
 __all__ = [
     "BaseParser",
     "HTMLExportParser",
+    "KindleClippingsParser",
     "MarkdownExportParser",
     "TXTExportParser",
     "detect_devices",
@@ -25,6 +27,7 @@ __all__ = [
     "extract_reading_sessions",
     "extract_shelves",
     "get_parser_for_extension",
+    "is_kindle_clippings",
     "normalize",
     "normalize_chapter",
     "parse_sqlite",

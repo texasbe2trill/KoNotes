@@ -29,6 +29,7 @@ import streamlit as st
 from models.activity import ProgressSnapshot, ReadingSession
 from models.book import Book
 from parser.device_detection import detect_devices
+from parser.kindle_parser import KindleClippingsParser, is_kindle_clippings
 from parser.normalizer import normalize
 from parser.sqlite_parser import (
     extract_page_turns,
@@ -66,7 +67,7 @@ if _CSS_FILE.exists():
 # Visible app header — reinforces branding and provides the description
 # that link-preview crawlers surface via the rendered HTML.
 st.title("📖 KoNotes")
-st.caption("Turn your Kobo reading data into structured insight")
+st.caption("Turn your Kobo & Kindle reading data into structured insight")
 
 # ---------------------------------------------------------------------------
 # Hosted demo banner (only shown on Streamlit Cloud)
@@ -96,6 +97,7 @@ _DEFAULTS: dict = {
     "word_lookups": [],
     "db_path": None,
     "using_demo": False,
+    "data_source": "kobo",
 }
 for key, default in _DEFAULTS.items():
     if key not in st.session_state:
@@ -105,7 +107,7 @@ for key, default in _DEFAULTS.items():
 # Navigation helpers
 # ---------------------------------------------------------------------------
 
-_NAV_ITEMS = ["Overview", "Library", "Annotations", "Activity", "Vocabulary", "Insights", "Chat"]
+_NAV_ITEMS = ["Overview", "Activity", "Insights", "Library", "Annotations", "Vocabulary", "Chat"]
 
 
 def _go_to(view: str, book_id: str | None = None) -> None:
@@ -283,75 +285,155 @@ with st.sidebar:
 
     # --- Manual upload ---
     with st.expander("Upload file", expanded=not bool(devices) and not st.session_state["books"]):
-        uploaded_sqlite = st.file_uploader(
-            "KoboReader.sqlite",
-            type=["sqlite", "sqlite3", "db"],
-            help="Found on your Kobo at .kobo/KoboReader.sqlite",
-        )
-        process_btn = st.button(
-            "Load annotations",
-            type="primary",
-            width="stretch",
-            disabled=uploaded_sqlite is None,
-        )
+        upload_tab_kobo, upload_tab_kindle = st.tabs(["Kobo", "Kindle"])
 
-        if process_btn and uploaded_sqlite is not None:
-            all_books: list[Book] = []
-            errors: list[str] = []
+        # ---- Kobo SQLite upload ----
+        with upload_tab_kobo:
+            uploaded_sqlite = st.file_uploader(
+                "KoboReader.sqlite",
+                type=["sqlite", "sqlite3", "db"],
+                help="Found on your Kobo at .kobo/KoboReader.sqlite",
+            )
+            kobo_btn = st.button(
+                "Load annotations",
+                type="primary",
+                width="stretch",
+                disabled=uploaded_sqlite is None,
+                key="load_kobo",
+            )
 
-            st.session_state["using_demo"] = False
-            tmp_path: Path | None = None
-            try:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".sqlite") as tmp:
-                    tmp.write(uploaded_sqlite.read())
-                    tmp_path = Path(tmp.name)
-                raw = parse_sqlite(tmp_path)
-                books = normalize(raw, source="kobo_sqlite")
-                all_books.extend(books)
-                _load_telemetry(tmp_path)
-            except Exception as exc:
-                errors.append(f"Error parsing KoboReader.sqlite: {exc}")
-            finally:
-                if tmp_path is not None:
-                    try:
-                        os.unlink(tmp_path)
-                    except OSError:
-                        pass
+            if kobo_btn and uploaded_sqlite is not None:
+                all_books: list[Book] = []
+                errors: list[str] = []
 
-            merged: dict[str, Book] = {}
-            for book in all_books:
-                if book.id in merged:
-                    existing = merged[book.id]
-                    existing_ids = {a.id for a in existing.annotations}
-                    for ann in book.annotations:
-                        if ann.id not in existing_ids:
-                            existing.annotations.append(ann)
+                st.session_state["using_demo"] = False
+                st.session_state["data_source"] = "kobo"
+                tmp_path: Path | None = None
+                try:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".sqlite") as tmp:
+                        tmp.write(uploaded_sqlite.read())
+                        tmp_path = Path(tmp.name)
+                    raw = parse_sqlite(tmp_path)
+                    books = normalize(raw, source="kobo_sqlite")
+                    all_books.extend(books)
+                    _load_telemetry(tmp_path)
+                except Exception as exc:
+                    errors.append(f"Error parsing KoboReader.sqlite: {exc}")
+                finally:
+                    if tmp_path is not None:
+                        try:
+                            os.unlink(tmp_path)
+                        except OSError:
+                            pass
+
+                merged: dict[str, Book] = {}
+                for book in all_books:
+                    if book.id in merged:
+                        existing = merged[book.id]
+                        existing_ids = {a.id for a in existing.annotations}
+                        for ann in book.annotations:
+                            if ann.id not in existing_ids:
+                                existing.annotations.append(ann)
+                    else:
+                        merged[book.id] = book
+
+                st.session_state["books"] = list(merged.values())
+                for err in errors:
+                    st.error(err)
+
+                if merged:
+                    total_ann = sum(len(b.annotations) for b in merged.values())
+                    total_hl = sum(
+                        sum(1 for a in b.annotations if a.kind == "highlight")
+                        for b in merged.values()
+                    )
+                    st.toast(
+                        f"✅ Loaded {len(merged)} book(s) — "
+                        f"{total_hl} highlights, {total_ann - total_hl} notes",
+                        icon="📚",
+                    )
+                    _go_to("overview")
+                    st.rerun()
+                elif not errors:
+                    st.warning("No annotations found in the uploaded file(s).")
+
+        # ---- Kindle My Clippings.txt upload ----
+        with upload_tab_kindle:
+            uploaded_kindle = st.file_uploader(
+                "My Clippings.txt",
+                type=["txt"],
+                help="Found at the root of your Kindle device",
+                key="kindle_uploader",
+            )
+            kindle_btn = st.button(
+                "Load clippings",
+                type="primary",
+                width="stretch",
+                disabled=uploaded_kindle is None,
+                key="load_kindle",
+            )
+
+            if kindle_btn and uploaded_kindle is not None:
+                st.session_state["using_demo"] = False
+                st.session_state["data_source"] = "kindle"
+                content = uploaded_kindle.read().decode("utf-8", errors="replace")
+
+                if not is_kindle_clippings(content):
+                    st.error(
+                        "This doesn't look like a Kindle My Clippings.txt file. "
+                        "Expected `==========` separators and Kindle metadata lines."
+                    )
                 else:
-                    merged[book.id] = book
+                    try:
+                        parser = KindleClippingsParser()
+                        raw_kindle = parser.parse(content)
+                        kindle_books = normalize(raw_kindle, source="kindle")
 
-            st.session_state["books"] = list(merged.values())
-            for err in errors:
-                st.error(err)
+                        # Kindle has no telemetry — clear stale Kobo telemetry
+                        st.session_state["sessions"] = []
+                        st.session_state["snapshots"] = []
+                        st.session_state["shelves"] = []
+                        st.session_state["word_lookups"] = []
+                        st.session_state["db_path"] = None
 
-            if merged:
-                total_ann = sum(len(b.annotations) for b in merged.values())
-                total_hl = sum(
-                    sum(1 for a in b.annotations if a.kind == "highlight")
-                    for b in merged.values()
-                )
-                st.toast(
-                    f"✅ Loaded {len(merged)} book(s) — "
-                    f"{total_hl} highlights, {total_ann - total_hl} notes",
-                    icon="📚",
-                )
-                _go_to("overview")
-                st.rerun()
-            elif not errors:
-                st.warning("No annotations found in the uploaded file(s).")
+                        merged_k: dict[str, Book] = {}
+                        for book in kindle_books:
+                            if book.id in merged_k:
+                                existing = merged_k[book.id]
+                                existing_ids = {a.id for a in existing.annotations}
+                                for ann in book.annotations:
+                                    if ann.id not in existing_ids:
+                                        existing.annotations.append(ann)
+                            else:
+                                merged_k[book.id] = book
+
+                        st.session_state["books"] = list(merged_k.values())
+
+                        if merged_k:
+                            total_ann = sum(len(b.annotations) for b in merged_k.values())
+                            total_hl = sum(
+                                sum(1 for a in b.annotations if a.kind == "highlight")
+                                for b in merged_k.values()
+                            )
+                            st.toast(
+                                f"✅ Loaded {len(merged_k)} book(s) — "
+                                f"{total_hl} highlights, {total_ann - total_hl} notes",
+                                icon="📚",
+                            )
+                            _go_to("overview")
+                            st.rerun()
+                        else:
+                            st.warning("No annotations found in the clippings file.")
+                    except Exception as exc:
+                        st.error(f"Error parsing Kindle clippings: {exc}")
 
     # --- Navigation ---
     if st.session_state["books"]:
         st.divider()
+
+        # Build nav items dynamically based on data source
+        _is_kindle = st.session_state.get("data_source") == "kindle"
+        _active_nav = [n for n in _NAV_ITEMS if not (_is_kindle and n == "Vocabulary")]
 
         # Map current view to radio index
         current_view = st.session_state.get("view", "welcome")
@@ -365,11 +447,11 @@ with st.sidebar:
             "chat": "Chat",
         }
         current_nav = _view_to_nav.get(current_view, "Overview")
-        current_idx = _NAV_ITEMS.index(current_nav) if current_nav in _NAV_ITEMS else 0
+        current_idx = _active_nav.index(current_nav) if current_nav in _active_nav else 0
 
         selected_nav = st.radio(
             "Navigate",
-            _NAV_ITEMS,
+            _active_nav,
             index=current_idx,
             label_visibility="collapsed",
             key="nav_radio",
@@ -455,7 +537,7 @@ with st.sidebar:
 
     st.divider()
     st.markdown(
-        '<div style="text-align:center; font-size:0.68rem; color:#475569;">v0.5.0</div>',
+        '<div style="text-align:center; font-size:0.68rem; color:#475569;">v0.6.0</div>',
         unsafe_allow_html=True,
     )
 
@@ -472,7 +554,7 @@ view: str = st.session_state.get("view", "welcome")
 if not books or view == "welcome":
     # Auto-load the synthetic demo dataset so the dashboard is immediately
     # populated.  User uploads and device loading always take priority.
-    from services.demo_loader import demo_db_available, load_demo_dataset
+    from services.demo_loader import demo_db_available, load_demo_dataset, kindle_demo_available, load_kindle_demo_dataset
 
     if not books and demo_db_available() and not st.session_state.get("using_demo"):
         demo_books = load_demo_dataset()
@@ -481,17 +563,29 @@ if not books or view == "welcome":
             st.rerun()
 
     if st.session_state.get("using_demo"):
+        _demo_source = "Kindle" if st.session_state.get("data_source") == "kindle" else "Kobo"
         st.info(
-            "📚 **Loaded demo dataset** — you're viewing synthetic reading data.  \n"
-            "Upload your own KoboReader.sqlite or annotation exports in the sidebar "
+            f"📚 **Loaded {_demo_source} demo dataset** — you're viewing synthetic reading data.  \n"
+            "Upload your own KoboReader.sqlite or Kindle My Clippings.txt in the sidebar "
             "to explore your library.",
             icon="ℹ️",
         )
+        if _demo_source == "Kobo" and kindle_demo_available():
+            if st.button("🔄 Switch to Kindle demo", key="switch_kindle_demo"):
+                load_kindle_demo_dataset()
+                _go_to("overview")
+                st.rerun()
+        elif _demo_source == "Kindle" and demo_db_available():
+            if st.button("🔄 Switch to Kobo demo", key="switch_kobo_demo"):
+                load_demo_dataset()
+                st.session_state["data_source"] = "kobo"
+                _go_to("overview")
+                st.rerun()
 
     st.markdown(
         '<div class="kn-hero">'
         '<h1>KoNotes</h1>'
-        '<p>Turn your Kobo highlights into structured, readable insight.</p>'
+        '<p>Turn your Kobo & Kindle highlights into structured, readable insight.</p>'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -511,8 +605,8 @@ if not books or view == "welcome":
             '<div class="kn-step">'
             '<div class="kn-step-num">2</div>'
             '<h4>Parse</h4>'
-            '<p>Annotations are extracted from the SQLite database '
-            'or upload HTML/TXT/MD exports.</p>'
+            '<p>Annotations are extracted from Kobo SQLite, Kindle '
+            'My Clippings.txt, or HTML/TXT/MD exports.</p>'
             '</div>',
             unsafe_allow_html=True,
         )
@@ -537,6 +631,7 @@ if not books or view == "welcome":
             "| Format | Extension | Priority |\n"
             "|--------|-----------|----------|\n"
             "| KoboReader SQLite | `.sqlite` | **Primary** |\n"
+            "| Kindle My Clippings | `.txt` | **Primary** |\n"
             "| HTML export | `.html` | Secondary |\n"
             "| Plain-text export | `.txt` | Secondary |\n"
             "| Markdown export | `.md` | Secondary |"
@@ -553,7 +648,7 @@ if not books or view == "welcome":
 
     st.markdown(
         '<div class="kn-footer">'
-        'Connect your Kobo or upload a file in the sidebar to get started.'
+        'Connect your Kobo, upload a Kindle clippings file, or upload an export in the sidebar to get started.'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -567,14 +662,14 @@ elif view == "overview":
     sessions: list[ReadingSession] = st.session_state.get("sessions", [])
     snapshots: list[ProgressSnapshot] = st.session_state.get("snapshots", [])
     word_lookups = st.session_state.get("word_lookups", [])
-    render_overview(books, sessions, snapshots, navigate=_go_to, word_lookups=word_lookups)
+    render_overview(books, sessions, snapshots, navigate=_go_to, word_lookups=word_lookups, data_source=st.session_state.get("data_source", "kobo"))
 
 # ---------------------------------------------------------------------------
 # Library view
 # ---------------------------------------------------------------------------
 elif view == "library":
     from app.views.library import render_library
-    render_library(books, navigate=_go_to)
+    render_library(books, navigate=_go_to, data_source=st.session_state.get("data_source", "kobo"))
 
 # ---------------------------------------------------------------------------
 # Book detail view
@@ -607,7 +702,7 @@ elif view == "activity":
 
     sessions_data: list[ReadingSession] = st.session_state.get("sessions", [])
     snapshots_data: list[ProgressSnapshot] = st.session_state.get("snapshots", [])
-    render_activity(books, sessions_data, snapshots_data)
+    render_activity(books, sessions_data, snapshots_data, data_source=st.session_state.get("data_source", "kobo"))
 
 # ---------------------------------------------------------------------------
 # Vocabulary view
@@ -616,7 +711,7 @@ elif view == "vocabulary":
     from app.views.vocabulary_view import render_vocabulary
 
     word_lookups_data = st.session_state.get("word_lookups", [])
-    render_vocabulary(word_lookups_data, books)
+    render_vocabulary(word_lookups_data, books, data_source=st.session_state.get("data_source", "kobo"))
 
 # ---------------------------------------------------------------------------
 # AI Insights view

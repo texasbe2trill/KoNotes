@@ -36,10 +36,10 @@ def main(argv: list[str] | None = None) -> int:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="konotes",
-        description="KoNotes -- Turn your Kobo highlights into structured, readable insight.",
+        description="KoNotes -- Turn your Kobo & Kindle highlights into structured, readable insight.",
     )
     parser.add_argument(
-        "--version", action="version", version="konotes 0.5.0"
+        "--version", action="version", version="konotes 0.6.0"
     )
     sub = parser.add_subparsers(dest="command")
 
@@ -112,15 +112,16 @@ def _load_books(path: Path) -> tuple[list, str | None]:
     from parser.export_parsers import get_parser_for_extension
     from parser.normalizer import normalize
 
+    path = path.resolve()
     if path.suffix.lower() in (".sqlite", ".sqlite3", ".db"):
         from parser.sqlite_parser import parse_sqlite
         raw = parse_sqlite(path)
         source = "kobo_sqlite"
     else:
-        parser = get_parser_for_extension(path.suffix)
+        content = path.read_text(encoding="utf-8", errors="replace")
+        parser = get_parser_for_extension(path.suffix, content=content)
         if parser is None:
             return [], f"Unsupported file type: {path.suffix}"
-        content = path.read_text(encoding="utf-8", errors="replace")
         raw = parser.parse(content)
         source = parser.source_name
 

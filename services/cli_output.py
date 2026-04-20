@@ -18,7 +18,7 @@ def print_banner() -> None:
     console.print(
         Panel(
             "[bold]KoNotes[/bold]\n"
-            "Turn your Kobo highlights and reading data into structured, readable insight.",
+            "Turn your Kobo & Kindle reading data into structured, readable insight.",
             border_style="blue",
             expand=False,
         )
@@ -33,8 +33,9 @@ def print_stats(stats: LibraryStats) -> None:
     table.add_row("Annotations", str(stats.total_annotations))
     table.add_row("Highlights", str(stats.total_highlights))
     table.add_row("Notes", str(stats.total_notes))
-    table.add_row("In Progress", str(stats.books_in_progress))
-    table.add_row("Completed", str(stats.books_completed))
+    if stats.books_in_progress or stats.books_completed:
+        table.add_row("In Progress", str(stats.books_in_progress))
+        table.add_row("Completed", str(stats.books_completed))
     table.add_row("Avg HL/Book", str(stats.avg_highlights_per_book))
     console.print(table)
 

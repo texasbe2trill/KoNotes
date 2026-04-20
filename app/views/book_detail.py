@@ -200,8 +200,9 @@ def render_book_detail(book: Book, navigate: Callable[..., None]) -> None:
                 st.session_state[page_key] = page + 1
                 st.rerun()
 
+    _community = "Kindle & Kobo" if st.session_state.get("data_source") == "kindle" else "Kobo"
     st.markdown(
-        '<div class="kn-footer">Made with love for the Kobo community.</div>',
+        f'<div class="kn-footer">Made with love for the {_community} community.</div>',
         unsafe_allow_html=True,
     )
 

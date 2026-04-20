@@ -37,29 +37,32 @@ def render_overview(
     snapshots: list[ProgressSnapshot],
     navigate: Callable[..., None],
     word_lookups: list[WordLookup] | None = None,
+    data_source: str = "kobo",
 ) -> None:
     stats = compute_stats(books)
     word_lookups = word_lookups or []
+    is_kindle = data_source == "kindle"
 
-    # ── Page header ──────────────────────────────────────────────
     st.markdown("## Overview")
     st.caption(f"{stats.total_books} books  /  {stats.total_annotations} annotations  /  {stats.total_highlights} highlights  /  {stats.total_notes} notes")
 
-    # ── Hero stat cards ──────────────────────────────────────────
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.metric("Books", stats.total_books)
     c2.metric("Highlights", stats.total_highlights)
     c3.metric("Notes", stats.total_notes)
-    c4.metric("Reading Time", _format_reading_time(stats.total_reading_time_sec))
-    c5.metric("Words Looked Up", len(word_lookups))
-    c6.metric("Avg HL / Book", stats.avg_highlights_per_book)
+    if is_kindle:
+        c4.metric("Date Range", _kindle_date_range(books))
+        c5.metric("Avg HL / Book", stats.avg_highlights_per_book)
+        c6.metric("Active Days", len(stats.reading_activity_by_day))
+    else:
+        c4.metric("Reading Time", _format_reading_time(stats.total_reading_time_sec))
+        c5.metric("Words Looked Up", len(word_lookups))
+        c6.metric("Avg HL / Book", stats.avg_highlights_per_book)
 
-    # ── Insight callout ──────────────────────────────────────────
     _render_insight(stats, books, sessions)
 
     st.markdown("")
 
-    # ── Two-column chart row ─────────────────────────────────────
     col_left, col_right = st.columns(2, gap="large")
 
     with col_left:
@@ -68,7 +71,6 @@ def render_overview(
     with col_right:
         _render_annotation_type_split(stats)
 
-    # ── Two-column data row ──────────────────────────────────────
     col_a, col_b = st.columns(2, gap="large")
 
     with col_a:
@@ -77,27 +79,34 @@ def render_overview(
     with col_b:
         _render_top_authors(stats)
 
-    # ── Reading progress + shelves row ───────────────────────────
     col_c, col_d = st.columns(2, gap="large")
 
     with col_c:
-        _render_progress_overview(stats, books)
+        if is_kindle:
+            _render_annotation_density(books)
+        else:
+            _render_progress_overview(stats, books)
 
     with col_d:
-        _render_reading_time_chart(stats)
+        if is_kindle:
+            _render_highlight_note_ratio(books)
+        else:
+            _render_reading_time_chart(stats)
 
-    # ── Vocabulary + shelves row ─────────────────────────────────
     col_e, col_f = st.columns(2, gap="large")
 
     with col_e:
-        _render_vocabulary(word_lookups, books)
+        if is_kindle:
+            _render_kindle_page_coverage(books)
+        else:
+            _render_vocabulary(word_lookups, books)
 
     with col_f:
         _render_shelves_and_recent(stats, books, sessions)
 
-    # ── Footer ───────────────────────────────────────────────────
+    _community = "Kindle & Kobo" if is_kindle else "Kobo"
     st.markdown(
-        '<div class="kn-footer">Made with love for the Kobo community.</div>',
+        f'<div class="kn-footer">Made with love for the {_community} community.</div>',
         unsafe_allow_html=True,
     )
 
@@ -535,3 +544,248 @@ def _render_vocabulary(
             f'{word_tags}',
             unsafe_allow_html=True,
         )
+
+
+# ---------------------------------------------------------------------------
+# Kindle-specific helpers
+# ---------------------------------------------------------------------------
+
+def _kindle_date_range(books: list[Book]) -> str:
+    """Return a compact date range string from annotation timestamps."""
+    dates = [
+        a.created_at
+        for b in books for a in b.annotations
+        if a.created_at
+    ]
+    if not dates:
+        return "—"
+    mn, mx = min(dates), max(dates)
+    if mn.date() == mx.date():
+        return mn.strftime("%b %d")
+    if mn.year == mx.year and mn.month == mx.month:
+        return f"{mn.strftime('%b %d')}–{mx.strftime('%d')}"
+    if mn.year == mx.year:
+        return f"{mn.strftime('%b')}–{mx.strftime('%b')}"
+    return f"{mn.strftime('%b %y')}–{mx.strftime('%b %y')}"
+
+
+def _render_annotation_density(books: list[Book]) -> None:
+    """Stacked horizontal bar: highlights & notes per book."""
+    st.markdown(
+        '<div class="kn-section-header">Highlights & Notes by Book</div>',
+        unsafe_allow_html=True,
+    )
+
+    book_data = []
+    for b in books:
+        hl = sum(1 for a in b.annotations if a.kind == "highlight")
+        nt = sum(1 for a in b.annotations if a.kind == "note")
+        if hl + nt > 0:
+            book_data.append((b.title, hl, nt))
+
+    if not book_data:
+        st.caption("No annotations to chart.")
+        return
+
+    book_data.sort(key=lambda x: x[1] + x[2], reverse=True)
+    top = book_data[:10]
+    top.reverse()  # Plotly draws bottom-up
+
+    titles = [t[:30] + "…" if len(t) > 30 else t for t, _, _ in top]
+    hls = [h for _, h, _ in top]
+    nts = [n for _, _, n in top]
+
+    totals = [h + n for h, n in zip(hls, nts)]
+
+    fig = figure(
+        data=[
+            go.Bar(
+                x=hls,
+                y=titles,
+                orientation="h",
+                name="Highlights",
+                marker=dict(color=GREEN, cornerradius=4, line=dict(width=0)),
+                hovertemplate="%{y}<br>%{x} highlights<extra></extra>",
+                text=[""] * len(hls),
+                textposition="none",
+            ),
+            go.Bar(
+                x=nts,
+                y=titles,
+                orientation="h",
+                name="Notes",
+                marker=dict(color=PURPLE, cornerradius=4, line=dict(width=0)),
+                hovertemplate="%{y}<br>%{x} notes<extra></extra>",
+                text=totals,
+                textposition="outside",
+                textfont=dict(size=10, color="#94a3b8"),
+            ),
+        ],
+        height=max(260, len(top) * 34),
+        xaxis=styled_axis(show_grid=True),
+        yaxis=styled_axis(show_grid=False, automargin=True),
+        margin=dict(l=10, r=40, t=10, b=40),
+        barmode="stack",
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.12,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=11, color="#94a3b8"),
+        ),
+    )
+    st.plotly_chart(fig, config={"displayModeBar": False}, theme=None)
+
+
+def _render_highlight_note_ratio(books: list[Book]) -> None:
+    """Area chart: weekly annotation pace over time."""
+    st.markdown(
+        '<div class="kn-section-header">Annotation Pace</div>',
+        unsafe_allow_html=True,
+    )
+    st.caption("Weekly annotations — highlights vs notes")
+
+    # Collect all annotations with dates
+    hl_dates: list[datetime] = []
+    nt_dates: list[datetime] = []
+    for b in books:
+        for a in b.annotations:
+            if a.created_at:
+                if a.kind == "highlight":
+                    hl_dates.append(a.created_at)
+                elif a.kind == "note":
+                    nt_dates.append(a.created_at)
+
+    if not hl_dates and not nt_dates:
+        st.caption("No annotations recorded.")
+        return
+
+    all_dates = hl_dates + nt_dates
+    mn = min(all_dates)
+    mx = max(all_dates)
+
+    # Build weekly buckets
+    from datetime import date
+
+    start = mn.date() - timedelta(days=mn.weekday())  # Monday
+    end = mx.date()
+    weeks: list[date] = []
+    current = start
+    while current <= end:
+        weeks.append(current)
+        current += timedelta(days=7)
+    if not weeks:
+        st.caption("Not enough data to chart.")
+        return
+
+    hl_counts = [0] * len(weeks)
+    nt_counts = [0] * len(weeks)
+    for d in hl_dates:
+        idx = (d.date() - start).days // 7
+        if 0 <= idx < len(weeks):
+            hl_counts[idx] += 1
+    for d in nt_dates:
+        idx = (d.date() - start).days // 7
+        if 0 <= idx < len(weeks):
+            nt_counts[idx] += 1
+
+    week_labels = [w.strftime("%b %d") for w in weeks]
+
+    fig = figure(
+        data=[
+            go.Scatter(
+                x=week_labels,
+                y=hl_counts,
+                mode="lines",
+                name="Highlights",
+                fill="tozeroy",
+                line=dict(color=GREEN, width=2),
+                fillcolor="rgba(74, 222, 128, 0.25)",
+                hovertemplate="Week of %{x}<br>%{y} highlights<extra></extra>",
+            ),
+            go.Scatter(
+                x=week_labels,
+                y=nt_counts,
+                mode="lines",
+                name="Notes",
+                fill="tozeroy",
+                line=dict(color=PURPLE, width=2),
+                fillcolor="rgba(192, 132, 252, 0.25)",
+                hovertemplate="Week of %{x}<br>%{y} notes<extra></extra>",
+            ),
+        ],
+        height=280,
+        xaxis=styled_axis(show_grid=False, tickangle=-45),
+        yaxis=styled_axis(title="Count", show_grid=True),
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.35,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=11, color="#94a3b8"),
+        ),
+        margin=dict(l=40, r=10, t=10, b=70),
+    )
+    st.plotly_chart(fig, config={"displayModeBar": False}, theme=None)
+
+
+def _render_kindle_page_coverage(books: list[Book]) -> None:
+    """Horizontal bar showing note-to-highlight ratio per book — which books sparked the most original thought."""
+    st.markdown(
+        '<div class="kn-section-header">Engagement Ratio</div>',
+        unsafe_allow_html=True,
+    )
+    st.caption("Notes as % of total annotations — higher = more active thinking")
+
+    book_data: list[tuple[str, int, int, float]] = []  # (title, notes, total, ratio)
+    for b in books:
+        hl = sum(1 for a in b.annotations if a.kind == "highlight")
+        nt = sum(1 for a in b.annotations if a.kind == "note")
+        total = hl + nt
+        if total >= 3:  # Need enough annotations to be meaningful
+            book_data.append((b.title, nt, total, nt / total * 100))
+
+    if not book_data:
+        st.caption("Not enough annotation data.")
+        return
+
+    book_data.sort(key=lambda x: x[3], reverse=True)
+    top = book_data[:10]
+    top.reverse()
+
+    titles = [t[:30] + "…" if len(t) > 30 else t for t, _, _, _ in top]
+    ratios = [round(r, 1) for _, _, _, r in top]
+    hover = [
+        f"{t}<br>{nt} notes / {tot} annotations ({r:.1f}%)"
+        for t, nt, tot, r in top
+    ]
+
+    fig = figure(
+        data=[
+            go.Bar(
+                x=ratios,
+                y=titles,
+                orientation="h",
+                marker=dict(
+                    color=ratios,
+                    colorscale=[[0, BLUE], [0.5, PURPLE], [1, ROSE]],
+                    cornerradius=4,
+                    line=dict(width=0),
+                ),
+                hovertext=hover,
+                hoverinfo="text",
+                text=[f"{r}%" for r in ratios],
+                textposition="outside",
+                textfont=dict(size=10, color="#94a3b8"),
+            )
+        ],
+        height=max(260, len(top) * 34),
+        xaxis=styled_axis(title="Note %", show_grid=True, range=[0, max(ratios) * 1.2 if ratios else 100]),
+        yaxis=styled_axis(show_grid=False, automargin=True),
+        margin=dict(l=10, r=50, t=10, b=40),
+    )
+    st.plotly_chart(fig, config={"displayModeBar": False}, theme=None)

@@ -1588,9 +1588,10 @@ def render_insights(books: list[Book]) -> None:
         )
 
     # Footer
+    _community = "Kindle & Kobo" if st.session_state.get("data_source") == "kindle" else "Kobo"
     st.markdown(
         '<div class="kn-footer">'
-        "Made with love for the Kobo community.</div>",
+        f"Made with love for the {_community} community.</div>",
         unsafe_allow_html=True,
     )
     st.markdown("</div>", unsafe_allow_html=True)

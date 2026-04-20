@@ -1,0 +1,40 @@
+﻿The Art of Clear Thinking (Synthetic Press) (Torres, David)
+- Your Bookmark on page xxv | Location 515 | Added on Thursday, April 16, 2026 8:28:18 PM
+
+
+==========
+﻿The Art of Clear Thinking (Synthetic Press) (Torres, David)
+- Your Highlight on page 2 | Location 766-767 | Added on Thursday, April 16, 2026 9:00:54 PM
+
+Clarity emerges not from reducing complexity but from learning to navigate it with deliberate focus and structured reasoning.
+==========
+﻿The Art of Clear Thinking (Synthetic Press) (Torres, David)
+- Your Underline on page 2 | Location 767-768 | Added on Thursday, April 16, 2026 9:01:39 PM
+
+pattern recognition, systematic evaluation, iterative refinement, and adaptive judgment.
+==========
+﻿The Art of Clear Thinking (Synthetic Press) (Torres, David)
+- Your Note on page 3 | Location 780 | Added on Thursday, April 16, 2026 9:03:10 PM
+
+This is important for the chapter review.
+==========
+﻿Building Resilient Systems (Park, Sonia)
+- Your Highlight on page 28 | Location 332-336 | Added on Friday, April 17, 2026 10:01:10 PM
+
+The process of decomposing a complex system into smaller modules is called modularization. Each module encapsulates a specific function, reducing interdependencies and making the overall system easier to maintain and evolve.
+==========
+﻿Building Resilient Systems (Park, Sonia)
+- Your Highlight on page 29 | Location 347-351 | Added on Friday, April 17, 2026 10:03:07 PM
+
+There are two main approaches to fault tolerance: redundancy-based and recovery-based. They differ in how they handle failures. Redundancy-based tolerance uses duplicate components to mask faults, while recovery-based tolerance detects failures and restores normal operation through rollback or restart.
+==========
+﻿Data-Driven Decisions (Nakamura, Kenji)
+- Your Highlight on page 25 | Location 306-308 | Added on Sunday, April 19, 2026 2:10:20 PM
+
+the expected value provides an estimated outcome for a given decision, weighting each possible result by its probability to produce a single summary metric for comparison.
+==========
+﻿Data-Driven Decisions (Nakamura, Kenji)
+- Your Highlight on page 25 | Location 306-308 | Added on Sunday, April 19, 2026 2:10:20 PM
+
+the expected value provides an estimated outcome for a given decision, weighting each possible result by its probability to produce a single summary metric for comparison.
+==========

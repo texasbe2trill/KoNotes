@@ -34,12 +34,19 @@ def _dark_chart_layout(height: int = 260, **overrides: dict) -> dict:
 def render_vocabulary(
     word_lookups: list[WordLookup],
     books: list[Book],
+    data_source: str = "kobo",
 ) -> None:
     st.markdown("## Vocabulary")
     st.caption(f"{len(word_lookups)} words looked up across your library")
 
     if not word_lookups:
-        st.info("No dictionary lookups recorded. Words you look up on your Kobo will appear here.")
+        if data_source == "kindle":
+            st.info(
+                "Kindle My Clippings.txt does not include dictionary lookup data. "
+                "This section is available for Kobo readers."
+            )
+        else:
+            st.info("No dictionary lookups recorded. Words you look up on your Kobo will appear here.")
         return
 
     # ── Stats row ────────────────────────────────────────────────
@@ -145,7 +152,8 @@ def render_vocabulary(
         st.plotly_chart(fig_timeline, config={"displayModeBar": False}, theme=None)
 
     # ── Footer ───────────────────────────────────────────────────
+    _community = "Kindle & Kobo" if st.session_state.get("data_source") == "kindle" else "Kobo"
     st.markdown(
-        '<div class="kn-footer">Made with love for the Kobo community.</div>',
+        f'<div class="kn-footer">Made with love for the {_community} community.</div>',
         unsafe_allow_html=True,
     )
