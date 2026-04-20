@@ -426,29 +426,33 @@ button[data-testid="stDownloadButton"] {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #a78bfa;
+    color: var(--primary-color);
+    opacity: 0.92;
     margin-bottom: 0.45rem;
 }
 .kn-hero--fallback .kn-hero-eyebrow {
-    color: #94a3b8;
+    color: var(--text-color);
+    opacity: 0.65;
 }
 .kn-hero-title {
     font-size: 1.35rem;
     font-weight: 700;
-    color: #f1f5f9;
+    color: var(--text-color);
     line-height: 1.25;
     margin-bottom: 0.5rem;
 }
 .kn-hero-identity {
     font-size: 0.72rem;
-    color: #94a3b8;
+    color: var(--text-color);
+    opacity: 0.68;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     margin: -0.25rem 0 0.55rem 0;
 }
 .kn-hero-summary {
     font-size: 0.95rem;
-    color: #cbd5e1;
+    color: var(--text-color);
+    opacity: 0.86;
     line-height: 1.55;
     margin-bottom: 0.75rem;
 }
@@ -462,16 +466,17 @@ button[data-testid="stDownloadButton"] {
     gap: 0.4rem 0.6rem;
 }
 .kn-hero-evidence li {
-    background: rgba(15, 23, 42, 0.45);
+    background: var(--secondary-background-color);
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 999px;
     padding: 0.25rem 0.7rem;
     font-size: 0.80rem;
-    color: #e2e8f0;
+    color: var(--text-color);
+    opacity: 0.92;
 }
 .kn-hero-rec {
     font-size: 0.88rem;
-    color: #f8fafc;
+    color: var(--text-color);
     font-style: italic;
     border-top: 1px solid rgba(139, 92, 246, 0.35);
     padding: 0.6rem 0 0.1rem 0;
@@ -481,14 +486,16 @@ button[data-testid="stDownloadButton"] {
 }
 .kn-hero-footnote {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: var(--text-color);
+    opacity: 0.7;
     text-align: center;
     margin: 0.4rem 0 0.6rem 0;
     font-style: italic;
 }
 .kn-hero-hook {
     font-size: 0.78rem;
-    color: #94a3b8;
+    color: var(--text-color);
+    opacity: 0.76;
     text-align: center;
     margin: 0 0 1rem 0;
 }
@@ -516,7 +523,7 @@ button[data-testid="stDownloadButton"] {
 .kn-landing-title {
     font-size: clamp(1.8rem, 3.2vw, 2.35rem);
     font-weight: 800;
-    color: #f8fafc;
+    color: var(--text-color);
     letter-spacing: -0.02em;
     line-height: 1.1;
     margin: 0.1rem 0 0.35rem 0;
@@ -524,14 +531,16 @@ button[data-testid="stDownloadButton"] {
 
 .kn-landing-subtitle {
     font-size: 1rem;
-    color: #cbd5e1;
+    color: var(--text-color);
+    opacity: 0.86;
     line-height: 1.45;
     margin-bottom: 0.75rem;
 }
 
 .kn-landing-body {
     font-size: 0.95rem;
-    color: #dbe7f5;
+    color: var(--text-color);
+    opacity: 0.9;
     line-height: 1.5;
     margin-bottom: 0.25rem;
 }
@@ -547,7 +556,8 @@ button[data-testid="stDownloadButton"] {
 
 .kn-landing-footer {
     font-size: 0.76rem;
-    color: #94a3b8;
+    color: var(--text-color);
+    opacity: 0.7;
     margin-top: 0.2rem;
 }
 
@@ -580,4 +590,87 @@ button[data-testid="stDownloadButton"] {
     .kn-landing-subtitle {
         max-width: 34ch;
     }
+}
+
+/* ============================================================
+   18. LIGHT THEME OVERRIDES (readability)
+   ============================================================ */
+
+html[data-theme="light"] .kn-hero,
+body[data-theme="light"] .kn-hero,
+[data-theme="light"] .kn-hero {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.10) 0%, rgba(139, 92, 246, 0.08) 100%);
+    border-color: rgba(99, 102, 241, 0.20);
+}
+
+html[data-theme="light"] .kn-hero-title,
+body[data-theme="light"] .kn-hero-title,
+[data-theme="light"] .kn-hero-title {
+    color: #0f172a;
+}
+
+html[data-theme="light"] .kn-hero-summary,
+body[data-theme="light"] .kn-hero-summary,
+[data-theme="light"] .kn-hero-summary {
+    color: #334155;
+}
+
+html[data-theme="light"] .kn-hero-identity,
+body[data-theme="light"] .kn-hero-identity,
+[data-theme="light"] .kn-hero-identity,
+html[data-theme="light"] .kn-hero-footnote,
+body[data-theme="light"] .kn-hero-footnote,
+[data-theme="light"] .kn-hero-footnote,
+html[data-theme="light"] .kn-hero-hook,
+body[data-theme="light"] .kn-hero-hook,
+[data-theme="light"] .kn-hero-hook,
+html[data-theme="light"] .kn-hero--fallback .kn-hero-eyebrow,
+body[data-theme="light"] .kn-hero--fallback .kn-hero-eyebrow,
+[data-theme="light"] .kn-hero--fallback .kn-hero-eyebrow {
+    color: #64748b;
+}
+
+html[data-theme="light"] .kn-hero-eyebrow,
+body[data-theme="light"] .kn-hero-eyebrow,
+[data-theme="light"] .kn-hero-eyebrow {
+    color: #6366f1;
+}
+
+html[data-theme="light"] .kn-hero-evidence li,
+body[data-theme="light"] .kn-hero-evidence li,
+[data-theme="light"] .kn-hero-evidence li {
+    background: rgba(255, 255, 255, 0.78);
+    border-color: rgba(148, 163, 184, 0.35);
+    color: #334155;
+}
+
+html[data-theme="light"] .kn-hero-rec,
+body[data-theme="light"] .kn-hero-rec,
+[data-theme="light"] .kn-hero-rec {
+    color: #0f172a;
+    border-top-color: rgba(99, 102, 241, 0.28);
+}
+
+html[data-theme="light"] .kn-landing-title,
+body[data-theme="light"] .kn-landing-title,
+[data-theme="light"] .kn-landing-title {
+    color: #0f172a;
+}
+
+html[data-theme="light"] .kn-landing-subtitle,
+body[data-theme="light"] .kn-landing-subtitle,
+[data-theme="light"] .kn-landing-subtitle {
+    color: #334155;
+}
+
+html[data-theme="light"] .kn-landing-body,
+body[data-theme="light"] .kn-landing-body,
+[data-theme="light"] .kn-landing-body {
+    color: #1e293b;
+}
+
+html[data-theme="light"] .kn-landing-footer,
+body[data-theme="light"] .kn-landing-footer,
+[data-theme="light"] .kn-landing-footer {
+    color: #64748b;
 }
