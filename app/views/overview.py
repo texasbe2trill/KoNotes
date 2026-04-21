@@ -26,10 +26,13 @@ from app.charts import (
     styled_axis,
 )
 from app.components.hero_insight import render_hero_insight
+from app.components.recommendation_card import render_recommendation_section
 from models.activity import ProgressSnapshot, ReadingSession
 from models.book import Book
 from models.vocabulary import WordLookup
 from services.hero_insight_engine import generate_hero_insight
+from services.recommendation_ranking import rank_recommendations
+from services.recommender import generate_recommendations
 from services.stats import LibraryStats, compute_stats
 
 
@@ -68,6 +71,11 @@ def render_overview(
             total_reading_time_sec=stats.total_reading_time_sec,
         )
         render_hero_insight(hero)
+
+    # Recommendations — deterministic, grounded next steps from the user's own library.
+    recs = generate_recommendations(books, stats, word_lookups=word_lookups)
+    ranked = rank_recommendations(recs, max_results=3)
+    render_recommendation_section(ranked)
 
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.metric("Books", stats.total_books)
@@ -133,9 +141,26 @@ def render_overview(
 
 
 def render_landing_header(using_demo: bool, has_data: bool) -> None:
-    """Product-style landing context shown before hero insight on Overview."""
+    """Contextual header shown at the top of the Overview tab.
+
+    When the user has data loaded, only a quiet status line is shown — the
+    app title already provides the product name so no duplicate is needed.
+    The full onboarding copy is shown only before any data is loaded.
+    """
+    if has_data:
+        label = (
+            "Using sample data \u2014 upload your own to personalize."
+            if using_demo
+            else "Showing your reading data."
+        )
+        st.markdown(
+            f"<div class='kn-landing-footer' style='margin-bottom:0.5rem;'>{label}</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    # No data yet — show full onboarding copy.
     st.markdown("<div class='kn-landing-wrap'>", unsafe_allow_html=True)
-    st.markdown("<div class='kn-landing-title'>KoNotes</div>", unsafe_allow_html=True)
     st.markdown(
         "<div class='kn-landing-subtitle'>"
         "Your reading already says something about you.<br>"
@@ -143,7 +168,6 @@ def render_landing_header(using_demo: bool, has_data: bool) -> None:
         "</div>",
         unsafe_allow_html=True,
     )
-
     st.markdown(
         "<div class='kn-landing-body'>"
         "Upload your Kobo or Kindle data to uncover:"
@@ -155,20 +179,7 @@ def render_landing_header(using_demo: bool, has_data: bool) -> None:
         "</div>",
         unsafe_allow_html=True,
     )
-
-    if using_demo:
-        st.markdown(
-            "<div class='kn-landing-footer'>Using sample data — upload your own to personalize.</div>",
-            unsafe_allow_html=True,
-        )
-    elif has_data:
-        st.markdown(
-            "<div class='kn-landing-footer'>Showing your reading data.</div>",
-            unsafe_allow_html=True,
-        )
-
     st.markdown("</div>", unsafe_allow_html=True)
-
     st.markdown("##")
 
 

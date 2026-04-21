@@ -674,3 +674,113 @@ body[data-theme="light"] .kn-landing-footer,
 [data-theme="light"] .kn-landing-footer {
     color: #64748b;
 }
+
+
+/* ═══════════════════════════════════════════════════════════
+   §19  RECOMMENDATION CARDS
+   ═══════════════════════════════════════════════════════════ */
+
+.kn-rec-section-title {
+    font-size: clamp(0.85rem, 1.4vw, 0.95rem);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-color);
+    opacity: 0.55;
+    margin: 1.4rem 0 0.75rem 0;
+}
+
+.kn-rec-card {
+    background: var(--secondary-background-color);
+    border-radius: 12px;
+    padding: 1.1rem 1.2rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid rgba(128, 128, 128, 0.15);
+    height: 100%;
+    box-sizing: border-box;
+    transition: box-shadow 0.15s ease;
+}
+
+.kn-rec-card:hover {
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.10);
+}
+
+.kn-rec-badge {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    margin-bottom: 0.45rem;
+    opacity: 0.92;
+}
+
+.kn-rec-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 0.35rem;
+    line-height: 1.3;
+}
+
+.kn-rec-summary {
+    font-size: 0.855rem;
+    color: var(--text-color);
+    opacity: 0.84;
+    margin-bottom: 0.4rem;
+    line-height: 1.45;
+}
+
+.kn-rec-reason {
+    font-size: 0.78rem;
+    color: var(--text-color);
+    opacity: 0.58;
+    margin-bottom: 0.55rem;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+.kn-rec-evidence {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 0.55rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.22rem;
+}
+
+.kn-rec-evidence li {
+    font-size: 0.76rem;
+    color: var(--text-color);
+    opacity: 0.72;
+    padding: 0.18rem 0.5rem;
+    background: rgba(128, 128, 128, 0.08);
+    border-radius: 4px;
+    line-height: 1.35;
+}
+
+.kn-rec-evidence li::before {
+    content: "\2192\00a0";
+    opacity: 0.45;
+}
+
+.kn-rec-action {
+    font-size: 0.80rem;
+    font-weight: 600;
+    color: var(--text-color);
+    opacity: 0.88;
+    padding-top: 0.45rem;
+    border-top: 1px solid rgba(128, 128, 128, 0.15);
+    line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+    .kn-rec-card {
+        padding: 0.9rem 1rem;
+    }
+    .kn-rec-title {
+        font-size: 0.88rem;
+    }
+    .kn-rec-summary {
+        font-size: 0.80rem;
+    }
+}

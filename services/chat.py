@@ -4,7 +4,10 @@ from __future__ import annotations
 from models.activity import ReadingSession
 from models.book import Book
 from models.insight import InsightCard
+from models.recommendation import Recommendation
 from services.hero_insight_engine import HeroInsight, generate_hero_insight
+from services.recommendation_ranking import rank_recommendations
+from services.recommender import generate_recommendations
 from services.share_formatter import (
     APP_PUBLIC_URL,
     format_insight_for_bluesky,
@@ -21,6 +24,7 @@ def build_system_prompt(
     sessions: list[ReadingSession] | None = None,
     insights: list[InsightCard] | None = None,
     hero_insight: HeroInsight | None = None,
+    recommendations: list[Recommendation] | None = None,
 ) -> str:
     """Build a system prompt that gives the LLM full reading-data context."""
     lines: list[str] = []
@@ -130,6 +134,19 @@ def build_system_prompt(
             lines.append(f"\n{len(shareworthy)} of these insights are share-worthy.")
         lines.append("")
 
+    # Recommended next steps (deterministic, grounded in annotation data)
+    if recommendations:
+        lines.append("## Recommended Next Steps")
+        lines.append(
+            "Use these when the user asks what to revisit, finish, export, or compare."
+        )
+        for rec in recommendations[:6]:
+            lines.append(f"- **{rec.title}** [{rec.kind}]: {rec.summary}")
+            lines.append(f"  - Why: {rec.reason}")
+            if rec.recommended_action:
+                lines.append(f"  - Action: {rec.recommended_action}")
+        lines.append("")
+
     # Sample highlights (up to 3 per book, 30 books max)
     sample_books = [b for b in books if b.annotations][:30]
     if sample_books:
@@ -165,6 +182,8 @@ def build_context(
         longest_streak=streaks.longest_streak,
         total_reading_time_sec=stats.total_reading_time_sec,
     )
+    all_recs = generate_recommendations(books, stats)
+    recommendations = rank_recommendations(all_recs, max_results=6)
     return build_system_prompt(
         books,
         stats,
@@ -172,6 +191,7 @@ def build_context(
         sessions,
         insights,
         hero_insight=hero_insight,
+        recommendations=recommendations,
     )
 
 
