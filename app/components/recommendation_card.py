@@ -5,6 +5,8 @@ from html import escape
 
 import streamlit as st
 
+from app.components.book_cover import cover_html_fragment
+from models.book import Book
 from models.recommendation import (
     KIND_COMPARE,
     KIND_DEEPEST_THINKING,
@@ -40,8 +42,12 @@ def render_recommendation_card(
     rec: Recommendation,
     *,
     show_share: bool = False,
+    book: Book | None = None,
 ) -> None:
     """Render a single recommendation card.
+
+    The cover image (or initials placeholder) is embedded inside the card
+    HTML so the cover slot is always present and visually consistent.
 
     Parameters
     ----------
@@ -49,6 +55,10 @@ def render_recommendation_card(
         The recommendation to render.
     show_share:
         When True, show Copy and Bluesky share buttons below the card.
+    book:
+        Optional Book object used to render a real cover. When None the
+        cover slot shows an initials placeholder derived from the related
+        book title.
     """
     kind_label = _KIND_LABELS.get(rec.kind, rec.kind.replace("_", " ").title())
     kind_color = _KIND_COLORS.get(rec.kind, "var(--primary-color)")
@@ -58,15 +68,22 @@ def render_recommendation_card(
         f"<ul class='kn-rec-evidence'>{evidence_html}</ul>" if evidence_html else ""
     )
 
+    # Cover slot — always present; real image when available, else initials.
+    fallback_title = (rec.related_books[0] if rec.related_books else None) or rec.title
+    cover_frag = cover_html_fragment(book, fallback_title=fallback_title)
+
     st.markdown(
         f"""
         <div class="kn-rec-card">
-            <div class="kn-rec-badge" style="color:{kind_color};">{escape(kind_label)}</div>
-            <div class="kn-rec-title">{escape(rec.title)}</div>
-            <div class="kn-rec-summary">{escape(rec.summary)}</div>
-            <div class="kn-rec-reason">{escape(rec.reason)}</div>
-            {evidence_block}
-            <div class="kn-rec-action">{escape(rec.recommended_action)}</div>
+            <div class="kn-rec-card-cover">{cover_frag}</div>
+            <div class="kn-rec-card-body">
+                <div class="kn-rec-badge" style="color:{kind_color};">{escape(kind_label)}</div>
+                <div class="kn-rec-title">{escape(rec.title)}</div>
+                <div class="kn-rec-summary">{escape(rec.summary)}</div>
+                <div class="kn-rec-reason">{escape(rec.reason)}</div>
+                {evidence_block}
+                <div class="kn-rec-action">{escape(rec.recommended_action)}</div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -81,6 +98,7 @@ def render_recommendation_section(
     *,
     show_share: bool = False,
     heading: str = "Recommended next steps",
+    books: list[Book] | None = None,
 ) -> None:
     """Render a section of up to three recommendation cards in a column layout.
 
@@ -92,6 +110,9 @@ def render_recommendation_section(
         Passed through to each card — enables copy/share buttons.
     heading:
         Section heading text.
+    books:
+        Optional library list. When provided, recommendations whose
+        ``related_books[0]`` matches a book title get a cover thumbnail.
     """
     if not recs:
         return
@@ -101,11 +122,19 @@ def render_recommendation_section(
         unsafe_allow_html=True,
     )
 
+    # Build a title→Book lookup once. Case-sensitive on purpose: the
+    # recommender preserves the original parsed title verbatim.
+    book_lookup: dict[str, Book] = {}
+    if books:
+        book_lookup = {b.title: b for b in books}
+
     visible = recs[:3]
     cols = st.columns(len(visible))
     for col, rec in zip(cols, visible):
         with col:
-            render_recommendation_card(rec, show_share=show_share)
+            related = rec.related_books[0] if rec.related_books else None
+            book_for_card = book_lookup.get(related) if related else None
+            render_recommendation_card(rec, show_share=show_share, book=book_for_card)
 
 
 # ---------------------------------------------------------------------------

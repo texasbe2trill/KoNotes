@@ -59,6 +59,9 @@ def normalize(raw_annotations: list[dict[str, Any]], source: str) -> list[Book]:
                 last_time_finished=_parse_datetime(raw.get("last_time_finished")),
                 page_count=_safe_int(raw.get("page_count")),
                 word_count=_safe_int(raw.get("word_count")),
+                cover_url=raw.get("cover_url") or None,
+                cover_path=raw.get("cover_path") or None,
+                cover_source=raw.get("cover_source") or None,
             )
         else:
             # Enrich existing book with metadata from later rows
@@ -81,6 +84,12 @@ def normalize(raw_annotations: list[dict[str, Any]], source: str) -> list[Book]:
                 book.series = raw["series"]
             if book.subtitle is None and raw.get("subtitle"):
                 book.subtitle = raw["subtitle"]
+            if book.cover_url is None and raw.get("cover_url"):
+                book.cover_url = raw["cover_url"]
+            if book.cover_path is None and raw.get("cover_path"):
+                book.cover_path = raw["cover_path"]
+            if book.cover_source is None and raw.get("cover_source"):
+                book.cover_source = raw["cover_source"]
 
         annotation = _build_annotation(raw, book_id, source)
         books[book_id].annotations.append(annotation)

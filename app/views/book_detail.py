@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from app.charts import AMBER, BLUE, BLUE_GRADIENT, GRAY, PALETTE, figure, styled_axis
+from app.components.book_cover import render_book_cover
 from models.annotation import Annotation
 from models.book import Book
 from services.export_json import export_book_json
@@ -26,21 +27,26 @@ def render_book_detail(book: Book, navigate: Callable[..., None]) -> None:
         st.rerun()
 
     # ── Header ───────────────────────────────────────────────────
-    st.markdown(f"## {book.title}")
-    if book.subtitle:
-        st.caption(book.subtitle)
+    header_cover, header_meta = st.columns([1, 5], gap="medium")
+    with header_cover:
+        render_book_cover(book, size="medium")
 
-    meta_parts: list[str] = []
-    if book.author:
-        meta_parts.append(f"by **{book.author}**")
-    if book.series:
-        meta_parts.append(f"Series: {book.series}")
-    if book.publisher:
-        meta_parts.append(book.publisher)
-    if book.language:
-        meta_parts.append(book.language.upper())
-    if meta_parts:
-        st.markdown(" / ".join(meta_parts))
+    with header_meta:
+        st.markdown(f"## {book.title}")
+        if book.subtitle:
+            st.caption(book.subtitle)
+
+        meta_parts: list[str] = []
+        if book.author:
+            meta_parts.append(f"by **{book.author}**")
+        if book.series:
+            meta_parts.append(f"Series: {book.series}")
+        if book.publisher:
+            meta_parts.append(book.publisher)
+        if book.language:
+            meta_parts.append(book.language.upper())
+        if meta_parts:
+            st.markdown(" / ".join(meta_parts))
 
     h_count = sum(1 for a in book.annotations if a.kind == "highlight")
     n_count = sum(1 for a in book.annotations if a.kind == "note")

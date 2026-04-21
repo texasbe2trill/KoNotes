@@ -75,7 +75,7 @@ def render_overview(
     # Recommendations — deterministic, grounded next steps from the user's own library.
     recs = generate_recommendations(books, stats, word_lookups=word_lookups)
     ranked = rank_recommendations(recs, max_results=3)
-    render_recommendation_section(ranked)
+    render_recommendation_section(ranked, books=books)
 
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.metric("Books", stats.total_books)

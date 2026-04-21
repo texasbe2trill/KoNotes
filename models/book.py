@@ -34,3 +34,7 @@ class Book(BaseModel):
     word_count: int | None = None
     rating: int | None = None  # 1-5 star rating
     page_turns: int | None = None  # total page turn events
+    # ── Cover art (all optional; resolved by services.book_covers) ─────────
+    cover_url: str | None = None       # remote URL if available in metadata
+    cover_path: str | None = None      # local file path if pre-bundled
+    cover_source: str | None = None    # "local" | "url" | "demo" | "fallback"

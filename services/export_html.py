@@ -256,6 +256,19 @@ nav.toc .author-toc { color: var(--text-dim); font-size: 0.72rem; }
     transform: rotate(90deg);
 }
 .book-summary .book-info { flex: 1; min-width: 0; }
+.book-cover-wrap {
+    flex-shrink: 0;
+    width: 64px; height: 96px;
+    border-radius: 4px; overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.20);
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, rgba(99,102,241,0.22) 0%, rgba(236,72,153,0.16) 100%);
+    color: var(--text); font-weight: 700; font-size: 0.95rem;
+    letter-spacing: 0.04em;
+}
+.book-cover-wrap img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+}
 .book-header h2 {
     font-size: 1.3rem; font-weight: 700;
     margin-bottom: 0.15rem; line-height: 1.3;
@@ -592,6 +605,33 @@ _JS = """\
 def _esc(text: str) -> str:
     """HTML-escape text."""
     return html.escape(text, quote=True)
+
+
+def _book_cover_html(book: Book) -> str:
+    """Render an HTML snippet for a book cover, used in the export.
+
+    Uses the same priority ladder as services.book_covers.resolve_book_cover:
+    local file path → URL → fallback initials placeholder. No third-party
+    network lookups are performed.
+    """
+    from services.book_covers import resolve_book_cover
+
+    cover = resolve_book_cover(book)
+    if cover.has_image and cover.url:
+        return (
+            f'  <div class="book-cover-wrap">'
+            f'<img src="{_esc(cover.url)}" alt="" loading="lazy" '
+            f'onerror="this.style.display=\'none\';this.parentNode.textContent='
+            f'{html.escape(repr(cover.fallback_label))};">'
+            f'</div>\n'
+        )
+    if cover.has_image and cover.path:
+        return (
+            f'  <div class="book-cover-wrap">'
+            f'<img src="{_esc(cover.path)}" alt="" loading="lazy">'
+            f'</div>\n'
+        )
+    return f'  <div class="book-cover-wrap">{_esc(cover.fallback_label)}</div>\n'
 
 
 def _format_time(seconds: int) -> str:
@@ -1613,6 +1653,7 @@ def _render_page(
         parts.append('<details class="book-card" open>\n')
         parts.append('<summary class="book-summary">\n')
         parts.append('  <div class="toggle">&#9654;</div>\n')
+        parts.append(_book_cover_html(book))
         parts.append('  <div class="book-info">\n')
         parts.append('    <div class="book-header">\n')
         parts.append(f"      <h2>{_esc(book.title)}</h2>\n")

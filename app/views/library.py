@@ -5,6 +5,7 @@ from typing import Callable
 
 import streamlit as st
 
+from app.components.book_cover import render_book_cover
 from models.book import Book
 from services.stats import compute_stats
 
@@ -91,9 +92,12 @@ def render_library(books: list[Book], navigate: Callable[..., None], data_source
         pct = book.read_percent
 
         with st.container(border=True):
-            col_info, col_progress, col_stats, col_action = st.columns(
-                [3.5, 2, 2, 0.8]
+            col_cover, col_info, col_progress, col_stats, col_action = st.columns(
+                [0.6, 3.0, 1.9, 1.9, 0.8]
             )
+
+            with col_cover:
+                render_book_cover(book, size="small")
 
             with col_info:
                 title_line = f"**{book.title}**"

@@ -693,16 +693,58 @@ body[data-theme="light"] .kn-landing-footer,
 .kn-rec-card {
     background: var(--secondary-background-color);
     border-radius: 12px;
-    padding: 1.1rem 1.2rem;
+    padding: 0;
     margin-bottom: 0.5rem;
     border: 1px solid rgba(128, 128, 128, 0.15);
     height: 100%;
     box-sizing: border-box;
+    overflow: hidden;
     transition: box-shadow 0.15s ease;
+    display: flex;
+    flex-direction: column;
 }
 
 .kn-rec-card:hover {
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.10);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.14);
+}
+
+/* ── Cover slot (image or placeholder gradient) ── */
+.kn-rec-card-cover {
+    width: 100%;
+    height: 145px;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+    background: linear-gradient(160deg, rgba(99, 102, 241, 0.18) 0%, rgba(168, 85, 247, 0.14) 100%);
+}
+
+.kn-rec-card-cover__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.kn-rec-card-cover__placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--text-color);
+    opacity: 0.70;
+    user-select: none;
+}
+
+/* ── Card text body ── */
+.kn-rec-card-body {
+    padding: 1.1rem 1.2rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .kn-rec-badge {
@@ -774,8 +816,11 @@ body[data-theme="light"] .kn-landing-footer,
 }
 
 @media (max-width: 900px) {
-    .kn-rec-card {
+    .kn-rec-card-body {
         padding: 0.9rem 1rem;
+    }
+    .kn-rec-card-cover {
+        height: 110px;
     }
     .kn-rec-title {
         font-size: 0.88rem;
@@ -783,4 +828,106 @@ body[data-theme="light"] .kn-landing-footer,
     .kn-rec-summary {
         font-size: 0.80rem;
     }
+}
+
+/* ── 20. Book Covers ────────────────────────────────────────────────────── */
+
+.kn-cover {
+    display: inline-block;
+    border-radius: 6px;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.20), rgba(168, 85, 247, 0.18));
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.20);
+    object-fit: cover;
+    flex-shrink: 0;
+    vertical-align: top;
+}
+
+.kn-cover--small  { width: 56px;  height: 84px; }
+.kn-cover--medium { width: 110px; height: 165px; }
+.kn-cover--large  { width: 180px; height: 270px; }
+
+.kn-cover--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    border: 1px solid rgba(128, 128, 128, 0.18);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.22) 0%, rgba(236, 72, 153, 0.16) 100%);
+}
+
+.kn-cover-initials {
+    font-size: 1.05rem;
+    opacity: 0.92;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.kn-cover--small  .kn-cover-initials { font-size: 0.85rem; }
+.kn-cover--medium .kn-cover-initials { font-size: 1.40rem; }
+.kn-cover--large  .kn-cover-initials { font-size: 2.00rem; }
+
+html[data-theme="light"] .kn-cover--placeholder,
+body[data-theme="light"] .kn-cover--placeholder,
+[data-theme="light"] .kn-cover--placeholder {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.14) 0%, rgba(236, 72, 153, 0.10) 100%);
+    border-color: rgba(99, 102, 241, 0.22);
+    color: #334155;
+}
+
+@media (max-width: 900px) {
+    .kn-cover--medium { width: 90px;  height: 135px; }
+    .kn-cover--large  { width: 130px; height: 195px; }
+}
+
+/* ── 20. Book Covers ────────────────────────────────────────────────────── */
+
+.kn-cover {
+    display: inline-block;
+    border-radius: 6px;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.20), rgba(168, 85, 247, 0.18));
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.20);
+    object-fit: cover;
+    flex-shrink: 0;
+    vertical-align: top;
+}
+
+.kn-cover--small  { width: 56px;  height: 84px; }
+.kn-cover--medium { width: 110px; height: 165px; }
+.kn-cover--large  { width: 180px; height: 270px; }
+
+.kn-cover--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    border: 1px solid rgba(128, 128, 128, 0.18);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.22) 0%, rgba(236, 72, 153, 0.16) 100%);
+}
+
+.kn-cover-initials {
+    font-size: 1.05rem;
+    opacity: 0.92;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.kn-cover--small  .kn-cover-initials { font-size: 0.85rem; }
+.kn-cover--medium .kn-cover-initials { font-size: 1.40rem; }
+.kn-cover--large  .kn-cover-initials { font-size: 2.00rem; }
+
+html[data-theme="light"] .kn-cover--placeholder,
+body[data-theme="light"] .kn-cover--placeholder,
+[data-theme="light"] .kn-cover--placeholder {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.14) 0%, rgba(236, 72, 153, 0.10) 100%);
+    border-color: rgba(99, 102, 241, 0.22);
+    color: #334155;
+}
+
+@media (max-width: 900px) {
+    .kn-cover--medium { width: 90px;  height: 135px; }
+    .kn-cover--large  { width: 130px; height: 195px; }
 }
