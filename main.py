@@ -39,7 +39,7 @@ def _build_parser() -> argparse.ArgumentParser:
         description="KoNotes -- Turn your Kobo & Kindle highlights into structured, readable insight.",
     )
     parser.add_argument(
-        "--version", action="version", version="konotes 0.6.0"
+        "--version", action="version", version="konotes 0.7.0"
     )
     sub = parser.add_subparsers(dest="command")
 

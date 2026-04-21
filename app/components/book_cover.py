@@ -140,13 +140,15 @@ def cover_html_fragment(
             except Exception:
                 pass
 
-    # Fallback placeholder
-    raw_label = (cover.fallback_label if cover else None) or fallback_title
-    if not raw_label:
-        from services.book_covers import _initials  # noqa: PLC0415
-        raw_label = _initials(fallback_title)
+    # Fallback placeholder — use pre-computed initials from the CoverResult
+    # when available; otherwise derive from the fallback_title string.
     from services.book_covers import _initials  # noqa: PLC0415
-    initials = _initials(raw_label) if len(raw_label) > 2 else raw_label.upper()
+
+    if cover is not None and cover.fallback_label:
+        # Already two-char initials — use as-is.
+        initials = cover.fallback_label
+    else:
+        initials = _initials(fallback_title)
     return (
         f'<div class="{css_class}__placeholder">'
         f'<span>{escape(initials)}</span>'

@@ -11,8 +11,8 @@ Turn your Kobo & Kindle highlights and reading data into structured, readable in
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Streamlit](https://img.shields.io/badge/streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
-![Tests](https://img.shields.io/badge/tests-489_passed-22c55e?style=flat-square)
-![Version](https://img.shields.io/badge/version-0.6.0-3b82f6?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-571_passed-22c55e?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.7.0-3b82f6?style=flat-square)
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-KoNotes-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://konotes.streamlit.app)
 
@@ -208,6 +208,8 @@ Most of this data already exists on your Kobo or Kindle. KoNotes makes it visibl
 - Local embeddings (no API keys)
 - Export insights to Markdown or text
 - Bluesky sharing (#booksky) from insights, annotations, themes, and summaries
+- **Recommendation engine** -- 6 rule-based next-step cards (revisit, finish, export, forgotten gem, deepest thinking, compare)
+- **Book cover art** -- automatic cover resolution: local file → metadata URL → Open Library by ISBN (same source as Calibre). Initials placeholder when no cover found
 
 </td>
 </tr>
@@ -538,9 +540,9 @@ Launch with `streamlit run app/app.py` and open [localhost:8501](http://localhos
 
 | View | What it does |
 |:-----|:-------------|
-| **Overview** | Library-wide metrics, top authors, annotation trends, reading time, shelf distribution. Kindle: annotation density, pace, engagement ratio |
-| **Library** | Browse all books with progress bars, shelf badges, and author/status filters |
-| **Book Detail** | Per-book annotations grouped by chapter, with search, filtering, export, and full metadata |
+| **Overview** | Library-wide metrics, top authors, annotation trends, reading time, shelf distribution. Includes ranked recommendation cards with book covers. Kindle: annotation density, pace, engagement ratio |
+| **Library** | Browse all books with progress bars, shelf badges, author/status filters, and book cover thumbnails |
+| **Book Detail** | Per-book annotations grouped by chapter, with search, filtering, export, full metadata, and a medium-sized cover image beside the title |
 | **Annotations** | Cross-book annotation search -- find any highlight by keyword |
 | **Activity** | Reading sessions, progress curves, annotation timelines, day-of-week and time-of-day charts. Kindle: stacked bars, heatmaps, cumulative timelines |
 | **Vocabulary** | Every dictionary lookup from your Kobo, searchable and filterable by book, with frequency data |
@@ -566,7 +568,7 @@ pytest tests/ -v
 489 passed
 ```
 
-Tests cover every parser, normalizer, model, CLI subcommand, export format, SQLite telemetry extractor, AI insight pipeline, insight feed, chat context builder, share formatters, and static HTML exporter.
+Tests cover every parser, normalizer, model, CLI subcommand, export format, SQLite telemetry extractor, AI insight pipeline, insight feed, recommender engine, book cover resolver, chat context builder, share formatters, and static HTML exporter.
 
 <br>
 
@@ -582,12 +584,13 @@ KoNotes/
 │   ├── app.py                  # Streamlit entry point
 │   ├── charts.py               # Shared Plotly chart helpers
 │   ├── assets/                 # Logo, CSS
+│   ├── components/             # Reusable UI components (book covers, recommendation cards)
 │   └── views/                  # Overview, Library, Activity, Vocabulary, Insights, Chat
-├── models/                     # Pydantic models (Book, Annotation, Session, Insight, ...)
+├── models/                     # Pydantic models (Book, Annotation, Session, Insight, Recommendation, ...)
 ├── parser/                     # SQLite, HTML, TXT, Markdown, Kindle parsers + device detection
-├── services/                   # Stats, exports, AI, embeddings, insight feed, chat
+├── services/                   # Stats, exports, AI, embeddings, insight feed, recommender, book covers, chat
 ├── utils/                      # Text utilities, schema helpers
-├── tests/                      # 489 tests across 18+ modules
+├── tests/                      # 571 tests across 20+ modules
 ├── main.py                     # CLI entry point
 ├── pyproject.toml              # Project metadata & build config
 └── requirements.txt            # Runtime dependencies
@@ -711,7 +714,23 @@ Phases 1 through 6 are complete. Phase 7 is next.
 </details>
 
 <details>
-<summary><b>Phase 7 -- Future</b></summary>
+<summary><b>Phase 7 -- Recommendations & Book Covers</b> &nbsp; ✅</summary>
+
+- [x] Rule-based recommendation engine with 6 categories (revisit, finish, export, forgotten gem, deepest thinking, compare)
+- [x] Ranked recommendation cards on Overview with evidence bullets and call-to-action
+- [x] Share/copy buttons on recommendation cards (Bluesky + clipboard)
+- [x] Book cover art throughout the app (Library thumbnails, Book Detail header, Recommendation cards)
+- [x] Cover resolution priority: local file path → metadata URL → Open Library by ISBN (same source as Calibre)
+- [x] ISBN-only Open Library lookup -- no title/author guessing to avoid wrong covers
+- [x] Persistent cover cache at `~/.konotes/cover_cache.json` with version key to auto-invalidate on strategy change
+- [x] Initials placeholder gradient for books without covers
+- [x] Book cover support in static HTML export
+- [x] 571 tests
+
+</details>
+
+<details>
+<summary><b>Phase 8 -- Future</b></summary>
 
 - [ ] Annotation tagging and categorization
 - [ ] Spaced repetition integration
@@ -770,6 +789,8 @@ KoNotes is a **local-first** tool. Your reading data never leaves your machine.
 **AI features and network access:**
 - The `all-MiniLM-L6-v2` embedding model (~80 MB) is downloaded once from [HuggingFace Hub](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) on first use, then cached locally at `~/.cache/huggingface/`. After that initial download, all AI processing is fully offline.
 - KoNotes never sends your reading data, highlights, or annotations to any external service.
+
+**Book cover fetching:** When the app resolves book covers for books with an ISBN, it makes a single HEAD request to the [Open Library covers API](https://covers.openlibrary.org) (`covers.openlibrary.org`) to check for a cover image. This is the same free, public API used by Calibre. Results are cached locally at `~/.konotes/cover_cache.json` so each ISBN is only looked up once. No book titles, highlights, or personal reading data are sent -- only the ISBN. Cover lookups can be disabled by clearing or deleting the cache file.
 
 **Chat feature:** The optional Chat view lets you ask questions about your reading data using your own OpenAI API key. When you use Chat, your reading context (library stats, highlights, notes) is sent to the OpenAI API to generate responses. Your API key is only held in your browser session and is never saved. Chat is entirely opt-in -- it requires installing the `[chat]` extra and manually entering your key.
 

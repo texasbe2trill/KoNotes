@@ -92,7 +92,7 @@ def resolve_book_cover(book: Book) -> CoverResult:
             title=title,
         )
 
-    # 3. Remote fetch (Open Library → Google Books, cached on disk).
+    # 3. Remote fetch (Open Library by ISBN, cached on disk).
     remote = fetch_remote_cover_url(book)
     if remote:
         return CoverResult(
