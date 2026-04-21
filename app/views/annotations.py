@@ -5,6 +5,7 @@ from datetime import datetime
 
 import streamlit as st
 
+from app.components.ui import render_empty_state, render_page_header
 from models.annotation import Annotation
 from models.book import Book
 from services.share_formatter import APP_PUBLIC_URL
@@ -24,13 +25,23 @@ def render_annotations(books: list[Book]) -> None:
     total_hl = sum(1 for a, _, _a in all_annotations if a.kind == "highlight")
     total_notes = sum(1 for a, _, _a in all_annotations if a.kind == "note")
 
-    st.markdown("## Annotations")
-    st.caption(
-        f"{len(all_annotations)} total  /  {total_hl} highlights  /  {total_notes} notes"
+    render_page_header(
+        "Annotations",
+        subtitle="Search highlights and notes across every book in your library.",
+        eyebrow="Cross-Book Search",
+        meta=[
+            f"{len(all_annotations)} total",
+            f"{total_hl} highlights",
+            f"{total_notes} notes",
+        ],
     )
 
     if not all_annotations:
-        st.info("No annotations loaded yet.")
+        render_empty_state(
+            "No annotations yet",
+            body="Highlights and notes from your Kobo or Kindle will appear here once you load your data.",
+            icon="✍️",
+        )
         return
 
     # ── Filters ──────────────────────────────────────────────────

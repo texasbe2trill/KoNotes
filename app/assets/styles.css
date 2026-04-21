@@ -931,3 +931,836 @@ body[data-theme="light"] .kn-cover--placeholder,
     .kn-cover--medium { width: 90px;  height: 135px; }
     .kn-cover--large  { width: 130px; height: 195px; }
 }
+
+/* ── Chat: book-cover chips for books referenced in assistant replies ── */
+.kn-chat-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 0.65rem 0 0.25rem;
+}
+
+.kn-chat-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.4rem 0.7rem 0.4rem 0.4rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 10px;
+    max-width: 260px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.kn-chat-chip:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(148, 163, 184, 0.32);
+}
+
+.kn-chat-chip-cover {
+    width: 32px;
+    height: 46px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    background: linear-gradient(160deg, rgba(99, 102, 241, 0.20) 0%, rgba(168, 85, 247, 0.16) 100%);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+.kn-chat-chip-cover__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.kn-chat-chip-cover__placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-color);
+    opacity: 0.75;
+}
+
+.kn-chat-chip-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.kn-chat-chip-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.kn-chat-chip-author {
+    font-size: 0.7rem;
+    line-height: 1.2;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+/* ============================================================
+   21. DESIGN SYSTEM — PAGE HEADER
+   ============================================================ */
+
+.kn-page-header {
+    margin: 0.25rem 0 1.1rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+.kn-page-header__eyebrow {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    color: #6366f1;
+    opacity: 0.85;
+    margin-bottom: 0.35rem;
+}
+.kn-page-header__title {
+    font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.28rem 0;
+    line-height: 1.15;
+    color: var(--text-color);
+}
+.kn-page-header__icon {
+    display: inline-block;
+    margin-right: 0.5rem;
+    font-size: 0.92em;
+}
+.kn-page-header__subtitle {
+    font-size: 0.95rem;
+    line-height: 1.45;
+    margin: 0;
+    color: var(--text-color);
+    opacity: 0.72;
+    max-width: 72ch;
+}
+.kn-page-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.45rem;
+    margin-top: 0.7rem;
+}
+.kn-page-header__chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.74rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    padding: 0.22rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.08);
+    color: var(--text-color);
+    border: 1px solid rgba(99, 102, 241, 0.18);
+    opacity: 0.92;
+}
+
+/* ============================================================
+   22. DESIGN SYSTEM — SECTION HEADER
+   ============================================================ */
+
+.kn-section {
+    margin: 1.35rem 0 0.65rem 0;
+}
+.kn-section__title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-color);
+    opacity: 0.65;
+}
+.kn-section__subtitle {
+    font-size: 0.85rem;
+    color: var(--text-color);
+    opacity: 0.60;
+    margin-top: 0.2rem;
+    line-height: 1.4;
+}
+
+/* ============================================================
+   23. DESIGN SYSTEM — CHIPS
+   ============================================================ */
+
+.kn-chip {
+    display: inline-block;
+    padding: 0.18rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin: 0.12rem 0.18rem 0.12rem 0;
+    border: 1px solid transparent;
+    line-height: 1.35;
+}
+.kn-chip--neutral { background: rgba(148, 163, 184, 0.14); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.22); }
+.kn-chip--blue    { background: rgba(59, 130, 246, 0.14); color: #60a5fa; border-color: rgba(59, 130, 246, 0.22); }
+.kn-chip--green   { background: rgba(16, 185, 129, 0.14); color: #34d399; border-color: rgba(16, 185, 129, 0.22); }
+.kn-chip--amber   { background: rgba(245, 158, 11, 0.14); color: #fbbf24; border-color: rgba(245, 158, 11, 0.24); }
+.kn-chip--purple  { background: rgba(139, 92, 246, 0.14); color: #a78bfa; border-color: rgba(139, 92, 246, 0.24); }
+.kn-chip--rose    { background: rgba(244, 63, 94, 0.14); color: #fb7185; border-color: rgba(244, 63, 94, 0.24); }
+.kn-chip--cyan    { background: rgba(6, 182, 212, 0.14); color: #22d3ee; border-color: rgba(6, 182, 212, 0.24); }
+
+/* ============================================================
+   24. DESIGN SYSTEM — METRIC PILL
+   ============================================================ */
+
+.kn-metric-pill {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(148, 163, 184, 0.05);
+    min-height: 88px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.kn-metric-pill:hover {
+    border-color: rgba(99, 102, 241, 0.30);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+}
+.kn-metric-pill__value {
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    color: #3b82f6;
+}
+.kn-metric-pill__label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-color);
+    opacity: 0.62;
+    margin-top: 0.25rem;
+    font-weight: 600;
+}
+.kn-metric-pill__sub {
+    font-size: 0.74rem;
+    color: var(--text-color);
+    opacity: 0.55;
+    margin-top: 0.15rem;
+}
+.kn-metric-pill--blue   .kn-metric-pill__value { color: #3b82f6; }
+.kn-metric-pill--green  .kn-metric-pill__value { color: #10b981; }
+.kn-metric-pill--amber  .kn-metric-pill__value { color: #f59e0b; }
+.kn-metric-pill--purple .kn-metric-pill__value { color: #8b5cf6; }
+.kn-metric-pill--rose   .kn-metric-pill__value { color: #f43f5e; }
+.kn-metric-pill--cyan   .kn-metric-pill__value { color: #06b6d4; }
+.kn-metric-pill--neutral .kn-metric-pill__value { color: #64748b; }
+
+/* ============================================================
+   25. DESIGN SYSTEM — EMPTY STATE
+   ============================================================ */
+
+.kn-empty {
+    text-align: center;
+    padding: 2.25rem 1.5rem;
+    border-radius: 14px;
+    border: 1px dashed rgba(148, 163, 184, 0.25);
+    background: rgba(148, 163, 184, 0.04);
+    margin: 1rem 0;
+}
+.kn-empty__icon {
+    font-size: 2rem;
+    opacity: 0.85;
+    margin-bottom: 0.5rem;
+}
+.kn-empty__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 0.35rem;
+    letter-spacing: -0.005em;
+}
+.kn-empty__body {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    opacity: 0.72;
+    line-height: 1.5;
+    max-width: 56ch;
+    margin: 0 auto;
+}
+.kn-empty__hint {
+    font-size: 0.78rem;
+    color: var(--text-color);
+    opacity: 0.55;
+    margin-top: 0.6rem;
+    font-style: italic;
+}
+
+/* ============================================================
+   26. DESIGN SYSTEM — SOFT DIVIDER
+   ============================================================ */
+
+.kn-soft-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(148, 163, 184, 0.18) 50%, transparent 100%);
+    margin: 1.5rem 0;
+    border: 0;
+}
+
+/* ============================================================
+   27. LIGHT-THEME OVERRIDES FOR DESIGN SYSTEM
+   ============================================================ */
+
+html[data-theme="light"] .kn-page-header,
+body[data-theme="light"] .kn-page-header,
+[data-theme="light"] .kn-page-header {
+    border-bottom-color: rgba(100, 116, 139, 0.18);
+}
+html[data-theme="light"] .kn-page-header__eyebrow,
+body[data-theme="light"] .kn-page-header__eyebrow,
+[data-theme="light"] .kn-page-header__eyebrow { color: #4f46e5; }
+html[data-theme="light"] .kn-page-header__title,
+body[data-theme="light"] .kn-page-header__title,
+[data-theme="light"] .kn-page-header__title { color: #0f172a; }
+html[data-theme="light"] .kn-page-header__subtitle,
+body[data-theme="light"] .kn-page-header__subtitle,
+[data-theme="light"] .kn-page-header__subtitle { color: #475569; opacity: 1; }
+html[data-theme="light"] .kn-page-header__chip,
+body[data-theme="light"] .kn-page-header__chip,
+[data-theme="light"] .kn-page-header__chip {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.22);
+    color: #1e293b;
+}
+html[data-theme="light"] .kn-chip--neutral,
+body[data-theme="light"] .kn-chip--neutral,
+[data-theme="light"] .kn-chip--neutral { color: #475569; }
+html[data-theme="light"] .kn-chip--blue,
+body[data-theme="light"] .kn-chip--blue,
+[data-theme="light"] .kn-chip--blue { color: #1d4ed8; }
+html[data-theme="light"] .kn-chip--green,
+body[data-theme="light"] .kn-chip--green,
+[data-theme="light"] .kn-chip--green { color: #047857; }
+html[data-theme="light"] .kn-chip--amber,
+body[data-theme="light"] .kn-chip--amber,
+[data-theme="light"] .kn-chip--amber { color: #b45309; }
+html[data-theme="light"] .kn-chip--purple,
+body[data-theme="light"] .kn-chip--purple,
+[data-theme="light"] .kn-chip--purple { color: #6d28d9; }
+html[data-theme="light"] .kn-chip--rose,
+body[data-theme="light"] .kn-chip--rose,
+[data-theme="light"] .kn-chip--rose { color: #be123c; }
+html[data-theme="light"] .kn-chip--cyan,
+body[data-theme="light"] .kn-chip--cyan,
+[data-theme="light"] .kn-chip--cyan { color: #0e7490; }
+html[data-theme="light"] .kn-empty,
+body[data-theme="light"] .kn-empty,
+[data-theme="light"] .kn-empty {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(100, 116, 139, 0.30);
+}
+html[data-theme="light"] .kn-empty__title,
+body[data-theme="light"] .kn-empty__title,
+[data-theme="light"] .kn-empty__title { color: #0f172a; }
+html[data-theme="light"] .kn-empty__body,
+body[data-theme="light"] .kn-empty__body,
+[data-theme="light"] .kn-empty__body { color: #334155; opacity: 1; }
+html[data-theme="light"] .kn-empty__hint,
+body[data-theme="light"] .kn-empty__hint,
+[data-theme="light"] .kn-empty__hint { color: #64748b; opacity: 1; }
+html[data-theme="light"] .kn-metric-pill,
+body[data-theme="light"] .kn-metric-pill,
+[data-theme="light"] .kn-metric-pill {
+    background: rgba(255, 255, 255, 0.60);
+    border-color: rgba(148, 163, 184, 0.22);
+}
+html[data-theme="light"] .kn-metric-pill__label,
+body[data-theme="light"] .kn-metric-pill__label,
+[data-theme="light"] .kn-metric-pill__label { color: #475569; opacity: 1; }
+html[data-theme="light"] .kn-metric-pill__sub,
+body[data-theme="light"] .kn-metric-pill__sub,
+[data-theme="light"] .kn-metric-pill__sub { color: #64748b; opacity: 1; }
+html[data-theme="light"] .kn-section__title,
+body[data-theme="light"] .kn-section__title,
+[data-theme="light"] .kn-section__title { color: #475569; opacity: 1; }
+html[data-theme="light"] .kn-section__subtitle,
+body[data-theme="light"] .kn-section__subtitle,
+[data-theme="light"] .kn-section__subtitle { color: #64748b; opacity: 1; }
+
+/* ============================================================
+   28. INSIGHTS PAGE — PREMIUM CARD LANGUAGE
+   ============================================================ */
+
+/* ---- Featured / hero insight ---- */
+.kn-ins-hero {
+    --kn-accent: #6366f1;
+    position: relative;
+    padding: 1.4rem 1.6rem 1.55rem 1.6rem;
+    border-radius: 16px;
+    border: 1px solid rgba(99, 102, 241, 0.22);
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--kn-accent) 14%, transparent) 0%,
+        rgba(139, 92, 246, 0.08) 100%
+    );
+    margin: 0.25rem 0 0.9rem 0;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+}
+.kn-ins-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    border-radius: 16px 0 0 16px;
+    background: var(--kn-accent);
+    opacity: 0.9;
+}
+.kn-ins-hero__topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.45rem;
+}
+.kn-ins-hero__eyebrow {
+    font-size: 0.70rem;
+    font-weight: 800;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--kn-accent);
+    opacity: 0.92;
+}
+.kn-ins-hero__badge {
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--kn-accent) 16%, transparent);
+    color: var(--kn-accent);
+    border: 1px solid color-mix(in srgb, var(--kn-accent) 24%, transparent);
+}
+.kn-ins-hero__title {
+    font-size: clamp(1.18rem, 2vw, 1.40rem);
+    font-weight: 800;
+    line-height: 1.28;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.4rem 0;
+    color: var(--text-color);
+}
+.kn-ins-hero__summary {
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: var(--text-color);
+    opacity: 0.86;
+    margin: 0;
+    max-width: 68ch;
+}
+
+/* ---- Evidence pill row ("Why KoNotes thinks this") ---- */
+.kn-ins-evidence {
+    margin: 0.85rem 0 0.2rem 0;
+}
+.kn-ins-evidence__label {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text-color);
+    opacity: 0.55;
+    margin-bottom: 0.4rem;
+}
+.kn-ins-evidence-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.45rem;
+}
+.kn-ins-evidence-pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    max-width: 100%;
+}
+.kn-ins-evidence-pill__label {
+    color: var(--text-color);
+    opacity: 0.65;
+}
+.kn-ins-evidence-pill__value {
+    font-weight: 700;
+}
+
+/* ---- Recommendation callout ("What to do next") ---- */
+.kn-ins-rec {
+    margin-top: 0.9rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: 10px;
+    background: rgba(148, 163, 184, 0.05);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-left-width: 3px;
+    border-left-style: solid;
+}
+.kn-ins-rec__label {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.2rem;
+}
+.kn-ins-rec__body {
+    font-size: 0.90rem;
+    line-height: 1.55;
+    color: var(--text-color);
+    opacity: 0.92;
+}
+
+/* ---- Supporting insight card ---- */
+.kn-ins-card {
+    position: relative;
+    padding: 1rem 1.2rem;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(148, 163, 184, 0.04);
+    margin: 0.55rem 0 0.15rem 0;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.kn-ins-card:hover {
+    border-color: rgba(99, 102, 241, 0.28);
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+}
+.kn-ins-card__chip {
+    margin-bottom: 0.4rem;
+}
+.kn-ins-card__title {
+    font-size: 0.96rem;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+    margin-bottom: 0.22rem;
+}
+.kn-ins-card__summary {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--text-color);
+    opacity: 0.80;
+    margin: 0;
+    max-width: 68ch;
+}
+.kn-ins-card__body {
+    font-size: 0.88rem;
+    line-height: 1.65;
+    color: var(--text-color);
+    opacity: 0.86;
+    margin-bottom: 0.45rem;
+}
+
+/* Page width a touch wider for the new hero */
+.kn-ri-page { max-width: 880px; }
+
+.kn-ins-empty { margin: 1.25rem 0 1.4rem 0; }
+
+@media (max-width: 900px) {
+    .kn-ins-hero { padding: 1.1rem 1.1rem 1.2rem 1.2rem; }
+    .kn-ins-hero__title { font-size: 1.1rem; }
+    .kn-ins-hero__summary { font-size: 0.9rem; }
+    .kn-ins-card { padding: 0.85rem 1rem; }
+}
+
+/* Light-theme readability for the insights card language */
+html[data-theme="light"] .kn-ins-hero,
+body[data-theme="light"] .kn-ins-hero,
+[data-theme="light"] .kn-ins-hero {
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--kn-accent) 10%, #ffffff) 0%,
+        rgba(139, 92, 246, 0.06) 100%
+    );
+    border-color: rgba(99, 102, 241, 0.22);
+    box-shadow: 0 6px 22px rgba(15, 23, 42, 0.06);
+}
+html[data-theme="light"] .kn-ins-hero__summary,
+body[data-theme="light"] .kn-ins-hero__summary,
+[data-theme="light"] .kn-ins-hero__summary { color: #334155; opacity: 1; }
+html[data-theme="light"] .kn-ins-card,
+body[data-theme="light"] .kn-ins-card,
+[data-theme="light"] .kn-ins-card {
+    background: rgba(255, 255, 255, 0.70);
+    border-color: rgba(148, 163, 184, 0.28);
+}
+html[data-theme="light"] .kn-ins-card__summary,
+body[data-theme="light"] .kn-ins-card__summary,
+[data-theme="light"] .kn-ins-card__summary { color: #475569; opacity: 1; }
+html[data-theme="light"] .kn-ins-card__body,
+body[data-theme="light"] .kn-ins-card__body,
+[data-theme="light"] .kn-ins-card__body { color: #1e293b; opacity: 1; }
+html[data-theme="light"] .kn-ins-evidence-pill,
+body[data-theme="light"] .kn-ins-evidence-pill,
+[data-theme="light"] .kn-ins-evidence-pill {
+    background: rgba(255, 255, 255, 0.70);
+    border-color: rgba(148, 163, 184, 0.32);
+}
+html[data-theme="light"] .kn-ins-evidence-pill__label,
+body[data-theme="light"] .kn-ins-evidence-pill__label,
+[data-theme="light"] .kn-ins-evidence-pill__label { color: #475569; opacity: 1; }
+html[data-theme="light"] .kn-ins-evidence__label,
+body[data-theme="light"] .kn-ins-evidence__label,
+[data-theme="light"] .kn-ins-evidence__label { color: #64748b; opacity: 1; }
+html[data-theme="light"] .kn-ins-rec,
+body[data-theme="light"] .kn-ins-rec,
+[data-theme="light"] .kn-ins-rec {
+    background: rgba(255, 255, 255, 0.80);
+    border-color: rgba(148, 163, 184, 0.30);
+}
+html[data-theme="light"] .kn-ins-rec__body,
+body[data-theme="light"] .kn-ins-rec__body,
+[data-theme="light"] .kn-ins-rec__body { color: #1e293b; opacity: 1; }
+
+/* ============================================================
+   29. INSIGHTS DASHBOARD — STORYBOARD LAYOUT
+   ============================================================ */
+
+/* Page widens slightly to accommodate the dashboard grid */
+.kn-ri-page { max-width: 1100px; }
+
+/* ---- Hero row ---- */
+.kn-dash-hero-cell { display: flex; flex-direction: column; height: 100%; }
+.kn-dash-hero-cell .kn-ins-hero { margin-top: 0; height: 100%; }
+
+/* Side panels (stats + next action) */
+.kn-dash-side {
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(148, 163, 184, 0.04);
+    border-radius: 14px;
+    padding: 1rem 1.1rem;
+    margin-bottom: 0.7rem;
+}
+
+/* Quick stats */
+.kn-dash-stats { display: flex; flex-direction: column; gap: 0.55rem; }
+.kn-dash-identity {
+    display: flex; align-items: baseline; gap: 0.45rem;
+}
+.kn-dash-identity__emoji { font-size: 1.05rem; line-height: 1; }
+.kn-dash-identity__name {
+    font-size: 0.9rem; font-weight: 800; letter-spacing: -0.005em;
+}
+.kn-dash-identity__desc {
+    font-size: 0.78rem; line-height: 1.55;
+    color: var(--text-color); opacity: 0.70;
+}
+.kn-dash-tile-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem 0.6rem;
+    margin-top: 0.25rem;
+}
+.kn-dash-tile {
+    border-radius: 10px;
+    padding: 0.55rem 0.6rem 0.5rem;
+    background: rgba(148, 163, 184, 0.06);
+    border: 1px solid rgba(148, 163, 184, 0.10);
+}
+.kn-dash-tile__val {
+    font-size: 1.1rem; font-weight: 800; line-height: 1.15;
+    letter-spacing: -0.01em;
+}
+.kn-dash-tile__lbl {
+    font-size: 0.62rem; text-transform: uppercase;
+    letter-spacing: 0.07em; font-weight: 700;
+    color: var(--text-color); opacity: 0.55;
+    margin-top: 0.15rem;
+}
+
+/* Next action */
+.kn-dash-next { display: flex; flex-direction: column; gap: 0.35rem; }
+.kn-dash-next__eyebrow {
+    font-size: 0.66rem; font-weight: 800;
+    letter-spacing: 0.10em; text-transform: uppercase;
+}
+.kn-dash-next__title {
+    font-size: 0.95rem; font-weight: 700;
+    color: var(--text-color); line-height: 1.3;
+}
+.kn-dash-next__body {
+    font-size: 0.82rem; line-height: 1.55;
+    color: var(--text-color); opacity: 0.78;
+}
+
+/* ---- Storyboard grid card ---- */
+.kn-story-card {
+    position: relative;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(148, 163, 184, 0.04);
+    border-radius: 12px;
+    padding: 0.85rem 1rem 0.95rem;
+    margin-bottom: 0.55rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    height: 100%;
+    display: flex; flex-direction: column;
+}
+.kn-story-card:hover {
+    border-color: rgba(99, 102, 241, 0.25);
+    box-shadow: 0 6px 22px rgba(15, 23, 42, 0.10);
+    transform: translateY(-1px);
+}
+.kn-story-card--ghost {
+    border: 1px dashed rgba(148, 163, 184, 0.10);
+    background: transparent;
+    box-shadow: none;
+    pointer-events: none;
+}
+.kn-story-card__cat {
+    font-size: 0.62rem; font-weight: 800;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    margin-bottom: 0.35rem; opacity: 0.95;
+}
+.kn-story-card__title {
+    font-size: 0.96rem; font-weight: 700; line-height: 1.3;
+    margin-bottom: 0.25rem; color: var(--text-color);
+}
+.kn-story-card__summary {
+    font-size: 0.86rem; line-height: 1.55;
+    color: var(--text-color); opacity: 0.78;
+    margin-bottom: 0.5rem;
+}
+.kn-story-chip-row {
+    display: flex; flex-wrap: wrap; gap: 0.3rem 0.35rem;
+    margin-top: auto;
+}
+.kn-story-chip {
+    display: inline-flex; align-items: baseline; gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    font-size: 0.72rem; line-height: 1.3;
+    max-width: 100%;
+}
+.kn-story-chip__lbl {
+    color: var(--text-color); opacity: 0.62;
+}
+.kn-story-chip__val { font-weight: 700; }
+
+/* ---- Deep analysis workspace ---- */
+.kn-dash-workspace {
+    margin-top: 1.6rem;
+    padding: 1.1rem 1.2rem 1.25rem;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(148, 163, 184, 0.03);
+}
+.kn-dash-workspace__head {
+    display: flex; align-items: baseline; gap: 0.7rem;
+    margin-bottom: 0.55rem; flex-wrap: wrap;
+}
+.kn-dash-workspace__title {
+    font-size: 0.95rem; font-weight: 800; letter-spacing: -0.005em;
+    color: var(--text-color);
+}
+.kn-dash-workspace__intro {
+    font-size: 0.80rem; line-height: 1.55;
+    color: var(--text-color); opacity: 0.65;
+}
+.kn-dash-workspace__actions {
+    margin: 0.25rem 0 0.6rem;
+}
+.kn-dash-workspace .stTabs [data-baseweb="tab-list"] {
+    gap: 0.2rem;
+}
+.kn-dash-workspace .stTabs [data-baseweb="tab"] {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.83rem;
+}
+
+/* ---- Tools footer ---- */
+.kn-dash-tools {
+    margin-top: 1.4rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+.kn-dash-tools__title {
+    font-size: 0.66rem; font-weight: 800;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--text-color); opacity: 0.55;
+    margin-bottom: 0.45rem;
+}
+
+/* Responsive: tighten layout on narrow viewports */
+@media (max-width: 820px) {
+    .kn-dash-hero-cell { margin-bottom: 0.5rem; }
+    .kn-dash-tile-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kn-dash-workspace { padding: 0.95rem 1rem; }
+}
+
+/* Light-theme overrides */
+html[data-theme="light"] .kn-dash-side,
+body[data-theme="light"] .kn-dash-side,
+[data-theme="light"] .kn-dash-side {
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(148, 163, 184, 0.28);
+}
+html[data-theme="light"] .kn-dash-tile,
+body[data-theme="light"] .kn-dash-tile,
+[data-theme="light"] .kn-dash-tile {
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(148, 163, 184, 0.20);
+}
+html[data-theme="light"] .kn-dash-tile__lbl,
+body[data-theme="light"] .kn-dash-tile__lbl,
+[data-theme="light"] .kn-dash-tile__lbl { color: #64748b; opacity: 1; }
+html[data-theme="light"] .kn-dash-identity__desc,
+body[data-theme="light"] .kn-dash-identity__desc,
+[data-theme="light"] .kn-dash-identity__desc { color: #475569; opacity: 1; }
+html[data-theme="light"] .kn-dash-next__body,
+body[data-theme="light"] .kn-dash-next__body,
+[data-theme="light"] .kn-dash-next__body { color: #475569; opacity: 1; }
+html[data-theme="light"] .kn-story-card,
+body[data-theme="light"] .kn-story-card,
+[data-theme="light"] .kn-story-card {
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(148, 163, 184, 0.28);
+}
+html[data-theme="light"] .kn-story-card__summary,
+body[data-theme="light"] .kn-story-card__summary,
+[data-theme="light"] .kn-story-card__summary { color: #475569; opacity: 1; }
+html[data-theme="light"] .kn-story-chip,
+body[data-theme="light"] .kn-story-chip,
+[data-theme="light"] .kn-story-chip {
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(148, 163, 184, 0.30);
+}
+html[data-theme="light"] .kn-story-chip__lbl,
+body[data-theme="light"] .kn-story-chip__lbl,
+[data-theme="light"] .kn-story-chip__lbl { color: #64748b; opacity: 1; }
+html[data-theme="light"] .kn-dash-workspace,
+body[data-theme="light"] .kn-dash-workspace,
+[data-theme="light"] .kn-dash-workspace {
+    background: rgba(255, 255, 255, 0.65);
+    border-color: rgba(148, 163, 184, 0.28);
+}
+html[data-theme="light"] .kn-dash-workspace__intro,
+body[data-theme="light"] .kn-dash-workspace__intro,
+[data-theme="light"] .kn-dash-workspace__intro { color: #64748b; opacity: 1; }
+html[data-theme="light"] .kn-dash-tools__title,
+body[data-theme="light"] .kn-dash-tools__title,
+[data-theme="light"] .kn-dash-tools__title { color: #64748b; opacity: 1; }

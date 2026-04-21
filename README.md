@@ -209,7 +209,7 @@ Most of this data already exists on your Kobo or Kindle. KoNotes makes it visibl
 - Export insights to Markdown or text
 - Bluesky sharing (#booksky) from insights, annotations, themes, and summaries
 - **Recommendation engine** -- 6 rule-based next-step cards (revisit, finish, export, forgotten gem, deepest thinking, compare)
-- **Book cover art** -- automatic cover resolution: local file → metadata URL → Open Library by ISBN (same source as Calibre). Initials placeholder when no cover found
+- **Book cover art** -- automatic cover resolution: local file → metadata URL → Google Books (primary) → Open Library (fallback). Initials placeholder when no cover found
 
 </td>
 </tr>
@@ -790,7 +790,7 @@ KoNotes is a **local-first** tool. Your reading data never leaves your machine.
 - The `all-MiniLM-L6-v2` embedding model (~80 MB) is downloaded once from [HuggingFace Hub](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) on first use, then cached locally at `~/.cache/huggingface/`. After that initial download, all AI processing is fully offline.
 - KoNotes never sends your reading data, highlights, or annotations to any external service.
 
-**Book cover fetching:** When the app resolves book covers for books with an ISBN, it makes a single HEAD request to the [Open Library covers API](https://covers.openlibrary.org) (`covers.openlibrary.org`) to check for a cover image. This is the same free, public API used by Calibre. Results are cached locally at `~/.konotes/cover_cache.json` so each ISBN is only looked up once. No book titles, highlights, or personal reading data are sent -- only the ISBN. Cover lookups can be disabled by clearing or deleting the cache file.
+**Book cover fetching and attribution:** When a local cover is unavailable, KoNotes can resolve a remote cover URL using the [Google Books API](https://developers.google.com/books/docs/v1/using) (primary) and [Open Library Covers API](https://openlibrary.org/dev/docs/api/covers) (fallback). KoNotes stores only resolved cover URLs in a local cache at `~/.konotes/cover_cache.json` to reduce repeat requests, and does not bypass access controls or remove provider branding/watermarks. If you redistribute KoNotes publicly, review and follow each provider's Terms of Service (including attribution, caching, and usage-limit requirements).
 
 **Chat feature:** The optional Chat view lets you ask questions about your reading data using your own OpenAI API key. When you use Chat, your reading context (library stats, highlights, notes) is sent to the OpenAI API to generate responses. Your API key is only held in your browser session and is never saved. Chat is entirely opt-in -- it requires installing the `[chat]` extra and manually entering your key.
 

@@ -23,6 +23,7 @@ from app.charts import (
     figure,
     styled_axis,
 )
+from app.components.ui import render_empty_state, render_page_header
 from models.activity import ProgressSnapshot, ReadingSession
 from models.book import Book
 from services.streaks import compute_streaks
@@ -38,13 +39,19 @@ def render_activity(
     stats = compute_stats(books)
     is_kindle = data_source == "kindle"
 
-    st.markdown("## Activity")
-
     has_data = bool(sessions) or bool(snapshots) or bool(stats.reading_activity_by_day)
+
+    render_page_header(
+        "Activity",
+        subtitle="When you read, how long your sessions last, and how your rhythm changes over time.",
+        eyebrow="Reading Patterns",
+    )
+
     if not has_data:
-        st.info(
-            "No reading activity data available. "
-            "Upload a Kobo SQLite database or Kindle My Clippings.txt to see activity."
+        render_empty_state(
+            "No reading activity yet",
+            body="Upload a KoboReader.sqlite database or a Kindle My Clippings.txt file to unlock session, progress, and streak charts.",
+            icon="📈",
         )
         return
 

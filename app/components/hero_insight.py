@@ -33,16 +33,14 @@ def render_hero_insight(insight: HeroInsight) -> None:
     )
 
     st.markdown(
-        f"""
-        <div class="kn-hero{fallback_class}">
-            <div class="kn-hero-eyebrow">Reading pattern detected</div>
-            <div class="kn-hero-title">{escape(insight.title)}</div>
-            {identity_block}
-            <div class="kn-hero-summary">{escape(insight.summary)}</div>
-            {bullets_block}
-            {rec_block}
-        </div>
-        """,
+        f'<div class="kn-hero{fallback_class}">'
+        f'<div class="kn-hero-eyebrow">Reading pattern detected</div>'
+        f'<div class="kn-hero-title">{escape(insight.title)}</div>'
+        f'{identity_block}'
+        f'<div class="kn-hero-summary">{escape(insight.summary)}</div>'
+        f'{bullets_block}'
+        f'{rec_block}'
+        f'</div>',
         unsafe_allow_html=True,
     )
 

@@ -5,3 +5,4 @@ rich>=13.7.0
 plotly>=5.20.0,<6.0.0
 openai>=1.0.0
 pytest>=8.2.0
+torchvision>=0.26.0

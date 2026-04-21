@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import plotly.graph_objects as go
 import streamlit as st
 
+from app.components.ui import render_empty_state, render_page_header
 from models.book import Book
 from models.vocabulary import WordLookup
 
@@ -36,17 +37,26 @@ def render_vocabulary(
     books: list[Book],
     data_source: str = "kobo",
 ) -> None:
-    st.markdown("## Vocabulary")
-    st.caption(f"{len(word_lookups)} words looked up across your library")
+    render_page_header(
+        "Vocabulary",
+        subtitle="Every word you looked up while reading — searchable, grouped, and counted.",
+        eyebrow="Dictionary Lookups",
+        meta=[f"{len(word_lookups)} lookups"] if word_lookups else None,
+    )
 
     if not word_lookups:
         if data_source == "kindle":
-            st.info(
-                "Kindle My Clippings.txt does not include dictionary lookup data. "
-                "This section is available for Kobo readers."
+            render_empty_state(
+                "Not available for Kindle data",
+                body="Kindle My Clippings.txt doesn't include dictionary lookups. This view unlocks automatically when you load Kobo data.",
+                icon="📖",
             )
         else:
-            st.info("No dictionary lookups recorded. Words you look up on your Kobo will appear here.")
+            render_empty_state(
+                "No lookups yet",
+                body="Words you look up on your Kobo will appear here once you load your reader's database.",
+                icon="🔎",
+            )
         return
 
     # ── Stats row ────────────────────────────────────────────────

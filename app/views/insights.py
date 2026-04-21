@@ -186,10 +186,10 @@ def _ai_available() -> bool:
 
 
 def _get_provider():
-    from services.embeddings import get_provider
     try:
+        from services.embeddings import get_provider
         return get_provider()
-    except ImportError as exc:
+    except Exception as exc:
         st.error(str(exc))
         return None
 
@@ -739,26 +739,11 @@ def _pick_hero(cards: list[InsightCard]) -> InsightCard | None:
 
 
 def _render_hero(card: InsightCard) -> None:
+    from app.components.insight_card import render_featured_insight
+
     color = _CATEGORY_COLORS.get(card.category, _BLUE)
     framing = _HERO_FRAMINGS.get(card.category, "Key finding")
-
-    rec_html = ""
-    if card.recommendation:
-        rec_html = (
-            f'<div class="kn-hero-rec">'
-            f"\u2192 {html_mod.escape(card.recommendation)}</div>"
-        )
-
-    st.markdown(
-        f'<div class="kn-hero-insight" style="border-left-color:{color};">'
-        f'<div class="kn-hero-eyebrow" style="color:{color};">'
-        f"{html_mod.escape(framing)}</div>"
-        f'<div class="kn-hero-title">{html_mod.escape(card.title)}</div>'
-        f'<div class="kn-hero-summary">{html_mod.escape(card.summary)}</div>'
-        f"{rec_html}"
-        f"</div>",
-        unsafe_allow_html=True,
-    )
+    render_featured_insight(card, color=color, framing=framing)
 
 
 def _render_hero_bluesky(card: InsightCard) -> None:
@@ -906,19 +891,24 @@ def _render_takeaway_bar(takeaways: list[str]) -> None:
 
 
 def _render_card(card: InsightCard) -> None:
+    from app.components.insight_card import (
+        render_evidence_block,
+        render_recommendation_block,
+    )
+
     color = _CATEGORY_COLORS.get(card.category, _BLUE)
 
     html_parts = [
-        '<div class="kn-card">',
-        f'<div style="margin-bottom:0.25rem;">{_category_pill(card.category)}</div>',
-        f'<div class="kn-card-title" style="color:{color};">'
+        '<div class="kn-ins-card">',
+        f'<div class="kn-ins-card__chip">{_category_pill(card.category)}</div>',
+        f'<div class="kn-ins-card__title" style="color:{color};">'
         f"{html_mod.escape(card.title)}</div>",
-        f'<div class="kn-card-summary">{html_mod.escape(card.summary)}</div>',
+        f'<div class="kn-ins-card__summary">{html_mod.escape(card.summary)}</div>',
     ]
 
     if card.related_books:
         pills = "".join(_pill(b, color) for b in card.related_books[:5])
-        html_parts.append(f'<div style="margin-top:0.3rem;">{pills}</div>')
+        html_parts.append(f'<div style="margin-top:0.45rem;">{pills}</div>')
 
     html_parts.append("</div>")
     st.markdown("".join(html_parts), unsafe_allow_html=True)
@@ -933,27 +923,14 @@ def _render_card(card: InsightCard) -> None:
                 for p in paragraphs:
                     if p.strip():
                         st.markdown(
-                            f'<div style="font-size:0.85rem; line-height:1.7; '
-                            f'color:#cbd5e1; margin-bottom:0.4rem;">'
+                            f'<div class="kn-ins-card__body">'
                             f"{html_mod.escape(p.strip())}</div>",
                             unsafe_allow_html=True,
                         )
             if card.evidence:
-                items = "".join(
-                    f"<li>{html_mod.escape(ev.label)} — "
-                    f'<span class="kn-ev-val">{html_mod.escape(ev.value)}</span></li>'
-                    for ev in card.evidence
-                )
-                st.markdown(
-                    f'<ul class="kn-card-evidence">{items}</ul>',
-                    unsafe_allow_html=True,
-                )
+                render_evidence_block(card.evidence, color)
             if card.recommendation:
-                st.markdown(
-                    f'<div class="kn-card-rec">'
-                    f"{html_mod.escape(card.recommendation)}</div>",
-                    unsafe_allow_html=True,
-                )
+                render_recommendation_block(card.recommendation, color)
 
     render_share_actions(card)
 
@@ -1266,6 +1243,11 @@ def _render_search(books: list[Book]) -> None:
 
 
 def _render_export(cards: list[InsightCard]) -> None:
+    """Legacy export entry point (kept for backwards compatibility).
+
+    The new dashboard layout calls ``_render_export_compact`` inside the
+    tools footer, but tests / external callers may still hit this.
+    """
     if not cards:
         return
 
@@ -1293,64 +1275,243 @@ def _render_export(cards: list[InsightCard]) -> None:
             )
 
 
+def _render_export_compact(cards: list[InsightCard]) -> None:
+    """Compact export controls for the tools footer."""
+    if not cards:
+        st.caption("No insights to export yet.")
+        return
+    from services.insight_export import export_insights_markdown, export_insights_text
+
+    col1, col2 = st.columns(2, gap="small")
+    with col1:
+        st.download_button(
+            "Markdown",
+            data=export_insights_markdown(cards),
+            file_name="konotes-insights.md",
+            mime="text/markdown",
+            key="dl_insights_md_compact",
+            use_container_width=True,
+        )
+    with col2:
+        st.download_button(
+            "Plain text",
+            data=export_insights_text(cards),
+            file_name="konotes-insights.txt",
+            mime="text/plain",
+            key="dl_insights_txt_compact",
+            use_container_width=True,
+        )
+
+
+def _build_quick_stats(books: list[Book]) -> list[tuple[str, str, str]]:
+    """Build the 4-tile quick stats payload for the hero row."""
+    total_hl = sum(
+        sum(1 for a in b.annotations if a.kind == "highlight") for b in books
+    )
+    total_notes = sum(
+        sum(1 for a in b.annotations if a.kind == "note") for b in books
+    )
+    total_time = sum(b.time_spent_reading or 0 for b in books)
+    annotated = sum(1 for b in books if b.annotations)
+
+    stats: list[tuple[str, str, str]] = [
+        ("Books", str(len(books)), _BLUE),
+        ("Highlights", str(total_hl), _AMBER),
+        ("Notes", str(total_notes), _PURPLE),
+    ]
+    if total_time > 0:
+        stats.append(("Reading time", _format_time(total_time), _GREEN))
+    else:
+        stats.append(("Annotated", str(annotated), _GREEN))
+    return stats
+
+
+def _build_next_action(books: list[Book]) -> dict | None:
+    """Build the 'Next best action' payload — a forgotten highlight CTA."""
+    quote_pick = st.session_state.get("rediscover_quote") or _pick_rediscover(books)
+    if not quote_pick:
+        return None
+
+    st.session_state["rediscover_quote"] = quote_pick
+    text, title, age = quote_pick
+    snippet = text.strip()
+    if len(snippet) > 160:
+        snippet = snippet[:160].rstrip() + "\u2026"
+
+    body = f'\u201c{snippet}\u201d  \u2014 {title}'
+    if age:
+        body += f"  \u00b7  {age}"
+
+    def _reroll() -> None:
+        new_pick = _pick_rediscover(books)
+        if new_pick:
+            st.session_state["rediscover_quote"] = new_pick
+        st.rerun()
+
+    return {
+        "title": "Rediscover this passage",
+        "body": body,
+        "cta_label": "Show another highlight",
+        "cta_callback": _reroll,
+        "cta_key": "kn_dash_reroll_rediscover",
+        "color": _PURPLE,
+    }
+
+
+def _render_grid_section(
+    cards: list[InsightCard],
+    *,
+    icon: str,
+    title: str,
+    description: str,
+) -> None:
+    """Render a section header + 2-column grid of compact storyboard cards."""
+    if not cards:
+        return
+
+    from app.components.insight_card import (
+        render_evidence_block,
+        render_recommendation_block,
+    )
+    from app.components.insights_dashboard import render_storyboard_card
+
+    st.markdown(
+        '<div class="kn-section">'
+        f'<div class="kn-section-title">{icon} {html_mod.escape(title)}</div>'
+        f'<div class="kn-section-desc">{html_mod.escape(description)}</div>'
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    for row_start in range(0, len(cards), 2):
+        row = cards[row_start : row_start + 2]
+        cols = st.columns(2, gap="medium")
+        for offset, card in enumerate(row):
+            with cols[offset]:
+                color = _CATEGORY_COLORS.get(card.category, _BLUE)
+                render_storyboard_card(
+                    card,
+                    color=color,
+                    category_label=card.category,
+                )
+                has_detail = bool(
+                    card.body or card.evidence or card.recommendation
+                )
+                if has_detail:
+                    with st.expander("Details", expanded=False):
+                        if card.body:
+                            for paragraph in (
+                                card.body.split("\n\n")
+                                if "\n\n" in card.body
+                                else [card.body]
+                            ):
+                                if paragraph.strip():
+                                    st.markdown(
+                                        f'<div class="kn-ins-card__body">'
+                                        f"{html_mod.escape(paragraph.strip())}</div>",
+                                        unsafe_allow_html=True,
+                                    )
+                        if card.evidence:
+                            render_evidence_block(card.evidence, color)
+                        if card.recommendation:
+                            render_recommendation_block(card.recommendation, color)
+                        render_share_actions(card)
+                else:
+                    render_share_actions(card)
+        if len(row) == 1:
+            with cols[1]:
+                st.markdown(
+                    '<div class="kn-story-card kn-story-card--ghost"></div>',
+                    unsafe_allow_html=True,
+                )
+
+
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
 
 def render_insights(books: list[Book]) -> None:
-    """Render the Reading Intelligence page."""
+    """Render the Reading Intelligence dashboard.
+
+    Three-layer storyboard layout:
+        1. Hero row     — featured insight + quick stats + next-best-action
+        2. Insight grid — compact cards organised into reader-friendly groups
+        3. Workspace    — tabbed deep analysis (Themes / Connections /
+                          Summaries / Search)
+    """
 
     _inject_css()
 
     st.markdown('<div class="kn-ri-page">', unsafe_allow_html=True)
 
-    # Title
-    st.markdown(
-        '<div style="margin-bottom:0.25rem;">'
-        '<span style="font-size:1.6rem; font-weight:800; letter-spacing:-0.02em;">'
-        "Reading Intelligence</span>"
-        '<div style="font-size:0.85rem; color:#64748b; margin-top:0.15rem;">'
-        "What your reading data says about you</div></div>",
-        unsafe_allow_html=True,
+    from app.components.ui import render_page_header
+    from app.components.insights_dashboard import (
+        render_analysis_workspace,
+        render_hero_row,
+        render_tools_footer,
+    )
+
+    render_page_header(
+        "Reading Intelligence",
+        subtitle=(
+            "What your reading data says about you — patterns, themes, "
+            "and share-worthy insights."
+        ),
+        eyebrow="Insights",
     )
 
     # ------------------------------------------------------------------
-    # 1. Build Insight Feed (computed — instant, no AI)
+    # Build the insight feed (computed — instant, no AI)
     # ------------------------------------------------------------------
-    from services.insight_feed import build_feed, extract_takeaways
+    from services.insight_feed import build_feed
 
     word_lookups = st.session_state.get("word_lookups", [])
     all_cards = build_feed(books, word_lookups=word_lookups)
 
-    # ------------------------------------------------------------------
-    # 2. Reader Profile
-    # ------------------------------------------------------------------
-    _render_profile(books, word_lookups)
+    if not all_cards:
+        from app.components.insight_card import render_empty_insights_state
+        render_empty_insights_state()
 
-    # ------------------------------------------------------------------
-    # 3. Rediscover — surface a forgotten highlight
-    # ------------------------------------------------------------------
-    _render_rediscover(books)
-
-    # ------------------------------------------------------------------
-    # 4. Hero Insight
-    # ------------------------------------------------------------------
     hero = _pick_hero(all_cards)
+
+    # ------------------------------------------------------------------
+    # Layer 1 — Hero row
+    # ------------------------------------------------------------------
+    archetype = _compute_archetype(books, word_lookups) if books else None
+    quick_stats = _build_quick_stats(books) if books else []
+    next_action = _build_next_action(books)
+
+    def _featured() -> None:
+        if hero:
+            _render_hero(hero)
+        else:
+            st.markdown(
+                '<div class="kn-ins-hero" style="--kn-accent:#6366f1;">'
+                '<div class="kn-ins-hero__topline">'
+                '<span class="kn-ins-hero__eyebrow">Reading Intelligence</span>'
+                "</div>"
+                '<h3 class="kn-ins-hero__title">'
+                "Your insights will appear here</h3>"
+                '<p class="kn-ins-hero__summary">'
+                "Add a few highlights and notes to start seeing patterns "
+                "from your library."
+                "</p></div>",
+                unsafe_allow_html=True,
+            )
+
+    render_hero_row(
+        featured_renderer=_featured,
+        quick_stats=quick_stats,
+        archetype=archetype,
+        next_action=next_action,
+    )
+
     if hero:
-        _render_hero(hero)
         _render_hero_bluesky(hero)
 
     # ------------------------------------------------------------------
-    # 5. Key Findings
-    # ------------------------------------------------------------------
-    takeaways = extract_takeaways(all_cards)
-    _render_takeaway_bar(takeaways)
-    if all_cards:
-        _render_takeaway_bluesky(all_cards[0])
-
-    # ------------------------------------------------------------------
-    # 6. Insight Sections (computed cards)
+    # Layer 2 — Insight grid (compact, 2-column)
     # ------------------------------------------------------------------
     for section in _INSIGHT_SECTIONS:
         section_cards = [
@@ -1358,41 +1519,25 @@ def render_insights(books: list[Book]) -> None:
             for c in all_cards
             if c.category in section["categories"] and c != hero
         ]
-        if not section_cards:
-            continue
-
-        st.markdown(
-            f'<div class="kn-section">'
-            f'<div class="kn-section-title">'
-            f'{section["icon"]} {section["title"]}</div>'
-            f'<div class="kn-section-desc">{section["description"]}</div>'
-            f"</div>",
-            unsafe_allow_html=True,
+        _render_grid_section(
+            section_cards,
+            icon=section["icon"],
+            title=section["title"],
+            description=section["description"],
         )
 
-        if len(section_cards) <= 3:
-            for card in section_cards:
-                _render_card(card)
-        else:
-            for card in section_cards[:2]:
-                _render_card(card)
-            with st.expander(
-                f"{len(section_cards) - 2} more insight"
-                f'{"s" if len(section_cards) - 2 != 1 else ""}',
-                expanded=False,
-            ):
-                for card in section_cards[2:]:
-                    _render_card(card)
-
-    # Library Overview (standalone)
     overview_cards = [
         c for c in all_cards if c.category == "Library Overview" and c != hero
     ]
-    for card in overview_cards:
-        _render_card(card)
+    _render_grid_section(
+        overview_cards,
+        icon="\U0001f4d6",
+        title="Library Overview",
+        description="The shape of your reading life at a glance",
+    )
 
     # ------------------------------------------------------------------
-    # 7. AI Deep Analysis — opt-in, user's choice
+    # Layer 3 — Deep analysis workspace
     # ------------------------------------------------------------------
     ai_on = _ai_available()
     highlights = [
@@ -1406,192 +1551,185 @@ def render_insights(books: list[Book]) -> None:
         themes: list[ThemeCluster] = st.session_state.get("ai_themes", [])
         clusters: list[ThemeCluster] = st.session_state.get("ai_clusters", [])
         summaries: list[BookSummary] = st.session_state.get("ai_summaries", [])
-        has_results = bool(themes or clusters or summaries)
 
+        st.markdown('<div class="kn-dash-workspace">', unsafe_allow_html=True)
         st.markdown(
-            '<div class="kn-ai-panel">'
-            '<div class="kn-ai-panel-header">'
-            '<span style="font-size:1.3rem;">🔬</span>'
-            '<div class="kn-ai-panel-title">Deep Analysis</div>'
-            "</div>"
-            '<div class="kn-ai-panel-desc">'
-            "Go deeper with on-device AI. Discover semantic themes in your highlights, "
-            "find ideas that connect across different books, and generate reading summaries. "
-            "All processing runs locally on your machine."
-            "</div>"
-            "</div>",
+            '<div class="kn-dash-workspace__head">'
+            '<div class="kn-dash-workspace__title">Deep Analysis</div>'
+            '<div class="kn-dash-workspace__intro">'
+            "On-device AI surfaces themes, cross-book connections, "
+            "and per-book summaries. Nothing leaves your machine."
+            "</div></div>",
             unsafe_allow_html=True,
         )
 
-        st.markdown("")
-
-        # Action buttons
-        col_all, col_t, col_c, col_s = st.columns([2.5, 1, 1, 1])
+        # Compact action row — aligned, equal width, lighter
+        st.markdown(
+            '<div class="kn-dash-workspace__actions">', unsafe_allow_html=True
+        )
+        col_all, col_t, col_c, col_s = st.columns([2.2, 1, 1, 1])
         with col_all:
             run_all = st.button(
                 "Run Full Analysis",
                 type="primary",
                 key="ai_run_all",
+                use_container_width=True,
             )
         with col_t:
-            run_themes = st.button("Themes", key="ai_run_themes")
+            run_themes = st.button(
+                "Themes", key="ai_run_themes", use_container_width=True
+            )
         with col_c:
-            run_clusters = st.button("Connections", key="ai_run_clusters")
+            run_clusters = st.button(
+                "Connections", key="ai_run_clusters", use_container_width=True
+            )
         with col_s:
-            run_summaries = st.button("Summaries", key="ai_run_summaries")
+            run_summaries = st.button(
+                "Summaries", key="ai_run_summaries", use_container_width=True
+            )
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        # Execute on button click
+        # Execute actions (preserve existing logic)
         if run_all:
             with st.spinner("Analyzing your reading patterns\u2026"):
                 themes, clusters, summaries = _run_ai_analysis(books)
 
-        if (run_themes or run_all) and not run_all:
+        if run_themes and not run_all:
             provider = _get_provider()
             if provider is not None:
                 from services.insights import detect_themes
+
                 with st.spinner("Detecting themes\u2026"):
                     all_themes_list: list[ThemeCluster] = []
                     for book in books:
-                        bh = [a for a in book.annotations if a.kind == "highlight" and a.text.strip()]
+                        bh = [
+                            a
+                            for a in book.annotations
+                            if a.kind == "highlight" and a.text.strip()
+                        ]
                         if len(bh) >= 3:
                             all_themes_list.extend(detect_themes(book, provider))
                     st.session_state["ai_themes"] = all_themes_list
                     themes = all_themes_list
 
-        if (run_clusters or run_all) and not run_all:
+        if run_clusters and not run_all:
             provider = _get_provider()
             if provider is not None:
                 from services.insights import cluster_highlights_across_books
+
                 with st.spinner("Finding connections\u2026"):
                     result_clusters = cluster_highlights_across_books(books, provider)
                     st.session_state["ai_clusters"] = result_clusters
                     clusters = result_clusters
 
-        if (run_summaries or run_all) and not run_all:
+        if run_summaries and not run_all:
             from services.summaries import generate_summary
+
             with st.spinner("Generating summaries\u2026"):
                 result_summaries: list[BookSummary] = []
                 for book in books:
                     if book.annotations:
-                        book_themes = [t for t in themes if book.title in t.book_titles]
-                        result_summaries.append(generate_summary(book, themes=book_themes))
+                        book_themes = [
+                            t for t in themes if book.title in t.book_titles
+                        ]
+                        result_summaries.append(
+                            generate_summary(book, themes=book_themes)
+                        )
                 st.session_state["ai_summaries"] = result_summaries
                 summaries = result_summaries
 
-        # Show results if we have any
-        if themes or clusters or summaries:
-            tabs = []
-            tab_labels = []
+        # Tabs always present (Themes / Connections / Summaries / Search)
+        # — empty tabs show a small caption rather than a giant empty box.
+        tab_labels = [
+            f"Themes ({len(themes)})" if themes else "Themes",
+            f"Connections ({len(clusters)})" if clusters else "Connections",
+            f"Summaries ({len(summaries)})" if summaries else "Summaries",
+            "Semantic Search",
+        ]
+        t_themes, t_conn, t_summ, t_search = st.tabs(tab_labels)
+
+        with t_themes:
             if themes:
-                tab_labels.append(f"Themes ({len(themes)})")
+                _render_themes(themes, books)
+            else:
+                st.caption(
+                    "Run analysis to surface semantic themes detected in your highlights."
+                )
+
+        with t_conn:
             if clusters:
-                tab_labels.append(f"Connections ({len(clusters)})")
+                _render_connections(clusters)
+            else:
+                st.caption(
+                    "Run analysis to find ideas that recur across different books."
+                )
+
+        with t_summ:
             if summaries:
-                tab_labels.append(f"Summaries ({len(summaries)})")
-            tab_labels.append("Semantic Search")
+                _render_summaries(summaries, books)
+            else:
+                st.caption(
+                    "Run analysis to generate per-book summaries from your annotations."
+                )
 
-            tabs = st.tabs(tab_labels)
-            tab_idx = 0
-
-            if themes:
-                with tabs[tab_idx]:
-                    st.markdown(
-                        '<div class="kn-section">'
-                        '<div class="kn-section-title">\U0001f4da Your Reading Themes</div>'
-                        '<div class="kn-section-desc">'
-                        "Semantic patterns detected in your highlights</div></div>",
-                        unsafe_allow_html=True,
-                    )
-                    _render_themes(themes, books)
-                tab_idx += 1
-
-            if clusters:
-                with tabs[tab_idx]:
-                    st.markdown(
-                        '<div class="kn-section">'
-                        '<div class="kn-section-title">\U0001f517 Ideas Across Books</div>'
-                        '<div class="kn-section-desc">'
-                        "Highlights that echo across different titles</div></div>",
-                        unsafe_allow_html=True,
-                    )
-                    _render_connections(clusters)
-                tab_idx += 1
-
-            if summaries:
-                with tabs[tab_idx]:
-                    st.markdown(
-                        '<div class="kn-section">'
-                        '<div class="kn-section-title">\U0001f4d6 Book Summaries</div>'
-                        '<div class="kn-section-desc">'
-                        "What you captured from each book</div></div>",
-                        unsafe_allow_html=True,
-                    )
-                    _render_summaries(summaries, books)
-                tab_idx += 1
-
-            with tabs[tab_idx]:
-                _render_search(books)
-        else:
-            # No results yet — just show search
-            st.markdown("")
+        with t_search:
             _render_search(books)
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
     elif ai_on and len(highlights) < 3:
         st.markdown(
-            '<div class="kn-empty">'
-            '<div style="font-weight:600; margin-bottom:0.25rem;">'
-            "Deep analysis needs more data</div>"
-            "Keep reading and highlighting — once you have at least "
-            "3 highlights, AI analysis will be available here."
-            "</div>",
+            '<div class="kn-dash-workspace">'
+            '<div class="kn-dash-workspace__head">'
+            '<div class="kn-dash-workspace__title">Deep Analysis</div>'
+            '<div class="kn-dash-workspace__intro">'
+            "Add a few more highlights to unlock semantic themes, "
+            "cross-book connections, and AI-generated summaries."
+            "</div></div></div>",
             unsafe_allow_html=True,
         )
 
     elif not ai_on:
-        st.markdown("")
         st.markdown(
-            '<div class="kn-ai-panel">'
-            '<div class="kn-ai-panel-header">'
-            '<span style="font-size:1.3rem;">🔬</span>'
-            '<div class="kn-ai-panel-title">Want to Go Deeper?</div>'
-            "</div>"
-            '<div class="kn-ai-panel-desc">'
-            "Install the optional AI package to discover semantic themes, "
-            "find unexpected connections across books, generate reading summaries, "
-            "and search your highlights by meaning."
-            "<br><br>"
-            "<code>pip install '.[ai]'</code>"
-            "</div>"
-            '<div class="kn-ai-panel-note">'
-            "100% on-device \u2014 no API keys, no cloud, no data sharing."
-            "</div></div>",
+            '<div class="kn-dash-workspace">'
+            '<div class="kn-dash-workspace__head">'
+            '<div class="kn-dash-workspace__title">Want to Go Deeper?</div>'
+            '<div class="kn-dash-workspace__intro">'
+            "Install the optional AI extras to surface semantic themes, "
+            "cross-book connections, summaries, and meaning-based search. "
+            "100% on-device \u2014 <code>pip install '.[ai]'</code>"
+            "</div></div></div>",
             unsafe_allow_html=True,
         )
 
     # ------------------------------------------------------------------
-    # 8. Export
+    # Layer 4 — Tools footer (export + community)
     # ------------------------------------------------------------------
-    st.divider()
-    _render_export(all_cards)
-
-    # Soft star nudge — only if insights were rendered
-    if all_cards:
+    def _community_block() -> None:
+        community = (
+            "Kindle & Kobo"
+            if st.session_state.get("data_source") == "kindle"
+            else "Kobo"
+        )
+        nudge = ""
+        if all_cards:
+            nudge = (
+                "If these insights surprised you, "
+                '<a href="https://github.com/texasbe2trill/KoNotes" '
+                'style="color:inherit; text-decoration:underline;">'
+                "star KoNotes</a> — it helps others find it. "
+            )
         st.markdown(
-            '<div style="text-align:center; font-size:0.78rem; color:#94a3b8; '
-            'margin:1.5rem 0 0.5rem;">'
-            "If these insights surprised you, consider "
-            '<a href="https://github.com/texasbe2trill/KoNotes" '
-            'style="color:#94a3b8; text-decoration:underline;">'
-            "starring KoNotes</a> — it helps others find it."
+            f'<div style="font-size:0.80rem; line-height:1.6; opacity:0.78;">'
+            f"{nudge}"
+            f"Made with love for the {community} community."
             "</div>",
             unsafe_allow_html=True,
         )
 
-    # Footer
-    _community = "Kindle & Kobo" if st.session_state.get("data_source") == "kindle" else "Kobo"
-    st.markdown(
-        '<div class="kn-footer">'
-        f"Made with love for the {_community} community.</div>",
-        unsafe_allow_html=True,
+    render_tools_footer(
+        export_renderer=lambda: _render_export_compact(all_cards),
+        extra_renderers=[("Community", _community_block)],
     )
+
     st.markdown("</div>", unsafe_allow_html=True)

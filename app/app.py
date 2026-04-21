@@ -238,6 +238,8 @@ with st.sidebar:
                     device_books = normalize(raw, source="kobo_sqlite")
                     if device_books:
                         st.session_state["books"] = device_books
+                        st.session_state["using_demo"] = False
+                        st.session_state["data_source"] = "kobo"
                         _load_telemetry(tmp_path)
                         _go_to("overview")
                         st.rerun()
@@ -258,6 +260,8 @@ with st.sidebar:
                     device_books = normalize(raw, source="kobo_sqlite")
                     if device_books:
                         st.session_state["books"] = device_books
+                        st.session_state["using_demo"] = False
+                        st.session_state["data_source"] = "kobo"
                         _load_telemetry(tmp_path_reload)
                         total_ann = sum(len(b.annotations) for b in device_books)
                         st.toast(f"Loaded {len(device_books)} book(s), {total_ann} annotations")
@@ -540,10 +544,20 @@ with st.sidebar:
 books: list[Book] = st.session_state.get("books", [])
 view: str = st.session_state.get("view", "welcome")
 
+# Warm the cover cache in parallel once per library load. Runs in a
+# background daemon thread so the first render is never blocked; covers
+# materialize on the next rerun once lookups finish.
+if books:
+    _cover_sig = (len(books), st.session_state.get("data_source"))
+    if st.session_state.get("_cover_prefetch_sig") != _cover_sig:
+        from services.book_covers import prefetch_covers
+        prefetch_covers(books)
+        st.session_state["_cover_prefetch_sig"] = _cover_sig
+
 # ---------------------------------------------------------------------------
 # Demo switcher — shown on any view when viewing demo data
 # ---------------------------------------------------------------------------
-if st.session_state.get("using_demo") and books:
+if st.session_state.get("using_demo") and books and not devices:
     from services.demo_loader import demo_db_available, kindle_demo_available, load_demo_dataset, load_kindle_demo_dataset
 
     _demo_source = "Kindle" if st.session_state.get("data_source") == "kindle" else "Kobo"

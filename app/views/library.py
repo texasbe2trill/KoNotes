@@ -6,6 +6,7 @@ from typing import Callable
 import streamlit as st
 
 from app.components.book_cover import render_book_cover
+from app.components.ui import render_empty_state, render_page_header
 from models.book import Book
 from services.stats import compute_stats
 
@@ -14,19 +15,31 @@ def render_library(books: list[Book], navigate: Callable[..., None], data_source
     stats = compute_stats(books)
     is_kindle = data_source == "kindle"
 
-    st.markdown("## Library")
-
-    caption_parts = [
+    meta = [
         f"{stats.total_books} books",
         f"{stats.total_highlights} highlights",
         f"{stats.total_notes} notes",
     ]
     if not is_kindle:
-        caption_parts += [
+        meta += [
             f"{stats.books_in_progress} in progress",
             f"{stats.books_completed} completed",
         ]
-    st.caption("  /  ".join(caption_parts))
+
+    render_page_header(
+        "Library",
+        subtitle="Browse your collection — search by title or author, filter by status, and drill into any book.",
+        eyebrow="Your Books",
+        meta=meta,
+    )
+
+    if not books:
+        render_empty_state(
+            "Your library is empty",
+            body="Upload a KoboReader.sqlite or Kindle My Clippings.txt file from the sidebar to see your books here.",
+            icon="📚",
+        )
+        return
 
     # ── Filters + sort bar ───────────────────────────────────────
     all_authors = sorted({b.author for b in books if b.author})

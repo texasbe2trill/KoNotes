@@ -66,8 +66,13 @@ def render_chat(
     books: list[Book],
     sessions: list[ReadingSession] | None = None,
 ) -> None:
-    st.markdown("## Chat")
-    st.caption("Ask questions about your reading data using your own OpenAI API key.")
+    from app.components.ui import render_page_header
+
+    render_page_header(
+        "Chat",
+        subtitle="Ask questions about your reading data. Answers stay grounded in your own library.",
+        eyebrow="Your Reading Companion",
+    )
 
     # ── API key setup ────────────────────────────────────────────
     api_key = st.session_state.get("openai_api_key", "")
@@ -170,6 +175,9 @@ def render_chat(
     for msg in st.session_state["chat_messages"]:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
+            if msg["role"] == "assistant":
+                from app.components.chat_book_chips import render_chat_book_chips
+                render_chat_book_chips(msg["content"], books)
             # Show Bluesky share button for assistant messages that look like posts
             if msg["role"] == "assistant" and "#booksky" in msg["content"]:
                 _render_bluesky_button(msg["content"])
