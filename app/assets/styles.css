@@ -2304,3 +2304,76 @@ body[data-theme="light"] .kn-lib-filter-chip__val,
 html[data-theme="light"] .kn-lib-pager__label,
 body[data-theme="light"] .kn-lib-pager__label,
 [data-theme="light"] .kn-lib-pager__label { color: #475569; opacity: 1; }
+
+/* ============================================================
+   32. BRAND LOGO SYSTEM
+   ============================================================ */
+
+.kn-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin: 0.15rem 0 0.55rem;
+}
+
+.kn-brand > div:first-child svg {
+    display: block;
+    border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(29, 78, 216, 0.32);
+}
+
+.kn-brand__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.kn-brand__title {
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1;
+    color: var(--text-color);
+}
+
+.kn-brand__ko {
+    color: #3b82f6;
+}
+
+.kn-brand__subtitle {
+    font-size: 0.755rem;
+    color: var(--text-color);
+    opacity: 0.62;
+    line-height: 1.25;
+}
+
+.kn-brand--header {
+    margin-bottom: 0.7rem;
+}
+
+.kn-brand--sidebar {
+    width: 100%;
+    margin-bottom: 0.2rem;
+}
+
+/* Hero logo mark — welcome screen */
+.kn-hero__logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+}
+
+.kn-hero__logo > div {
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(29, 78, 216, 0.38);
+}
+
+@media (max-width: 780px) {
+    .kn-brand--header .kn-brand__title { font-size: 1.35rem !important; }
+}
+
+html[data-theme="light"] .kn-brand__subtitle,
+body[data-theme="light"] .kn-brand__subtitle,
+[data-theme="light"] .kn-brand__subtitle {
+    color: #64748b;
+    opacity: 1;
+}

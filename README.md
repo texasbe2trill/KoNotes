@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="app/assets/logo.svg" width="88" alt="KoNotes logo" />
+
 <h1>KoNotes</h1>
 
 <p>

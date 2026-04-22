@@ -26,6 +26,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 import streamlit as st
 
+from app.components.logo import favicon_link_html, mark_html, render_brand
 from models.activity import ProgressSnapshot, ReadingSession
 from models.book import Book
 from parser.device_detection import detect_devices
@@ -50,7 +51,7 @@ from parser.sqlite_parser import (
 
 st.set_page_config(
     page_title="KoNotes",
-    page_icon="📖",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -64,10 +65,9 @@ _CSS_FILE = _ASSETS / "styles.css"
 if _CSS_FILE.exists():
     st.markdown(f"<style>{_CSS_FILE.read_text()}</style>", unsafe_allow_html=True)
 
-# Visible app header — reinforces branding and provides the description
-# that link-preview crawlers surface via the rendered HTML.
-st.title("📖 KoNotes")
-st.caption("Turn your Kobo & Kindle reading data into structured insight")
+# Inject SVG favicon and render the brand lockup in place of the old title.
+st.markdown(favicon_link_html(), unsafe_allow_html=True)
+render_brand(variant="header")
 
 # ---------------------------------------------------------------------------
 # Hosted demo mode flag (used for behavior only; no top-page banner)
@@ -187,14 +187,7 @@ def _load_telemetry(db_path: Path) -> None:
 
 with st.sidebar:
     # --- Brand ---
-    st.markdown(
-        '<div style="text-align:center; padding: 0.4rem 0 0.2rem;">'
-        '<span style="font-size:1.5rem; font-weight:800; letter-spacing:-0.02em;">'
-        '<span style="color:#3b82f6;">Ko</span>Notes</span>'
-        '<div style="font-size:0.72rem; color:#666; margin-top:2px;">Reading Intelligence</div>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
+    render_brand(variant="sidebar")
     st.divider()
 
     # --- Auto-detect connected Kobo device ---
@@ -596,10 +589,12 @@ if not books or view == "welcome":
             _go_to("overview")
             st.rerun()
 
+    _hero_mark = mark_html(80)
     st.markdown(
-        '<div class="kn-hero">'
+        f'<div class="kn-hero">'
+        f'<div class="kn-hero__logo">{_hero_mark}</div>'
         '<h1>KoNotes</h1>'
-        '<p>Turn your Kobo & Kindle highlights into structured, readable insight.</p>'
+        '<p>Turn your Kobo &amp; Kindle highlights into structured, readable insight.</p>'
         '</div>',
         unsafe_allow_html=True,
     )
