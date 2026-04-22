@@ -1764,3 +1764,253 @@ body[data-theme="light"] .kn-dash-workspace__intro,
 html[data-theme="light"] .kn-dash-tools__title,
 body[data-theme="light"] .kn-dash-tools__title,
 [data-theme="light"] .kn-dash-tools__title { color: #64748b; opacity: 1; }
+
+/* ============================================================
+   30. ANNOTATIONS PAGE — COMPACT GRID LAYOUT
+   ============================================================ */
+
+/* Filter toolbar */
+.kn-ann-toolbar {
+    margin: 0.4rem 0 0.25rem;
+}
+.kn-ann-toolbar + div [data-testid="stHorizontalBlock"] {
+    align-items: center;
+}
+
+/* Result summary row */
+.kn-ann-summary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.75rem;
+    margin: 0.55rem 0 0.85rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+.kn-ann-summary__count {
+    font-size: 0.84rem;
+    color: var(--text-color);
+    opacity: 0.85;
+}
+.kn-ann-summary__count strong {
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--text-color);
+    opacity: 1;
+}
+.kn-ann-summary__total { opacity: 0.6; }
+
+.kn-ann-filter-chips {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.4rem;
+}
+.kn-ann-filter-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.18);
+    font-size: 0.72rem;
+    line-height: 1.3;
+    max-width: 22rem;
+}
+.kn-ann-filter-chip__lbl {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    font-weight: 700;
+    color: var(--text-color);
+    opacity: 0.55;
+}
+.kn-ann-filter-chip__val {
+    font-weight: 700;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 18rem;
+}
+
+/* Annotation grid */
+.kn-ann-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem 0.7rem;
+    margin-bottom: 1rem;
+}
+@media (max-width: 900px) {
+    .kn-ann-grid { grid-template-columns: 1fr; }
+}
+
+/* Annotation card */
+.kn-ann-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0.7rem 0.85rem 0.65rem;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(148, 163, 184, 0.04);
+    border-radius: 12px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    min-height: 8.5rem;
+}
+.kn-ann-card:hover {
+    border-color: rgba(99, 102, 241, 0.28);
+    box-shadow: 0 6px 22px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+}
+
+.kn-ann-card__head {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+}
+.kn-ann-card__badge {
+    display: inline-block;
+    padding: 0.12rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+.kn-ann-card__badge--highlight {
+    background: rgba(245, 158, 11, 0.16);
+    color: #d97706;
+}
+.kn-ann-card__badge--note {
+    background: rgba(59, 130, 246, 0.16);
+    color: #3b82f6;
+}
+.kn-ann-card__badge--other {
+    background: rgba(148, 163, 184, 0.16);
+    color: #94a3b8;
+}
+.kn-ann-card__book {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.kn-ann-card__share {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 8px;
+    background: rgba(59, 130, 246, 0.10);
+    color: #3b82f6 !important;
+    font-size: 0.85rem;
+    text-decoration: none !important;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+.kn-ann-card__share:hover {
+    background: rgba(59, 130, 246, 0.20);
+    transform: scale(1.05);
+}
+
+.kn-ann-card__body {
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--text-color);
+    opacity: 0.92;
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
+.kn-ann-card__body--quote {
+    border-left: 3px solid rgba(245, 158, 11, 0.55);
+    padding-left: 0.65rem;
+    font-style: italic;
+    opacity: 0.95;
+}
+
+.kn-ann-card__foot {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding-top: 0.35rem;
+    border-top: 1px dashed rgba(148, 163, 184, 0.14);
+    font-size: 0.7rem;
+    color: var(--text-color);
+    opacity: 0.6;
+    min-width: 0;
+}
+.kn-ann-card__chapter {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.kn-ann-card__date {
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Pager */
+.kn-ann-pager {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+.kn-ann-pager + div [data-testid="stHorizontalBlock"] {
+    align-items: center;
+}
+.kn-ann-pager__label {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-color);
+    opacity: 0.75;
+    padding-top: 0.45rem;
+}
+.kn-ann-pager__label strong {
+    font-weight: 800;
+    color: var(--text-color);
+    opacity: 1;
+}
+
+/* Light-theme overrides */
+html[data-theme="light"] .kn-ann-card,
+body[data-theme="light"] .kn-ann-card,
+[data-theme="light"] .kn-ann-card {
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(148, 163, 184, 0.28);
+}
+html[data-theme="light"] .kn-ann-card__body,
+body[data-theme="light"] .kn-ann-card__body,
+[data-theme="light"] .kn-ann-card__body { color: #1e293b; opacity: 1; }
+html[data-theme="light"] .kn-ann-card__foot,
+body[data-theme="light"] .kn-ann-card__foot,
+[data-theme="light"] .kn-ann-card__foot { color: #64748b; opacity: 1; }
+html[data-theme="light"] .kn-ann-summary__count,
+body[data-theme="light"] .kn-ann-summary__count,
+[data-theme="light"] .kn-ann-summary__count { color: #334155; opacity: 1; }
+html[data-theme="light"] .kn-ann-filter-chip,
+body[data-theme="light"] .kn-ann-filter-chip,
+[data-theme="light"] .kn-ann-filter-chip {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.25);
+}
+html[data-theme="light"] .kn-ann-filter-chip__val,
+body[data-theme="light"] .kn-ann-filter-chip__val,
+[data-theme="light"] .kn-ann-filter-chip__val { color: #1e293b; }
+html[data-theme="light"] .kn-ann-pager__label,
+body[data-theme="light"] .kn-ann-pager__label,
+[data-theme="light"] .kn-ann-pager__label { color: #475569; opacity: 1; }
